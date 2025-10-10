@@ -1,0 +1,45 @@
+.loginForm-container {
+    width: 100%;
+    height: 100vh;
+    border: 1px solid red;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+
+.lgoinForm {
+    width: 400px;
+  
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+}
+
+.login-header{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    padding: 0px 20px ;
+    align-items: center;
+
+}
+.submitn-btn {
+    width: 300px;
+    margin-left: 40px;
+}
+
+.span {
+    color: tomato;
+}
+
+.span:hover {
+    font-size: 1.03em;
+    cursor: pointer;
+}

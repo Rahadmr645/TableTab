@@ -1,0 +1,37 @@
+import express from 'express';
+
+import dotenv from 'dotenv'
+dotenv.config();
+import userRoutes from './rotues/userRoutes.js';
+import menuRoutes from './rotues/menuRoutes.js';
+import cors from 'cors';
+import connectToDB from './config/db.js';
+
+const app = express();
+
+app.use(cors());
+
+app.use(express.json());
+
+const PORT = process.env.PORT || 4001;
+
+
+// router section
+app.use('/api/user/', userRoutes)
+app.use('/api/menu/', menuRoutes)
+
+
+app.get('/', (req, res) => {
+    res.send("Hello user");
+})
+
+
+// DB connection 
+connectToDB();
+
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+

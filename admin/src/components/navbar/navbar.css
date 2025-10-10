@@ -1,0 +1,44 @@
+
+.navbar{
+    height: 60px;
+    border: 1px solid black;
+    margin-top: 20px;
+    padding: 5px 20px;
+}
+
+
+/* for make my work more easy */
+.simple-border{
+    border: 1px solid red;
+}
+
+.navbar div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+
+}
+.profilepic{
+    height: 50px;
+    width: 50px;;
+    border: 2px solid black;
+    border-radius: 50%;
+}
+
+a{
+    text-decoration: none;
+    color : black;
+    font-weight: bold;
+    font-size: 20px;
+}
+.middle-box {
+    display: flex;
+    gap: 40px;
+}
+
+
+.selectedboder{
+    border-bottom: 2px solid green;
+    color: rgb(28, 48, 28);
+}
