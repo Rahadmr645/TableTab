@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config();
 import userRoutes from './rotues/userRoutes.js';
 import menuRoutes from './rotues/menuRoutes.js';
+import qrRoutes from './rotues/qrRoutes.js'
 import cors from 'cors';
 import connectToDB from './config/db.js';
 
@@ -19,6 +20,7 @@ const PORT = process.env.PORT || 4001;
 // router section
 app.use('/api/user/', userRoutes)
 app.use('/api/menu/', menuRoutes)
+app.use('/api/qr', qrRoutes)
 
 
 app.get('/', (req, res) => {
@@ -26,6 +28,7 @@ app.get('/', (req, res) => {
 })
 
 
+console
 // DB connection 
 connectToDB();
 
