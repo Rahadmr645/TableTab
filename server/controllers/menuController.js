@@ -1,7 +1,7 @@
 import Menu from "../models/Menu.js"
 
 
-// adding new item in menu
+// creating 01:  new item in menu
 
 export const addMenu = async (req, res) => {
     try {
@@ -21,7 +21,7 @@ export const addMenu = async (req, res) => {
 
 
 
-// get all menu items list
+// get 02:  all menu items list
 
 export const getMenu = async (req, res) => {
     try {
@@ -32,5 +32,30 @@ export const getMenu = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Failed to fetch menu items", error: error.messasge })
 
+    }
+}
+
+
+
+// 03 :   get menu update 
+export const menuUpdate = async(req, res) => {
+
+    try {
+        
+    } catch (error) {
+        
+    }
+}
+
+
+
+
+
+// 04 : delete menu items
+export const deleteMenu = async (req, res) => {
+    try {
+        
+    } catch (error) {
+        
     }
 }
