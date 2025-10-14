@@ -30,7 +30,7 @@ const Navbar = () => {
         <div className="middle-box">
 
           <a className={selected === 'orders' ? "selectedboder" : ""} onClick={() => setSelected('orders')} href="#">Orders</a>
-          <a className={selected === 'menu' ? "selectedboder" : ""} onClick={() => setSelected('menu')} href="#">Menu</a>
+          <a className={selected === 'menu' ? "selectedboder" : ""} onClick={() => setSelected('menu')} href="menu">Menu</a>
           <a className={selected === 'summary' ? "selectedboder" : ""} onClick={() => setSelected('summary')} href="#">Summary</a>
           <a className={selected === 'chef' ? "selectedboder" : ""} onClick={() => setSelected('chef')} href="#">Chefs</a>
           <a className={selected === 'about' ? "selectedboder" : ""} onClick={() => setSelected('about')} href="#">About</a>
