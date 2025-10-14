@@ -104,7 +104,7 @@ const Login = () => {
           />
         </div>
 
-        <button type="submit" className="btn submitn-btn btn-primary">
+        <button type="submit" className="btn submitn-btn btn-primary submit-btn">
           Submit
         </button>
 

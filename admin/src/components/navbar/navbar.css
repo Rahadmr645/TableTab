@@ -1,15 +1,17 @@
 
 .navbar{
     height: 60px;
-    border: 1px solid black;
+    width: 475px;
     margin-top: 20px;
     padding: 5px 20px;
+    background: rgba(166, 153, 152);
+    
 }
 
 
 /* for make my work more easy */
 .simple-border{
-    border: 1px solid red;
+    
 }
 
 .navbar div {
@@ -17,6 +19,7 @@
     justify-content: center;
     align-items: center;
     height: 100%;
+    
 
 }
 .profilepic{
@@ -42,3 +45,41 @@ a{
     border-bottom: 2px solid green;
     color: rgb(28, 48, 28);
 }
+
+
+
+
+
+/*responsive for mobile*/
+@media (max-width: 425px) {
+  
+  .middle-box {
+    display: flex;
+    gap: 15px;
+  }
+  .nav_icon_box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 0px;
+  }
+  h3 {
+    display: none;
+  }
+  
+  .nav-text {
+    display: none;
+  }
+    a{
+      font-size: 15px;
+    }
+    
+   .lg-btn {
+     width: 50px;
+     font-size: 10px;
+     height: 20px;
+     display: flex;
+     align-items: center;
+   } 
+}
+

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { useContext } from 'react';
 import {AuthContext} from '../../context/AuthContext.jsx'
- import './addmenuform.css'
+ import './addMenuForm.css'
 const AddMenuForm = () => {
 
   const [formData, setFormData] = useState({
