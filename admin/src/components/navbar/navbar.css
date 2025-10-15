@@ -1,7 +1,6 @@
 
 .navbar{
     height: 60px;
-    width: 475px;
     margin-top: 20px;
     padding: 5px 20px;
     background: rgba(166, 153, 152);
@@ -38,6 +37,11 @@ a{
 .middle-box {
     display: flex;
     gap: 40px;
+}
+
+.nav_icon_box {
+  display: flex;
+  gap: 10px;
 }
 
 

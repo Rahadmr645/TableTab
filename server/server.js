@@ -10,9 +10,8 @@ import connectToDB from './config/db.js';
 
 const app = express();
 
-app.use(cors());
-
 app.use(express.json());
+app.use(cors());
 
 const PORT = process.env.PORT || 4001;
 

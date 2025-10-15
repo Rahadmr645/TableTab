@@ -14,9 +14,9 @@ export const userCreate = async (req, res) => {
     try {
 
         console.log('redata', req.body);
-        const { name, email, password } = req.body;
+        const {username, email, password } = req.body;
 
-        if (!name || !email || !password) {
+        if ( !username || !email || !password) {
             return res.status(400).json({ message: "please fill all the fields" });
         }
 
@@ -33,18 +33,18 @@ export const userCreate = async (req, res) => {
 
 
         const newUser = new User({
-            name,
+            username,
             email,
             password: hashedPassword,
         });
 
 
         // genarate the token
-        const token = JWT.sign({ id: newUser._id, email: newUser.email, name: newUser.name }, SECTRATE_KEY, { expiresIn: '1d' });
+        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username }, SECTRATE_KEY, { expiresIn: '1d' });
 
         await newUser.save();
 
-        res.status(200).json({ messasge: "user create susccessfully", user: newUser, Token: token })
+        res.status(200).json({ messasge: "user create susccessfully", user: newUser, token: token })
 
 
     } catch (error) {
@@ -78,7 +78,7 @@ export const userLogin = async (req, res) => {
 
 
         // genarate the token
-        const token = JWT.sign({ id: isExist._id, email: isExist.email, name: isExist.name }, SECTRATE_KEY, expiresIn = '1d');
+        const token = JWT.sign({ id: isExist._id, email: isExist.email, username: isExist.username }, SECTRATE_KEY, expiresIn = '1d');
 
         res.status(200).json({ messasge: "user Login susccessfully", user: isExist, Token: token })
 

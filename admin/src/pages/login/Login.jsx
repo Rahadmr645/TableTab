@@ -3,8 +3,12 @@ import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
+import { useNavigate } from 'react-router-dom';
+
 const Login = () => {
   const { currState, setCurrState, setShowLogin, URL } = useContext(AuthContext);
+
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -29,16 +33,14 @@ const Login = () => {
       currState === 'SignUp'
         ? formData
         : { email: formData.email, password: formData.password };
+    console.log(bodyData)
 
 
-        console.log(bodyData)
     try {
       const res = await axios.post(endPoint, bodyData,
-        {headers: { 'Content-Type': 'application/json' }}
+        { headers: { 'Content-Type': 'application/json' } }
       );
       const data = res.data;
-
-     
       if (res.status === 200) {
         alert('Success');
         console.log(data);
@@ -46,7 +48,25 @@ const Login = () => {
         alert('Fail: ' + data.message);
       }
 
+      const token = res.data.token;
+
+      if (token) {
+        localStorage.setItem("token", token);
+        console.log("token saved:", localStorage.getItem("token"));
+      } else {
+        console.log("no token found from backend")
+      }
+
+      // saving to the localstorage
+
+
       setFormData({ username: '', email: '', password: '' });
+
+      navigate('/');
+      setShowLogin(false)
+
+
+
     } catch (error) {
       console.error(error);
       alert('Something went wrong: ' + error.message);
