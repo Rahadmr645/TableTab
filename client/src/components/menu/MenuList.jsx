@@ -86,7 +86,7 @@ const MenuList = () => {
           filteredItems.map((item) => (
             <div className="menu-card" key={item._id}>
               <img
-                src={`${URL}/uploads/${item.image}`}
+                src={`${URL}/middlewares/uploads/${item.image}`}
                 alt={item.name}
                 className="menu-image"
               />

@@ -4,6 +4,8 @@ import './index.css'
 import App from './App.jsx'
 import { BrowserRouter as Router } from 'react-router-dom'
 import { ContextProvider } from './context/CartContext.jsx'
+import eruda from 'eruda'
+eruda.init();
 createRoot(document.getElementById('root')).render(
 
 
