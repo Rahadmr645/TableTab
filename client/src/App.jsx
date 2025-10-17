@@ -5,7 +5,7 @@ import { Routes, Route } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from './context/CartContext.jsx'
 import QRGenerator from './components/qrcode/QRGenerator.jsx'
-import ManuList from './components/menu/MenuList.jsx'
+
 import MenuList from './components/menu/MenuList.jsx'
 
 
