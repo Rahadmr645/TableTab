@@ -2,9 +2,10 @@ import React from 'react'
 import { useState } from 'react'
 import axios from 'axios'
 import { useContext } from 'react';
-import {AuthContext} from '../../context/AuthContext.jsx'
- import './addMenuForm.css'
+import { AuthContext } from '../../context/AuthContext.jsx'
+import './addMenuForm.css'
 const AddMenuForm = () => {
+
 
   const [formData, setFormData] = useState({
     name: "",
@@ -12,10 +13,9 @@ const AddMenuForm = () => {
     description: "",
     image: "",
     category: "",
-
   });
 
-  const { URL } = useContext(AuthContext)
+  const { URL, setShowMenuForm } = useContext(AuthContext)
 
   const [options, setOptions] = useState([{ name: "", value: "" }]);
 
@@ -39,7 +39,7 @@ const AddMenuForm = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.velue
+      [e.target.name]: e.target.value
     });
   }
 
@@ -66,54 +66,58 @@ const AddMenuForm = () => {
 
     setMessage("");
 
+    console.log(formData)
     try {
-      const formattedOptions = options.map((opt) => ({
-        name: opt.name,
-        values:
-          opt.values.split(",").map((v) => v.trim()),
-      }))
+
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("price", formData.price);
+      data.append("description", formData.description);
+      data.append("image", formData.image);
+      data.append("category", formData.category);
 
 
-      const payload = {
-        ...formData,
-        options: formattedOptions
-      }
+      const res = await axios.post(`${URL}/api/menu/add-menu`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      const res = await
-        axios.post(`${URL}/api/menu/create`, payload);
 
-      setMessage("Menu item added")
+      setMessage("Menu item added successfully");
+      console.log(res.data);
+
+
       setFormData({
         name: "",
         price: "",
         description: "",
-        image: "",
         category: "",
-
+        image: null,
       });
-      setOptions([{ name: "", values: "" }]);
+
     } catch (error) {
-      console.error("error adding menu:", error);
-      setMessage("Faild to add menu, please try aggain")
 
     }
   }
-
   return (
     <div className='menu_container'>
-      <h2>Add New Menu Item</h2>
-
-      {message && (
-        <div className='message'>
-
-          {message}
+      <form className='menu_form' onSubmit={handleSubmit}>
+        <div className="header-box">
+          <h5>Add New Menu Item </h5>
+          <p onClick={() => setShowMenuForm(false)}>x</p>
         </div>
-      )}
-      <form className='menu_form' action={handleSubmit}>
+        {message && (
+          <div className='message'>
+            {message}
+          </div>
+        )}
         <input type="text" name='name' placeholder='Name' value={formData.name} onChange={handleChange} required />
+
         <input type="number" name='price' placeholder='price' value={formData.price} onChange={handleChange} required />
+
         <textarea name="description" placeholder='description' value={formData.description} onChange={handleChange} id="" required />
-        <input type="text" name='image' placeholder='image' value={formData.image} onChange={handleChange} required />
+
+        <input type="file" name='image' placeholder='image' value={formData.image} onChange={handleChange} required />
+
         <select name='category' value={formData.category} onChange={handleChange} required>
           <option value="" >Select Category</option>
           {catagories.map((cat) => (
@@ -128,6 +132,7 @@ const AddMenuForm = () => {
         </button>
       </form>
     </div>
+
   )
 }
 

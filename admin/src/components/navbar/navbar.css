@@ -1,42 +1,43 @@
+.navbar {
+  width: 100%;
+  height: 60px;
+  margin-top: 20px;
+  padding: 5px 20px;
+  background: rgba(166, 153, 152);
 
-.navbar{
-    height: 60px;
-    margin-top: 20px;
-    padding: 5px 20px;
-    background: rgba(166, 153, 152);
-    
 }
 
 
 /* for make my work more easy */
-.simple-border{
-    
-}
+.simple-border {}
 
 .navbar div {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+
 
 }
-.profilepic{
-    height: 50px;
-    width: 50px;;
-    border: 2px solid black;
-    border-radius: 50%;
+
+.profilepic {
+  height: 50px;
+  width: 50px;
+  ;
+  border: 2px solid black;
+  border-radius: 50%;
 }
 
-a{
-    text-decoration: none;
-    color : black;
-    font-weight: bold;
-    font-size: 20px;
+a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+  font-size: 20px;
 }
+
 .middle-box {
-    display: flex;
-    gap: 40px;
+  display: flex;
+  gap: 40px;
 }
 
 .nav_icon_box {
@@ -45,9 +46,9 @@ a{
 }
 
 
-.selectedboder{
-    border-bottom: 2px solid green;
-    color: rgb(28, 48, 28);
+.selectedboder {
+  border-bottom: 2px solid green;
+  color: rgb(28, 48, 28);
 }
 
 
@@ -56,34 +57,36 @@ a{
 
 /*responsive for mobile*/
 @media (max-width: 425px) {
-  
+
   .middle-box {
     display: flex;
     gap: 15px;
   }
+
   .nav_icon_box {
     display: flex;
     justify-content: center;
     align-items: center;
     padding-bottom: 0px;
   }
+
   h3 {
     display: none;
   }
-  
+
   .nav-text {
     display: none;
   }
-    a{
-      font-size: 15px;
-    }
-    
-   .lg-btn {
-     width: 50px;
-     font-size: 10px;
-     height: 20px;
-     display: flex;
-     align-items: center;
-   } 
-}
 
+  a {
+    font-size: 15px;
+  }
+
+  .lg-btn {
+    width: 50px;
+    font-size: 10px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+  }
+}

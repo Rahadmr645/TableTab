@@ -5,7 +5,8 @@ import { Routes, Route } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from './context/CartContext.jsx'
 import QRGenerator from './components/qrcode/QRGenerator.jsx'
-import ManuCard from './components/ManuCard.jsx'
+import ManuList from './components/menu/MenuList.jsx'
+import MenuList from './components/menu/MenuList.jsx'
 
 
 const App = () => {
@@ -19,7 +20,7 @@ const App = () => {
 
        {/* Router section */}
        <Routes>
-        <Route path='/menu' element={<ManuCard/>} />
+        <Route path='/menu' element={<MenuList/>} />
        </Routes>
     </>
   )

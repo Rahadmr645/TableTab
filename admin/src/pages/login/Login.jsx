@@ -3,6 +3,7 @@ import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
+import { jwtDecode  } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
@@ -71,8 +72,13 @@ const Login = () => {
       console.error(error);
       alert('Something went wrong: ' + error.message);
     }
+
+
+   
   };
 
+
+  
   return (
     <div className="loginForm-container">
       <form className="lgoinForm" onSubmit={submitHandler}>

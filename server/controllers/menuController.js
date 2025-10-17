@@ -8,25 +8,29 @@ export const addMenu = async (req, res) => {
 
         const { name, price, description, image, category, options } = req.body;
 
+        // for image
+        const imagePath = req.file ? req.file.path : null;
+
         // validation check 
         if (!name || !price || !description || !category) {
             return res.status(400).json({ message: 'you must be fill all the field' })
         }
 
-        const newMenu = new Menu({
+
+      const  newItem = new Menu({
             name,
             price,
             description,
-            image,
+            image: imagePath,
             category,
             options,
         });
-        await newMenu.save();
-        res.status(200).json({ message: "New item added successfully", newMenu });
+        await newItem.save();
+        res.status(200).json({ message: "New item added successfully", newMenu: newItem });
 
     } catch (error) {
 
-        res.status(500).json({ message: "fiald to add new item", Menu: newItem, error: error.message });
+        res.status(500).json({ message: "fiald to add new item",  error: error.message });
 
     }
 }

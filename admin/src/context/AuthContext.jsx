@@ -11,6 +11,7 @@ export const AuthContextProvider = ({ children }) => {
 
 
     const [showLogin, setShowLogin] = useState(false);
+    const [showMenuForm, setShowMenuForm] = useState(false);
     const [currState, setCurrState] = useState('Signup')
     const URL = "http://localhost:4000";
 
@@ -27,6 +28,8 @@ export const AuthContextProvider = ({ children }) => {
 
     const contextVelu = {
         showLogin,
+        showMenuForm,
+        setShowMenuForm,
         setShowLogin,
         currState,
         setCurrState,
