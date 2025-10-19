@@ -6,12 +6,13 @@ import './MenuList.css'
 
 import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
-const MenuList = () => { 
-  const { URL,quantities,  setQuantities} = useContext(AuthContext);
-  const [menuItems, setMenuItems] = useState([]); 
+const MenuList = () => {
+  const { URL, quantities, setQuantities, cart, setCart } = useContext(AuthContext);
+  const [menuItems, setMenuItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [loading, setLoading] = useState(true);  
-  const [error, setError] = useState(null);       
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
 
   const categories = [
     "All",
@@ -36,10 +37,10 @@ const MenuList = () => {
         const data = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data.MenuList)
-          ? res.data.MenuList
-          : [];
+            ? res.data.MenuList
+            : [];
 
-          console.log(data)
+        console.log(data)
 
         setMenuItems(data);
         setLoading(false);
@@ -55,7 +56,7 @@ const MenuList = () => {
 
   }, [URL]);
 
- 
+
   const filteredItems = Array.isArray(menuItems)
     ? selectedCategory === "All"
       ? menuItems
@@ -68,21 +69,41 @@ const MenuList = () => {
 
 
 
-// handle quantities 
+  // handle quantities 
+  const handleAdd = (item) => {
 
-const handleAdd = (id) => {
-  setQuantities(prev => ({
-    ...prev,
-    [id]: (prev[id] || 0) + 1
-  }));
-};
 
-const handleRemove = (id) => {
-  setQuantities(prev => ({
-    ...prev,
-    [id]: Math.max((prev[id] || 0) - 1, 0)
-  }));
-};
+    // update quantity for the item
+    setQuantities(prev => ({
+      ...prev,
+      [item._id]: (prev[item._id] || 0) + 1,
+    }));
+
+
+    // 02: update cart array
+    setCart((age) => {
+
+      // check if item already exist 
+      const existing = age.find(i=> i._id === item._id);
+
+      if (existing) {
+        return age.map((i) =>
+          i._id === item._id ? { ...i, quantity: i.quantity + 1, rahadNumber: i.rahadNumber + 2 } : i)
+
+      } else {
+        return [...age, { ...item, quantity: 1 }]
+      }
+    })
+  }
+  console.log(quantities)
+  const handleRemove = (id) => {
+    setQuantities(prev => ({
+      ...prev,
+      [id]: Math.max((prev[id] || 0) - 1, 0)
+    }));
+  };
+
+
 
   return (
     <div className="menu-list-container">
@@ -93,9 +114,8 @@ const handleRemove = (id) => {
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`category-btn ${
-              selectedCategory === cat ? "active" : ""
-            }`}
+            className={`category-btn ${selectedCategory === cat ? "active" : ""
+              }`}
             onClick={() => setSelectedCategory(cat)}
           >
             {cat}
@@ -113,20 +133,20 @@ const handleRemove = (id) => {
                 alt={item.name}
                 className="menu-image"
               />
-              
-              
-              { quantities[item._id] > 0 ?  
-              <div>
-                  <p onClick={() => handleAdd(item._id)}><IoAddCircleOutline /></p>
+
+
+              {quantities[item._id] > 0 ?
+                <div className="quantities-box" >
+                  <p onClick={() => handleAdd(item)}><IoAddCircleOutline /></p>
                   {quantities[item._id]}
-                <p onClick={() => handleRemove(item._id)}><RxDividerHorizontal /> </p>
+                  <p onClick={() => handleRemove(item._id)}><RxDividerHorizontal /> </p>
                 </div>
                 :
-                <div>
-                 <p onClick={() => handleAdd(item._id)}> <IoAddCircleOutline /> </p>
+                <div className="adding-btn">
+                  <p onClick={() => handleAdd(item._id)}> <IoAddCircleOutline /> </p>
                 </div>
-                
-                
+
+
               }
               <div className="menu-info">
                 <h4>{item.name}</h4>

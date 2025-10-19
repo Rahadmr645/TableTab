@@ -44,7 +44,7 @@ connectToDB();
 
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://192.168.8.225:${PORT}`);
+    console.log(`Server is running on http://10.91.86.227:${PORT}`);
 });
 
 

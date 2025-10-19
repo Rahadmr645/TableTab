@@ -1,19 +1,22 @@
-import { createContext , useState } from "react";
+import { createContext, useState } from "react";
 
 
 export const AuthContext = createContext();
 
 
 export const ContextProvider = ({ children }) => {
-  
-  const [quantities,  setQuantities] = useState({});
 
-    const URL = 'http://192.168.8.225:4000';
+    const [quantities, setQuantities] = useState({});
+    const [cart, setCart] = useState({});
+
+    const URL = 'http://10.91.86.227:4000';
 
     const contextValue = {
         URL,
         quantities,
-        setQuantities
+        setQuantities,
+        cart,
+        setCart,
     }
 
     return (
