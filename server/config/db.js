@@ -6,7 +6,7 @@ const MONGO_URL = process.env.MONGO_URL;
 
 const connectToDB = () => {
     try {
-        mongoose.connect(MONGO_URL, {  });
+        mongoose.connect(MONGO_URL, {   });
         console.log("DB connected successfully")
     } catch (error) {
         console.log("Faild to connect DB", error);

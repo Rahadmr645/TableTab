@@ -1,21 +1,19 @@
-import { createContext } from "react";
+import { createContext , useState } from "react";
 
 
 export const AuthContext = createContext();
 
 
 export const ContextProvider = ({ children }) => {
+  
+  const [quantities,  setQuantities] = useState({});
 
-
-    const a = 2;
-
-
-    const URL = 'http://localhost:4000';
+    const URL = 'http://192.168.8.225:4000';
 
     const contextValue = {
-        a,
         URL,
-
+        quantities,
+        setQuantities
     }
 
     return (

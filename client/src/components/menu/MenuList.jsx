@@ -1,13 +1,17 @@
 import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
+import './MenuList.css'
 
-const MenuList = () => {
-  const { URL } = useContext(AuthContext);
-  const [menuItems, setMenuItems] = useState([]); // ✅ always an array
+
+import { IoAddCircleOutline } from "react-icons/io5";
+import { RxDividerHorizontal } from "react-icons/rx";
+const MenuList = () => { 
+  const { URL,quantities,  setQuantities} = useContext(AuthContext);
+  const [menuItems, setMenuItems] = useState([]); 
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [loading, setLoading] = useState(true);   // ✅ loading state
-  const [error, setError] = useState(null);       // ✅ error state
+  const [loading, setLoading] = useState(true);  
+  const [error, setError] = useState(null);       
 
   const categories = [
     "All",
@@ -61,6 +65,25 @@ const MenuList = () => {
   if (loading) return <p>Loading menu...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
+
+
+
+// handle quantities 
+
+const handleAdd = (id) => {
+  setQuantities(prev => ({
+    ...prev,
+    [id]: (prev[id] || 0) + 1
+  }));
+};
+
+const handleRemove = (id) => {
+  setQuantities(prev => ({
+    ...prev,
+    [id]: Math.max((prev[id] || 0) - 1, 0)
+  }));
+};
+
   return (
     <div className="menu-list-container">
       <h2 className="menu-title">Our Menu</h2>
@@ -86,10 +109,25 @@ const MenuList = () => {
           filteredItems.map((item) => (
             <div className="menu-card" key={item._id}>
               <img
-                src={`${URL}/middlewares/uploads/${item.image}`}
+                src={`${URL}${item.image}`}
                 alt={item.name}
                 className="menu-image"
               />
+              
+              
+              { quantities[item._id] > 0 ?  
+              <div>
+                  <p onClick={() => handleAdd(item._id)}><IoAddCircleOutline /></p>
+                  {quantities[item._id]}
+                <p onClick={() => handleRemove(item._id)}><RxDividerHorizontal /> </p>
+                </div>
+                :
+                <div>
+                 <p onClick={() => handleAdd(item._id)}> <IoAddCircleOutline /> </p>
+                </div>
+                
+                
+              }
               <div className="menu-info">
                 <h4>{item.name}</h4>
                 <p>{item.description}</p>

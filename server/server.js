@@ -17,10 +17,14 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename);
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: "*",
+}));
+
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 4000;
 
 
 // router section
@@ -40,7 +44,7 @@ connectToDB();
 
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on http://192.168.8.225:${PORT}`);
 });
 
 
