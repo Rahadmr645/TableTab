@@ -6,8 +6,8 @@ import { useContext } from 'react'
 import { AuthContext } from './context/CartContext.jsx'
 import QRGenerator from './components/qrcode/QRGenerator.jsx'
 
-import MenuList from './components/menu/MenuList.jsx'
-
+import MenuList from './components/menu/MenuList.jsx';
+import Checkout from "./pages/checkout/Checkout.jsx"
 
 const App = () => {
 
@@ -23,6 +23,7 @@ const App = () => {
        {/* Router section */}
        <Routes>
         <Route path='/menu' element={<MenuList/>} />
+        <Route path="/checkout" element={<Checkout/>}  />
        </Routes>
     </>
   )

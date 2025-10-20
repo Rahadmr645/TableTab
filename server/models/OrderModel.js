@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
     tableId: { type: String, reqired: true },
-
+    customerName: { type: String, required: true},
     items: [
         {
             name: String,

@@ -21,7 +21,7 @@ const QRGenerator = () => {
    
     return (
         <div>
-       <input type="text" 
+       <input type="number" 
        placeholder='Enter your tableId'
        value={tableId}
        onChange={(e)=> setTableId(e.target.value)}
@@ -31,8 +31,6 @@ const QRGenerator = () => {
        <button
        className='bg-blue-600 text-white px-3 py-2 rounded'
         onClick={generateQR}>Generator QR</button>
-
-
        { qr && (
         <div className='mt-4 text-center'>
             <img src={qr.qrImage}  alt="" />

@@ -7,9 +7,12 @@ import Order from "../models/OrderModel";
 export const createOrder = async (req, res) => {
 
     try {
-        const { tableId, items, totalPrice } = req.body;
+      
+      const {tableId} = req.params;
+      
+        const {customerName,items,totalPrice } = req.body;
 
-        const newOrder = new Order({ tableId, items, totalPrice })
+        const newOrder = new Order({customarName, tableId, items, totalPrice })
         await newOrder.save();
 
         res.status(200).json({ message: " Order Created successfully", Order: newOrder });

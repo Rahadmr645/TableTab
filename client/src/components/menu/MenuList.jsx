@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
 import './MenuList.css'
-
+import {Link} from 'react-router-dom'
 
 import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
@@ -81,26 +81,44 @@ const MenuList = () => {
 
 
     // 02: update cart array
-    setCart((age) => {
+    setCart((prev) => {
 
       // check if item already exist 
-      const existing = age.find(i=> i._id === item._id);
+      const existing = prev.find(i=> i._id === item._id);
 
       if (existing) {
-        return age.map((i) =>
-          i._id === item._id ? { ...i, quantity: i.quantity + 1, rahadNumber: i.rahadNumber + 2 } : i)
+        return prev.map((i) =>
+          i._id === item._id ? { ...i, quantity: i.quantity + 1,}: i)
 
       } else {
-        return [...age, { ...item, quantity: 1 }]
+        return [...prev, { ...item, quantity: 1 }]
       }
     })
   }
-  console.log(quantities)
+  console.log(cart)
   const handleRemove = (id) => {
-    setQuantities(prev => ({
-      ...prev,
-      [id]: Math.max((prev[id] || 0) - 1, 0)
-    }));
+    setQuantities((prev) => {
+      const newQuantity = Math.max((prev[id] || 0) -1,  0);
+      
+      const update = {...prev, [id]: newQuantity}
+      
+      // remove id if count 0
+      if(newQuantity  === 0 ) {
+        delete update[id];
+        
+      }
+      return update;
+    });
+      // update cart also
+      setCart((prevCart)  => {
+        const safeCart = Array.isArray(prevCart) ?  prevCart : [];
+      
+      
+      const updatedCart = safeCart.map((i) => (i._id === id ?  {...i,quantity : i.quantity - 1}: i))
+        .filter(i => i.quantity > 0)
+        
+        return updatedCart
+    });
   };
 
 
@@ -120,7 +138,12 @@ const MenuList = () => {
           >
             {cat}
           </button>
+          
         ))}
+        {cart.length  > 0 ?  (
+         <Link to='/checkout' >Your Order </Link>
+         ) : <></>
+        }
       </div>
 
       {/*  Menu Cards */}
@@ -143,7 +166,7 @@ const MenuList = () => {
                 </div>
                 :
                 <div className="adding-btn">
-                  <p onClick={() => handleAdd(item._id)}> <IoAddCircleOutline /> </p>
+                  <p onClick={() => handleAdd(item)}> <IoAddCircleOutline /> </p>
                 </div>
 
 
