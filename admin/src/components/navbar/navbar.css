@@ -38,11 +38,13 @@ a {
 .middle-box {
   display: flex;
   gap: 40px;
+  align-items: center;
 }
 
 .nav_icon_box {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 

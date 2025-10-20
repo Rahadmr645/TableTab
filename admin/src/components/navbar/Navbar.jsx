@@ -9,6 +9,7 @@ import { GrCafeteria } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { PiChefHat } from "react-icons/pi";
 import { FaInfoCircle } from "react-icons/fa";
+import { NavLink } from 'react-router-dom'
 const Navbar = () => {
 
 
@@ -17,6 +18,7 @@ const Navbar = () => {
 
 
   return (
+
 
 
     <div className='navbar' >
@@ -28,30 +30,30 @@ const Navbar = () => {
 
       </div>
       <div className=' col-6 simple-border'>
-       <div className="middle-box">
-  <div className={`nav_icon_box  ${selected === 'orders' ? "selectedboder" : ""}`} onClick={() => setSelected('orders')}>
-    <FaCartPlus className="nav-icon"/>
-    <span className="nav-text">Orders</span>
-  </div>
-<div className={`nav_icon_box  ${selected === 'menu' ? "selectedboder" : ""}`} onClick={() => setSelected('menu')}>
-    <GrCafeteria className="nav-icon" />
-    <span className='nav-text'>Menu</span>
-  </div>
+        <div className="middle-box">
+          <NavLink to='/orders' className={`nav_icon_box  ${selected === 'orders' ? "selectedboder" : ""}`} onClick={() => setSelected('orders')}>
+            <FaCartPlus className="nav-icon" />
+            <span className="nav-text">Orders</span>
+          </NavLink>
+          <NavLink to='/menu' className={`nav_icon_box  ${selected === 'menu' ? "selectedboder" : ""}`} onClick={() => setSelected('menu')}>
+            <GrCafeteria className="nav-icon" />
+            <span className='nav-text'>Menu</span>
+          </NavLink>
 
-   <div className={`nav_icon_box  ${selected === 'summary' ? "selectedboder" : ""}`} onClick={() => setSelected('summary')}>
-    <FaChartLine className="nav-icon" />
-    <span className="nav-text">Summary</span>
-  </div>
+          <NavLink to='/summary' className={`nav_icon_box  ${selected === 'summary' ? "selectedboder" : ""}`} onClick={() => setSelected('summary')}>
+            <FaChartLine className="nav-icon" />
+            <span className="nav-text">Summary</span>
+          </NavLink>
 
-   <div className={`nav_icon_box  ${selected === 'chef' ? "selectedboder" : ""}`} onClick={() => setSelected('chef')}>
-    <PiChefHat className="nav-icon" />
-    <span className="nav-text">Chefs</span>
-  </div>
- <div className={`nav_icon_box  ${selected === 'about' ? "selectedboder" : ""}`} onClick={() => setSelected('about')}>
-    <FaInfoCircle className="nav-icon" />
-    <span className="nav-text">About</span>
-  </div>
-</div>
+          <NavLink to='/chef' className={`nav_icon_box  ${selected === 'chef' ? "selectedboder" : ""}`} onClick={() => setSelected('chef')}>
+            <PiChefHat className="nav-icon" />
+            <span className="nav-text">Chefs</span>
+          </NavLink>
+          <NavLink to='/about' className={`nav_icon_box  ${selected === 'about' ? "selectedboder" : ""}`} onClick={() => setSelected('about')}>
+            <FaInfoCircle className="nav-icon" />
+            <span className="nav-text">About</span>
+          </NavLink>
+        </div>
       </div >
       <div className=' col-3 simple-border'>
         <button onClick={() => setShowLogin(true)
