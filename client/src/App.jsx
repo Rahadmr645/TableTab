@@ -9,6 +9,8 @@ import QRGenerator from './components/qrcode/QRGenerator.jsx'
 import MenuList from './components/menu/MenuList.jsx';
 import Checkout from "./pages/checkout/Checkout.jsx"
 
+import OrderBoard from "./pages/orderBoard/OrderBoard.jsx"
+
 const App = () => {
 
   const {a} = useContext(AuthContext)
@@ -17,13 +19,15 @@ const App = () => {
     <>
       <div>Home</div>
        <QRGenerator/>
-
+      <Link to="/orderboard" >Order Board</Link>
 
         <Link to='/menu' className="menu-link">menu</Link>
        {/* Router section */}
        <Routes>
         <Route path='/menu' element={<MenuList/>} />
         <Route path="/checkout" element={<Checkout/>}  />
+        <Route path="/orderboard" element={<OrderBoard />}  />
+        
        </Routes>
     </>
   )

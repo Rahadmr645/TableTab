@@ -1,15 +1,15 @@
 
 import Order from "../models/OrderModel.js";
 
-import { io } from '../server.js'
+import { getIo } from '../socket/socket.js'
 
 // 01: create order
 export const createOrder = async (req, res) => {
 
     try {
-
+       
         console.log(req.body)
-
+        const io = getIo();
         const { customerName, totalPrice, tableId } = req.body;
 
         let items = req.body.items;
@@ -29,7 +29,7 @@ export const createOrder = async (req, res) => {
         await newOrder.save();
 
         // emit new order to all cleint
-        io.emit("newOrder", newOrder);
+      io.emit("newOrder", newOrder);
 
         res.status(200).json({ message: " Order Created successfully", Order: newOrder });
     } catch (error) {
