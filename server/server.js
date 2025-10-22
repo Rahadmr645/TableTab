@@ -2,7 +2,7 @@ import express from 'express';
 import http from 'http'
 import dotenv from 'dotenv'
 dotenv.config();
-import { initSocket} from './socket/socket.js'
+import { initSocket } from './socket/socket.js'
 import userRoutes from './rotues/userRoutes.js';
 import menuRoutes from './rotues/menuRoutes.js';
 import qrRoutes from './rotues/qrRoutes.js'
@@ -15,11 +15,10 @@ import connectToDB from './config/db.js';
 
 const app = express();
 const server = http.createServer(app);
-initSocket(server);
 
 
 
-
+ const io =    initSocket(server);
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename);
@@ -54,8 +53,8 @@ app.get('/', (req, res) => {
 connectToDB();
 
 
-app.listen(5000, () => {
-  console.log(`Server is running on http://192.168.8.225:5000`);
+server.listen(5000, () => {
+  console.log(`Server is running on http://10.229.115.227:5000`);
 });
 
 

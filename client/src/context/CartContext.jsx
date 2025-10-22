@@ -1,44 +1,32 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 
-import { io } from "socket.io-client"
+
 export const AuthContext = createContext();
 
 
 export const ContextProvider = ({ children }) => {
 
-    const [quantities, setQuantities] = useState({});
-    const [cart, setCart] = useState([]);
-    const [socket, setSocket] = useState(null);
-    
-    const URL = 'http://192.168.8.225:5000';
+  const [quantities, setQuantities] = useState({});
+  const [cart, setCart] = useState([]);
+ 
 
-    // connect to socket.io server once
-    useEffect(() => {
-      const newSocket = io(URL) ;
-      
-      newSocket.on("connect", () => {
-        console.log("connected to socke.io server :", newSocket.id)
-      });
-      
-      newSocket.on("disconnect", () => {
-        console.log("disconnected from socket.io server")
-      });
-      
-      setSocket(newSocket);
-    },[])
-    const contextValue = {
-        URL,
-        quantities,
-        setQuantities,
-        cart,
-        setCart,
-        socket 
-    }
+  const URL = 'http://10.229.115.227:5000';
 
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
 
-    )
+
+  const contextValue = {
+    URL,
+    quantities,
+    setQuantities,
+    cart,
+    setCart,
+
+  }
+
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+
+  )
 }

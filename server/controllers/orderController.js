@@ -7,8 +7,7 @@ import { getIo } from '../socket/socket.js'
 export const createOrder = async (req, res) => {
 
     try {
-       
-        console.log(req.body)
+
         const io = getIo();
         const { customerName, totalPrice, tableId } = req.body;
 
@@ -19,23 +18,30 @@ export const createOrder = async (req, res) => {
             items = JSON.parse(items);
         }
 
-        const newOrder = new Order({
+        const neworder = new Order({
             customerName,
             tableId,
             items,
             totalPrice
+
         });
 
-        await newOrder.save();
+        await neworder.save();
 
         // emit new order to all cleint
-      io.emit("newOrder", newOrder);
 
-        res.status(200).json({ message: " Order Created successfully", Order: newOrder });
+        
+        io.emit("newOrder", neworder);
+
+        // console.log("emmiting suceesss", neworder)
+
+        res.status(200).json({ message: " Order Created successfully", Order: neworder });
     } catch (error) {
         res.status(500).json({ message: "Faild to create order", error: error.message })
     }
 }
+
+
 
 
 

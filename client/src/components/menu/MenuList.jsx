@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
 import './MenuList.css'
-import {Link} from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
@@ -40,11 +40,8 @@ const MenuList = () => {
             ? res.data.MenuList
             : [];
 
-        console.log(data)
-
         setMenuItems(data);
         setLoading(false);
-        console.log(menuItems)
       } catch (err) {
         console.error("Error fetching menu:", err);
         setError("Failed to load menu. Please try again later.");
@@ -84,40 +81,39 @@ const MenuList = () => {
     setCart((prev) => {
 
       // check if item already exist 
-      const existing = prev.find(i=> i._id === item._id);
+      const existing = prev.find(i => i._id === item._id);
 
       if (existing) {
         return prev.map((i) =>
-          i._id === item._id ? { ...i, quantity: i.quantity + 1,}: i)
+          i._id === item._id ? { ...i, quantity: i.quantity + 1, } : i)
 
       } else {
         return [...prev, { ...item, quantity: 1 }]
       }
     })
   }
-  console.log(cart)
   const handleRemove = (id) => {
     setQuantities((prev) => {
-      const newQuantity = Math.max((prev[id] || 0) -1,  0);
-      
-      const update = {...prev, [id]: newQuantity}
-      
+      const newQuantity = Math.max((prev[id] || 0) - 1, 0);
+
+      const update = { ...prev, [id]: newQuantity }
+
       // remove id if count 0
-      if(newQuantity  === 0 ) {
+      if (newQuantity === 0) {
         delete update[id];
-        
+
       }
       return update;
     });
-      // update cart also
-      setCart((prevCart)  => {
-        const safeCart = Array.isArray(prevCart) ?  prevCart : [];
-      
-      
-      const updatedCart = safeCart.map((i) => (i._id === id ?  {...i,quantity : i.quantity - 1}: i))
+    // update cart also
+    setCart((prevCart) => {
+      const safeCart = Array.isArray(prevCart) ? prevCart : [];
+
+
+      const updatedCart = safeCart.map((i) => (i._id === id ? { ...i, quantity: i.quantity - 1 } : i))
         .filter(i => i.quantity > 0)
-        
-        return updatedCart
+
+      return updatedCart
     });
   };
 
@@ -138,11 +134,11 @@ const MenuList = () => {
           >
             {cat}
           </button>
-          
+
         ))}
-        {cart.length  > 0 ?  (
-         <Link to='/checkout' >Your Order </Link>
-         ) : <></>
+        {cart.length > 0 ? (
+          <Link to='/checkout' >Your Order </Link>
+        ) : <></>
         }
       </div>
 
