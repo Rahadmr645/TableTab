@@ -23,7 +23,7 @@ export const initSocket = (server) => {
       
        console.log('server accept new order', order)
       //send to the orderboard
-      io.emit("orderAdded", order);
+      io.emit("newOrder", order);
       
     });
 
