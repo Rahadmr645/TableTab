@@ -1,11 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
 import { SocketContext } from "../../context/SocketContext.jsx";
-
+import { AuthContext } from "../../context/CartContext.jsx";
+import axios from 'axios'
 const OrderBoard = () => {
   const { orderBox } = useContext(SocketContext);
+  const { URL } = useContext(AuthContext);
+
   const [timers, setTimers] = useState({});
 
-  // ✅ Initialize timer for new orders safely
+
+  // Initialize timer for new orders safely
   useEffect(() => {
     if (orderBox.length === 0) return;
 
@@ -20,10 +24,9 @@ const OrderBoard = () => {
     });
   }, [orderBox]);
 
-  // ✅ Countdown every second
+  //  Countdown every second
   useEffect(() => {
     if (Object.keys(timers).length === 0) return;
-
     const interval = setInterval(() => {
       setTimers((prev) => {
         const updated = {};
@@ -33,17 +36,25 @@ const OrderBoard = () => {
         return updated;
       });
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [timers]); // 👈 add dependency so it starts when timers exist
+  }, [timers]); //  add dependency so it starts when timers exist
 
-  // ✅ Format time MM:SS
+  //  Format time MM:SS
   const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60);
     const sec = seconds % 60;
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
 
+
+  const handleStatusChange = async (id, status) => {
+    await axios.put(
+      `${URL}/api/order/${id}/status`,
+      { status },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    alert(`Order status changed to ${status}`);
+  }
   return (
     <div>
       <h2>OrderBoard</h2>
@@ -76,13 +87,19 @@ const OrderBoard = () => {
                 <br />
                 <strong>{new Date(order.createdAt).toLocaleString()}</strong>
                 <br />
+                <strong>{order.status}</strong>
+                <button onClick={() => handleStatusChange(order._id, "Cooking")}>Cooking</button>
+                <button onClick={() => handleStatusChange(order._id, "Ready")}>Ready</button>
+                <button onClick={() => handleStatusChange(order._id, "Finished")}>Finished</button>
+
+                <br />
                 Timer:{" "}
                 <strong>
                   {timeLeft === undefined
                     ? "Starting..."
                     : timeLeft > 0
-                    ? formatTime(timeLeft)
-                    : "Time’s up ⏰"}
+                      ? formatTime(timeLeft)
+                      : "Time’s up ⏰"}
                 </strong>
               </div>
             );

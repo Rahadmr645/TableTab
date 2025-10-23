@@ -23,6 +23,22 @@ const Orders = () => {
     }
   }
 
+  // delete order by id 
+   const deleteHandler = async (id) => {
+     try {
+      
+      const res = await axios.delete(`${URL}/api/order/delete-order/${id}`);
+
+      alert(res.data.message);
+
+      setAllOrderList((prev) => prev.filter((order) => order._id !== id));
+     } catch (error) {
+       console.error("Error deleting order: ", err);
+       alert("failed to delete order");
+     }
+   }
+
+
 
   useEffect(() => {
     fetchAllTimeOrder();
@@ -39,6 +55,7 @@ const Orders = () => {
         <div className="orders-list">
           {allOrderList.map((order) => (
             <div key={order._id} className="order-card">
+              <p>order id {order._id}</p>
               <h3>Order ID: {order._id.slice(-6)}</h3>
               <p><strong>Customer: </strong> {order.customerName}</p>
               <p><strong>TableId: </strong> {order.tableId}</p>
@@ -62,7 +79,7 @@ const Orders = () => {
               </p>
               <p>{order.status}</p>
               
-             <button className='btn btn-outline-danger'>Delete</button>
+             <button onClick={() => deleteHandler(order._id)} className='btn btn-outline-danger'>Delete</button>
             </div>
           )
 

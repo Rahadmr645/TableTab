@@ -30,7 +30,7 @@ export const createOrder = async (req, res) => {
 
         // emit new order to all cleint
 
-        
+
         io.emit("newOrder", neworder);
 
         // console.log("emmiting suceesss", neworder)
@@ -43,6 +43,31 @@ export const createOrder = async (req, res) => {
 
 
 
+// update orders
+
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const io = getIo();
+        const { id } = req.params;
+        const { status } = req.body;
+
+
+        const updatedOrder = await Order.findByIdAndUpdate(id, { status }, { new: true }
+        );
+        io.emit("orderUpdated", updatedOrder);
+
+        // if status is "finished", remove it 
+        if (status === "Finished") {
+            await Order.findByIdAndDelete(id);
+            io.emit("orderRemoved", id);
+        }
+
+
+        res.status(200).json({ message: "Order updated", updatedOrder });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to updated order', error: error.message })
+    }
+}
 
 
 // 02: get all orders for kitchen
@@ -55,6 +80,28 @@ export const getAllOrders = async (req, res) => {
         res.status(500).json({ message: "Faild to get orders", error: error.message })
 
     }
+}
+
+
+
+
+
+// delete order 
+export const deleteOrder = async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        if (!id) return res.status(400).json({ message: "id not found" });
+
+        const deleteOrder = await Order.findByIdAndDelete(id);
+
+        res.status(200).json({ message: "order Deelted successfully", deleteOrder });
+    } catch (error) {
+        res.status(400).json({ message: 'faild to delete order', error: error.message })
+    }
+
 }
 
 
