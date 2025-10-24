@@ -43,7 +43,7 @@ export const createOrder = async (req, res) => {
 
 
 
-// update orders
+// 02 : update orders
 
 export const updateOrderStatus = async (req, res) => {
     try {
@@ -70,7 +70,7 @@ export const updateOrderStatus = async (req, res) => {
 }
 
 
-// 02: get all orders for kitchen
+// 03: get all orders for kitchen
 
 export const getAllOrders = async (req, res) => {
     try {
@@ -86,7 +86,7 @@ export const getAllOrders = async (req, res) => {
 
 
 
-// delete order 
+// 04:  delete order 
 export const deleteOrder = async (req, res) => {
 
     try {
@@ -102,6 +102,19 @@ export const deleteOrder = async (req, res) => {
         res.status(400).json({ message: 'faild to delete order', error: error.message })
     }
 
+}
+
+
+// 05: get order thos's status are not complete
+
+export const activeOrders = async (req, res) => {
+
+    try {
+        const activeOrder = await Order.find({ status: { $ne: "Complete" } })
+        res.status(200).json({ message: 'fetching active user succesfully', activeOrders: activeOrder })
+    } catch (error) {
+        res.status(500).json({ message: "faild to get active users", error: error.message })
+    }
 }
 
 

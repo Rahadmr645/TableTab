@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext } from "react";
 import { io } from "socket.io-client";
-
+import axios from 'axios'
 export const SocketContext = createContext();
 
 export const SocketContextProvider = ({ children }) => {
@@ -49,6 +49,23 @@ export const SocketContextProvider = ({ children }) => {
       newSocket.disconnect();
     };
   }, []);
+
+  // fetch all active order
+  useEffect(() => {
+    const fetchActiveOrders = async () => {
+      const res = await axios.get(`${URL}/api/order/active-order`);
+
+      if (!res) return console.log("active order not found");
+
+      console.log('these all are the active orders:', res.data)
+
+      setOrderBox(res.data.activeOrders);
+
+    }
+
+    fetchActiveOrders();
+  }, [])
+
 
   const socketContextValue = {
     socket,

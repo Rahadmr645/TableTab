@@ -3,11 +3,11 @@ import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
-import { jwtDecode  } from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const { currState, setCurrState, setShowLogin, URL } = useContext(AuthContext);
+  const { currState, setCurrState, setShowLogin, URL, setUser } = useContext(AuthContext);
 
   const navigate = useNavigate();
 
@@ -49,6 +49,7 @@ const Login = () => {
         alert('Fail: ' + data.message);
       }
 
+      setUser(res.data.user);
       const token = res.data.token;
 
       if (token) {
@@ -63,6 +64,7 @@ const Login = () => {
 
       setFormData({ username: '', email: '', password: '' });
 
+
       navigate('/');
       setShowLogin(false)
 
@@ -74,11 +76,11 @@ const Login = () => {
     }
 
 
-   
+
   };
 
 
-  
+
   return (
     <div className="loginForm-container">
       <form className="lgoinForm" onSubmit={submitHandler}>

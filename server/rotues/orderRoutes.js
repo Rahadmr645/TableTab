@@ -1,7 +1,7 @@
 import express from 'express';
 
 
-import { createOrder, deleteOrder, getAllOrders, updateOrderStatus } from '../controllers/orderController.js';
+import { activeOrders, createOrder, deleteOrder, getAllOrders, updateOrderStatus } from '../controllers/orderController.js';
 
 
 const router = express.Router();
@@ -20,5 +20,7 @@ router.delete('/delete-order/:id', deleteOrder );
 // 04 updates order 
 router.put('/:id/status', updateOrderStatus)
 
+// 05: get active orders
+router.get('/active-order', activeOrders);
 
 export default router;
