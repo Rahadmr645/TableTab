@@ -14,13 +14,17 @@ const usersSchema = mongoose.Schema({
         type: String,
         required: true,
     },
+    profilePic: {
+        type: String,
+        default: "",
+    },
     role: {
-        type: String, 
+        type: String,
         default: "user",
         enum: ["user", "chef", "admin"]
     }
 
-}, { timestemps: true });
+}, { timestamps: true });
 
 const User = mongoose.model('User', usersSchema);
 

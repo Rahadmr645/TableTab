@@ -13,7 +13,7 @@ export const AuthContextProvider = ({ children }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [showMenuForm, setShowMenuForm] = useState(false);
     const [currState, setCurrState] = useState('Signup')
-    const URL = "http://10.93.67.227:5000";
+    const URL = "http://10.189.213.227:5000";
 
 
     // get user from token
@@ -24,7 +24,7 @@ export const AuthContextProvider = ({ children }) => {
         const decoded = getUserFromToken();
         console.log(decoded)
         if (decoded) setUser(decoded);
-        console.log(user)
+        
     }, [])
 
 

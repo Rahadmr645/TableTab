@@ -14,9 +14,9 @@ export const userCreate = async (req, res) => {
     try {
 
         console.log('redata', req.body);
-        const {username, email, password } = req.body;
+        const { username, email, password, role, profilePic } = req.body;
 
-        if ( !username || !email || !password) {
+        if (!username || !email || !password) {
             return res.status(400).json({ message: "please fill all the fields" });
         }
 
@@ -36,11 +36,13 @@ export const userCreate = async (req, res) => {
             username,
             email,
             password: hashedPassword,
+            role,
+            profilePic,
         });
 
 
         // genarate the token
-        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username }, SECTRATE_KEY, { expiresIn: '1d' });
+        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username, role: newUser.role }, SECTRATE_KEY, { expiresIn: '1d' });
 
         await newUser.save();
 

@@ -54,7 +54,7 @@ connectToDB();
 
 
 server.listen(5000, () => {
-  console.log(`Server is running on http://10.93.67.227:5000`);
+  console.log(`Server is running on http://10.189.213.227:5000`);
 });
 
 

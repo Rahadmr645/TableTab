@@ -15,6 +15,8 @@ const Login = () => {
     username: '',
     email: '',
     password: '',
+    profilePic: '',
+    role: '',
   });
 
   const handleChange = (e) => {
@@ -131,6 +133,18 @@ const Login = () => {
             value={formData.password}
           />
         </div>
+        {currState === "SignUp" ?
+          <div className='rol-container'>
+            <select name='role' required value={formData.role} onChange={handleChange}>
+              <option value='' selected hidden>Role</option>
+              <option value="">User</option>
+              <option value="admin">Admin</option>
+              <option value="chef">Chef</option>
+            </select>
+          </div> :
+          <></>
+        }
+
 
         <button type="submit" className="btn submitn-btn btn-primary submit-btn">
           Submit

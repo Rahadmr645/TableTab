@@ -20,7 +20,12 @@ const Navbar = () => {
       <div className='col-3 simple-border'>
         <div className="left-box d-flex align-items-center gap-3 justify-content-center">
           <img className='profilepic' src={profileImage} alt="profile" />
-          <h3>{user ? user.username : "Guest"}</h3>
+          <div>
+            <h3>{user ? user.username : "Guest"}</h3>
+            <p>{user ? user.role : ""}</p>
+          </div>
+
+
         </div>
       </div>
 
