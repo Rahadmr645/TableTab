@@ -1,0 +1,18 @@
+
+
+.status-btn{
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.status-btn button {
+    border: none;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.status-btn button:hover {
+    background-color: green;
+    color: white;
+}

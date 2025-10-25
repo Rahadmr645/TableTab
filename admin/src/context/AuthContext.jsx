@@ -22,7 +22,9 @@ export const AuthContextProvider = ({ children }) => {
 
     useEffect(() => {
         const decoded = getUserFromToken();
+        console.log(decoded)
         if (decoded) setUser(decoded);
+        console.log(user)
     }, [])
 
 

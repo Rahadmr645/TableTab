@@ -1,7 +1,7 @@
 import React from 'react'
 
 import './App.css'
-import { Routes, Route, Link} from 'react-router-dom'
+import { Routes, Route, Link } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from './context/CartContext.jsx'
 import QRGenerator from './components/qrcode/QRGenerator.jsx'
@@ -13,22 +13,22 @@ import OrderBoard from "./pages/orderBoard/OrderBoard.jsx"
 
 const App = () => {
 
-  const {a} = useContext(AuthContext)
-  
+  const { a } = useContext(AuthContext)
+
   return (
     <>
       <div>Home</div>
-       <QRGenerator/>
+      <QRGenerator />
       <Link to="/orderboard" >Order Board</Link>
+       <br />
+      <Link to='/menu' className="menu-link">menu</Link>
+      {/* Router section */}
+      <Routes>
+        <Route path='/menu' element={<MenuList />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/orderboard" element={<OrderBoard />} />
 
-        <Link to='/menu' className="menu-link">menu</Link>
-       {/* Router section */}
-       <Routes>
-        <Route path='/menu' element={<MenuList/>} />
-        <Route path="/checkout" element={<Checkout/>}  />
-        <Route path="/orderboard" element={<OrderBoard />}  />
-        
-       </Routes>
+      </Routes>
     </>
   )
 }

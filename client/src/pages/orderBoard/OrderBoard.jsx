@@ -1,51 +1,43 @@
 import React, { useContext, useEffect, useState } from "react";
 import { SocketContext } from "../../context/SocketContext.jsx";
 import { AuthContext } from "../../context/CartContext.jsx";
-import axios from 'axios'
+import axios from "axios";
+import './OrderBoard.css'
+
 const OrderBoard = () => {
   const { orderBox } = useContext(SocketContext);
   const { URL } = useContext(AuthContext);
-
   const [timers, setTimers] = useState({});
 
-
-  // Initialize timer for new orders safely
+  //  Update timers every second — based on real time difference
   useEffect(() => {
-    if (orderBox.length === 0) return;
+    if (!orderBox || orderBox.length === 0) return;
 
-    setTimers((prev) => {
-      const updated = { ...prev };
+    const updateTimers = () => {
+      const newTimers = {};
+      const now = Date.now();
+
       orderBox.forEach((order) => {
-        if (!updated[order._id]) {
-          updated[order._id] = 300; // 5 minutes
-        }
+        const created = new Date(order.createdAt).getTime();
+        const elapsed = Math.floor((now - created) / 1000);
+        const remaining = Math.max(0, 300 - elapsed); // 5 minutes total
+        newTimers[order._id] = remaining;
       });
-      return updated;
-    });
+
+      setTimers(newTimers);
+    };
+
+    // Run immediately + every second
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
   }, [orderBox]);
 
-  //  Countdown every second
-  useEffect(() => {
-    if (Object.keys(timers).length === 0) return;
-    const interval = setInterval(() => {
-      setTimers((prev) => {
-        const updated = {};
-        for (let id in prev) {
-          updated[id] = Math.max(prev[id] - 1, 0);
-        }
-        return updated;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timers]); //  add dependency so it starts when timers exist
-
-  //  Format time MM:SS
   const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60);
     const sec = seconds % 60;
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
-
 
   const handleStatusChange = async (id, status) => {
     await axios.put(
@@ -54,10 +46,8 @@ const OrderBoard = () => {
       { headers: { "Content-Type": "application/json" } }
     );
     alert(`Order status changed to ${status}`);
-  }
+  };
 
-
- 
   return (
     <div>
       <h2>OrderBoard</h2>
@@ -74,10 +64,10 @@ const OrderBoard = () => {
           <p>No new orders yet.</p>
         ) : (
           orderBox.map((order, index) => {
-            const timeLeft = timers[order._id];
+            const timeLeft = timers[order._id] ?? 0;
             return (
               <div
-                key={order._id || index}
+                key={order._id}
                 style={{
                   borderBottom: "1px solid #eee",
                   padding: "5px",
@@ -90,19 +80,26 @@ const OrderBoard = () => {
                 <br />
                 <strong>{new Date(order.createdAt).toLocaleString()}</strong>
                 <br />
-                <strong>{order.status}</strong>
-                <button onClick={() => handleStatusChange(order._id, "Cooking")}>Cooking</button>
-                <button onClick={() => handleStatusChange(order._id, "Ready")}>Ready</button>
-                <button onClick={() => handleStatusChange(order._id, "Finished")}>Finished</button>
-
+                <strong>Status: {order.status}</strong>
+                <div className="status-btn">
+                  <button
+                    onClick={() => handleStatusChange(order._id, "Cooking")}
+                  >
+                    Cooking
+                  </button>
+                  <button onClick={() => handleStatusChange(order._id, "Ready")}>
+                    Ready
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(order._id, "Finished")}
+                  >
+                    Finished
+                  </button>
+                </div>
                 <br />
                 Timer:{" "}
                 <strong>
-                  {timeLeft === undefined
-                    ? "Starting..."
-                    : timeLeft > 0
-                      ? formatTime(timeLeft)
-                      : "Time’s up ⏰"}
+                  {timeLeft > 0 ? formatTime(timeLeft) : "Time’s up "}
                 </strong>
               </div>
             );
