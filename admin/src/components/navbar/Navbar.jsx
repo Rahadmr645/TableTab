@@ -8,7 +8,7 @@ import { GrCafeteria } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { PiChefHat } from "react-icons/pi";
 import { FaInfoCircle } from "react-icons/fa";
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 
 const Navbar = () => {
   const [selected, setSelected] = useState('orders');
@@ -19,7 +19,7 @@ const Navbar = () => {
       {/* ==== LEFT BOX (Profile Info) ==== */}
       <div className='col-3 simple-border'>
         <div className="left-box d-flex align-items-center gap-3 justify-content-center">
-          <img className='profilepic' src={profileImage} alt="profile" />
+          <Link to='/profile-pic' > <img className='profilepic' src={profileImage} alt="profile" /> </Link>
           <div>
             <h3>{user ? user.username : "Guest"}</h3>
             <p>{user ? user.role : ""}</p>

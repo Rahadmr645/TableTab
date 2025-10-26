@@ -8,7 +8,7 @@ import JWT from 'jsonwebtoken';
 const SECTRATE_KEY = process.env.SECTRATE_KEY
 
 
-// create controller
+// 01 :  create controller
 export const userCreate = async (req, res) => {
 
     try {
@@ -55,7 +55,7 @@ export const userCreate = async (req, res) => {
 }
 
 
-// Login controller
+// 02 :  Login controller
 export const userLogin = async (req, res) => {
 
     try {
@@ -91,3 +91,24 @@ export const userLogin = async (req, res) => {
 }
 
 
+
+// 03: update the user Image 
+
+export const updateProfilePic = async (req, res) => {
+    try {
+        const { userId, profilePic } = req.body;
+
+        if (!userId || !profilePic) return res.status(400).json({ message: "user id and profileimage required" })
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { profilePic },
+            { new: true } // returns the updated document
+        )
+        if (!user) return res.status(400).json({ message: 'user not found' });
+        res.status(200).json({ message: ' image updated successfully' });
+
+    } catch (error) {
+
+    }
+}
