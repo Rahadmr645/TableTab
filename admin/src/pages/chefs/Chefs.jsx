@@ -5,7 +5,7 @@ import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
 
-const socket = io('http://10.91.86.227:400')
+const socket = io('http://192.168.8.225:5000')
 const Chefs = () => {
   const { URL } = useContext(AuthContext);
 

@@ -7,7 +7,7 @@ export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [orderBox, setOrderBox] = useState([]);
 
-  const URL = "http://10.189.213.227:5000";
+  const URL = "http://192.168.8.225:5000";
 
   useEffect(() => {
     const newSocket = io(URL, {

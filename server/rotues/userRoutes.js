@@ -1,6 +1,6 @@
 import express from 'express';
 import { updateProfilePic, userCreate, userLogin } from '../controllers/userController.js';
-
+import upload from '../middlewares/multer.js';
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.post('/create', userCreate);
 router.post('/login', userLogin);
 
 // 03: image update
-router.put('/profile-pic', updateProfilePic)
+router.put('/profile-pic', upload.single('image'),  updateProfilePic)
 
 
 export default router;

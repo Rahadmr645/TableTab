@@ -10,7 +10,7 @@ export const ContextProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
  
 
-  const URL = 'http://10.189.213.227:5000';
+  const URL = 'http://192.168.8.225:5000';
 
 
 

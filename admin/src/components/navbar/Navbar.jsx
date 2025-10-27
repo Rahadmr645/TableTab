@@ -23,6 +23,7 @@ const Navbar = () => {
           <div>
             <h3>{user ? user.username : "Guest"}</h3>
             <p>{user ? user.role : ""}</p>
+            
           </div>
 
 

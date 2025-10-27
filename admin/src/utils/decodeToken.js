@@ -11,7 +11,7 @@ import { jwtDecode } from 'jwt-decode'
 
     try {
         const decoded = jwtDecode(token);
-
+        console.log("decode",decoded)
         // check is token expired
         if (decoded.exp * 1000 < Date.now()) {
             localStorage.removeItem("token");

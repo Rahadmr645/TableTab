@@ -97,7 +97,7 @@ export const userLogin = async (req, res) => {
 export const updateProfilePic = async (req, res) => {
     try {
         const { userId, profilePic } = req.body;
-
+        console.log(req.body)
         if (!userId || !profilePic) return res.status(400).json({ message: "user id and profileimage required" })
 
         const user = await User.findByIdAndUpdate(
