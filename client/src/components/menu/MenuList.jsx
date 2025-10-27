@@ -1,11 +1,12 @@
 import React, { useState, useContext, useEffect } from 'react';
-import AddMenuForm from '../../components/addmenuform/AddMenuForm';
-import { AuthContext } from '../../context/AuthContext';
-import axios from 'axios';
-import './Menu.css';
 
-const Menu = () => {
-  const { showMenuForm, setShowMenuForm, URL } = useContext(AuthContext);
+import { AuthContext  } from '../../context/CartContext';
+
+import axios from 'axios';
+import './MenuList.css';
+
+const MenuList = () => {
+  const {  URL } = useContext(AuthContext);
   const [menuItems, setMenuItems] = useState([]);
   const [error, setError] = useState(null);
 
@@ -66,4 +67,4 @@ const Menu = () => {
   );
 };
 
-export default Menu;
+export default MenuList;

@@ -23,7 +23,7 @@ const Navbar = () => {
           <div>
             <h3>{user ? user.username : "Guest"}</h3>
             <p>{user ? user.role : ""}</p>
-            
+
           </div>
 
 
@@ -42,14 +42,20 @@ const Navbar = () => {
             <span className="nav-text">Orders</span>
           </NavLink>
 
-          <NavLink
-            to='/menu'
-            className={`nav_icon_box ${selected === 'menu' ? "selectedboder" : ""}`}
-            onClick={() => setSelected('menu')}
-          >
-            <GrCafeteria className="nav-icon" />
-            <span className="nav-text">Menu</span>
-          </NavLink>
+          {/* check  is user are chef  */}
+          {user && user.role === 'admin' && (
+
+            <NavLink
+              to='/menu'
+              className={`nav_icon_box ${selected === 'menu' ? "selectedboder" : ""}`}
+              onClick={() => setSelected('menu')}
+            >
+              <GrCafeteria className="nav-icon" />
+              <span className="nav-text">Menu</span>
+            </NavLink>
+
+          )}
+
 
           <NavLink
             to='/summary'

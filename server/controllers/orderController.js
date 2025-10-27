@@ -58,7 +58,7 @@ export const updateOrderStatus = async (req, res) => {
 
         // if status is "finished", remove it 
         if (status === "Finished") {
-            await Order.findByIdAndDelete(id);
+            // await Order.findByIdAndDelete(id);
             io.emit("orderRemoved", id);
         }
 
