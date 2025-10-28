@@ -25,7 +25,7 @@ const App = () => {
       {/* Router section */}
       <Routes>
         <Route path='/menu' element={<MenuList />} />
-        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/chackout" element={<Checkout />} />
         <Route path="/orderboard" element={<OrderBoard />} />
 
       </Routes>

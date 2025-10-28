@@ -7,7 +7,7 @@ import './Orders.css'
 const Orders = () => {
 
 
-  const { URL } = useContext(AuthContext);
+  const { URL ,  user } = useContext(AuthContext);
 
   const [allOrderList, setAllOrderList] = useState([]);
 
@@ -15,9 +15,18 @@ const Orders = () => {
   const fetchAllTimeOrder = async () => {
 
     try {
-      const res = await axios.get(`${URL}/api/order/all-orders`);
+      
+      let res;
+      if(user.role === "admin") {
+        res = await axios.get(`${URL}/api/order/all-orders`);
+        setAllOrderList(res.data.orders)
+      } else {
+         res = await axios.get(`${URL}/api/order/active-order`);
+         setAllOrderList(res.data.activeOrders)
+      }
+      
       console.log(res.data);
-      setAllOrderList(res.data.orders)
+      
     } catch (error) {
       console.error("faild to fetch all order", error)
     }

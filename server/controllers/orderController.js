@@ -110,7 +110,7 @@ export const deleteOrder = async (req, res) => {
 export const activeOrders = async (req, res) => {
 
     try {
-        const activeOrder = await Order.find({ status: { $ne: "Complete" } })
+        const activeOrder = await Order.find({ status: { $ne: "pending" } })
         res.status(200).json({ message: 'fetching active user succesfully', activeOrders: activeOrder })
     } catch (error) {
         res.status(500).json({ message: "faild to get active users", error: error.message })
