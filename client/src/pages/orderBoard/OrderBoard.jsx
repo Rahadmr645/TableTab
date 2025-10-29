@@ -20,7 +20,7 @@ const OrderBoard = () => {
       orderBox.forEach((order) => {
         const created = new Date(order.createdAt).getTime();
         const elapsed = Math.floor((now - created) / 1000);
-        const remaining = Math.max(0, 300 - elapsed); // 5 minutes total
+        const remaining = Math.max(0, 600 - elapsed); // 5 minutes total
         newTimers[order._id] = remaining;
       });
 
@@ -39,14 +39,6 @@ const OrderBoard = () => {
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const handleStatusChange = async (id, status) => {
-    await axios.put(
-      `${URL}/api/order/${id}/status`,
-      { status },
-      { headers: { "Content-Type": "application/json" } }
-    );
-    alert(`Order status changed to ${status}`);
-  };
 
   return (
     <div>
@@ -81,21 +73,6 @@ const OrderBoard = () => {
                 <strong>{new Date(order.createdAt).toLocaleString()}</strong>
                 <br />
                 <strong>Status: {order.status}</strong>
-                <div className="status-btn">
-                  <button
-                    onClick={() => handleStatusChange(order._id, "Cooking")}
-                  >
-                    Cooking
-                  </button>
-                  <button onClick={() => handleStatusChange(order._id, "Ready")}>
-                    Ready
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(order._id, "Finished")}
-                  >
-                    Finished
-                  </button>
-                </div>
                 <br />
                 Timer:{" "}
                 <strong>

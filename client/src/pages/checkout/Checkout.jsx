@@ -60,14 +60,12 @@ const Checkout = () => {
 
   return (
     <div className="cartItem">
-      Checkout
-
       <div className="checkout_nav">
         <ul>
           <li>image</li>
           <li>Name</li>
-          <li>Price</li>
           <li>Quantity</li>
+          <li>Price</li>
           <li>Total</li>
           <li>Cancel</li>
         </ul>
@@ -87,7 +85,7 @@ const Checkout = () => {
 
           </div> : <>You Don't Have any order Yet</>
       }
-      <div className="subtotal"><h3>SubTotatl : {subTotal.toFixed(2)}</h3></div>
+      <div className="subtotal"><h3>SubTotal: {`${subTotal.toFixed(2)}/-`}</h3></div>
       <div className="pobtn">
         <button onClick={() => setPopup(true)}>Palce Order
         </button>

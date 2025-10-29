@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
 import './MenuList.css';
-import {Link} from  "react-router-dom"
+import { Link } from "react-router-dom"
 import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
 
@@ -96,7 +96,7 @@ const MenuList = () => {
 
   return (
     <div className="menu-list-container">
-      <h2 className="menu-title">Our Menu</h2>
+      {/* <h2 className="menu-title">Our Menu</h2> */}
 
       {/* Category Navbar */}
       <div className="category-navbar">
@@ -109,10 +109,7 @@ const MenuList = () => {
             {cat}
           </button>
         ))}
-        {cart.length > 0 ?  
-          <Link to="/chackout" >Cart</Link>
-          :<></>
-        }
+       
       </div>
 
       {/* Menu Cards */}

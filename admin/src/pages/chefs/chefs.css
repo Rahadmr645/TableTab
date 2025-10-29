@@ -1,0 +1,39 @@
+.chef-order-container {
+    width: 100%;
+    border: 1px solid black;
+    padding: 10px;
+}
+
+.chef-sub-container {
+    border: 1px solid red;
+   
+   
+}
+
+.chef-sub-container h2 {
+    justify-self: center;
+    margin-top: 20px;
+}
+
+.chef-order-card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+
+}
+.status-btn {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+.status-btn button {
+    border: none;
+    border-radius: 5px;
+
+}
+.status-btn button:hover{
+    cursor: pointer;
+    background-color: green;
+    color: white
+}

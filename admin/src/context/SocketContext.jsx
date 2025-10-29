@@ -1,14 +1,14 @@
-import { createContext, useEffect, useState} from "react" 
-import { io } from  "socket.io-client";
-
+import { createContext, useEffect, useState } from "react"
+import { io } from "socket.io-client";
+import axios from 'axios'
 export const SocketContext = createContext();
 
-export const SocketProvider = ({children}) =>{
-  
-  const [ socket, setSocket] = useState(null)
+export const SocketProvider = ({ children }) => {
+
+  const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
-   const URL = "http://192.168.8.227:5000"
-  
+  const URL = "http://10.124.132.227:5000"
+
   useEffect(() => {
     const newSocket = io(URL, {
       transports: ["websocket"],
@@ -34,7 +34,7 @@ export const SocketProvider = ({children}) =>{
 
 
     newSocket.on('orderUpdated', (updatedOrder) => {
-    setChefOrders((prev) => prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
+      setChefOrders((prev) => prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
       );
     });
 
@@ -49,16 +49,29 @@ export const SocketProvider = ({children}) =>{
       newSocket.disconnect();
     };
   }, []);
-  
+
+  // fetch all active order
+  useEffect(() => {
+    const fetchActiveOrders = async () => {
+      const res = await axios.get(`${URL}/api/order/active-order`);
+      if (!res) return console.log("active order not found ");
+
+      setChefOrders(res.data.activeOrders);
+
+    }
+
+    fetchActiveOrders();
+  }, [])
+  console.log("fetched active orders:", chefOrders)
   const contextValue = {
-     socket, 
-     chefOrders, 
+    socket,
+    chefOrders,
   }
-  
+
   return (
-    <SocketContext.Provider  value={contextValue}>
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
-    
-    )
+
+  )
 }

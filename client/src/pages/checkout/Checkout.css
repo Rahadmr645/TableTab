@@ -1,4 +1,4 @@
-.cartItem{
+/* .cartItem{
   border : 1px solid green;
 }
 .checkout_nav {
@@ -115,4 +115,165 @@ hr{
   border-radius: 6px;
   cursor: pointer;
 }
+ */
 
+
+
+
+/* new design */
+
+.cartItem {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px);
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+ 
+  border-radius: 12px;
+}
+
+.checkout_nav {
+ 
+   display: flex;
+   justify-content: center;
+   align-items: center;
+}
+.checkout_nav ul {
+  display: grid;
+ width: 50%;
+  grid-template-columns: 80px 1fr 100px 100px 100px 80px;
+  list-style: none;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  text-align: center;
+  color: #dcdcdc;
+ 
+}
+
+.cart-container {
+  display: flex;
+  flex-direction: column;
+  gap: px;
+ 
+
+}
+
+.subtotal {
+  margin-top: 30px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: right;
+  color: #f1f1f1;
+  margin-right: 200px;
+}
+
+.pobtn {
+  text-align: right;
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+
+}
+
+.pobtn button {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+  width: 200px
+  
+}
+
+.pobtn button:hover {
+  background-color: #1f7a34;
+}
+
+
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+
+.poput-content {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 15px;
+  width: 350px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.popup-content input {
+  width: 100%;
+  margin: 10px 9;
+  border-radius: 8px;
+  padding: 12px;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.02);
+  color: white;
+
+}
+
+.popub-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+}
+
+.confirm-btn {
+  background: #28a745;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+}
+
+
+.cancel-btn {
+  background-color: #dc3545;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+
+}
+
+.confirm-btn:hover {
+  background-color: #1f7a34;
+}
+
+hr {
+  width: 50%;
+}
+/* responsive */
+@media (max-width: 600px) {
+  .checkout_nav ul {
+    grid-template-columns: 60px 1fr 80px 60px;
+    font-size: 14px;
+  }
+
+  .popup-content {
+    width: 90%;
+  }
+}

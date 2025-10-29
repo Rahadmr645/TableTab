@@ -10,6 +10,7 @@ import MenuList from './components/menu/MenuList.jsx';
 import Checkout from "./pages/checkout/Checkout.jsx"
 
 import OrderBoard from "./pages/orderBoard/OrderBoard.jsx"
+import Navbar from './components/navbar/Navbar.jsx'
 
 const App = () => {
 
@@ -17,11 +18,12 @@ const App = () => {
 
   return (
     <>
-      <div>Home</div>
-      <QRGenerator />
-      <Link to="/orderboard" >Order Board</Link>
-       <br />
-      <Link to='/menu' className="menu-link">menu</Link>
+   
+      <Navbar />
+      {/* <QRGenerator /> */}
+      {/* <Link to="/orderboard" >Order Board</Link> */}
+      <br />
+     
       {/* Router section */}
       <Routes>
         <Route path='/menu' element={<MenuList />} />
