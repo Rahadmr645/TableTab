@@ -50,7 +50,7 @@ export const createOrder = async (req, res) => {
 
         // console.log("emmiting suceesss", neworder)
 
-        res.status(200).json({ message: " Order Created successfully", Order: neworder });
+        res.status(200).json({ message: " Order Created successfully", order: neworder });
     } catch (error) {
         res.status(500).json({ message: "Faild to create order", error: error.message })
     }

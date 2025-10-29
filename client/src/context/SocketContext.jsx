@@ -7,7 +7,7 @@ export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [orderBox, setOrderBox] = useState([]);
   const [timers, setTimers] = useState({});
-
+  const [servetTimeOffset, setServerTimeOffset] = useState(0)
 
   const URL = "http://10.124.132.227:5000";
 
@@ -54,10 +54,23 @@ export const SocketContextProvider = ({ children }) => {
 
   // fetch all active order
   useEffect(() => {
-    const fetchActiveOrders = async () => {
+    const syncServerTime = async () => {
       const res = await axios.get(`${URL}/api/order/active-order`);
 
       if (!res) return console.log("active order not found");
+
+      const serverDateHeader = res.headers.date ?
+        new Date(res.headers.date).getTime() : Date.now();
+
+
+      // deff server and local time
+      const offset = serverDateHeader - Date.now();
+      setServerTimeOffset(offset);
+
+
+      console.log('server time offset', offset, 'ms');
+
+
 
       console.log('these all are the active orders:', res.data)
 
@@ -65,7 +78,7 @@ export const SocketContextProvider = ({ children }) => {
 
     }
 
-    fetchActiveOrders();
+    syncServerTime();
   }, [])
 
 
@@ -75,8 +88,9 @@ export const SocketContextProvider = ({ children }) => {
     if (!orderBox || orderBox.length === 0) return;
 
     const updateTimers = () => {
+
       const newTimers = {};
-      const now = Date.now();
+      const now = Date.now() + servetTimeOffset;
 
       orderBox.forEach((order) => {
         const created = new Date(order.createdAt).getTime();
@@ -92,7 +106,7 @@ export const SocketContextProvider = ({ children }) => {
     updateTimers();
     const interval = setInterval(updateTimers, 1000);
     return () => clearInterval(interval);
-  }, [orderBox]);
+  }, [orderBox, servetTimeOffset]);
 
 
 

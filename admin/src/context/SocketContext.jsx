@@ -53,7 +53,10 @@ export const SocketProvider = ({ children }) => {
   // fetch all active order
   useEffect(() => {
     const fetchActiveOrders = async () => {
-      const res = await axios.get(`${URL}/api/order/active-order`);
+      const res = await axios.get(`${URL}/api/order/active-orders`);
+
+     
+
       if (!res) return console.log("active order not found ");
 
       setChefOrders(res.data.activeOrders);
