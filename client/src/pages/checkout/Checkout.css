@@ -129,19 +129,20 @@ hr{
   backdrop-filter: blur(40px);
   color: #fff;
   font-family: "Poppins", sans-serif;
- 
+
   border-radius: 12px;
 }
 
 .checkout_nav {
- 
-   display: flex;
-   justify-content: center;
-   align-items: center;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
 .checkout_nav ul {
   display: grid;
- width: 50%;
+  width: 50%;
   grid-template-columns: 80px 1fr 100px 100px 100px 80px;
   list-style: none;
   padding: 10px;
@@ -150,14 +151,14 @@ hr{
   border-radius: 10px;
   text-align: center;
   color: #dcdcdc;
- 
+
 }
 
 .cart-container {
   display: flex;
   flex-direction: column;
   gap: px;
- 
+
 
 }
 
@@ -188,7 +189,6 @@ hr{
   font-weight: bold;
   transition: 0.3s;
   width: 200px
-  
 }
 
 .pobtn button:hover {
@@ -204,13 +204,16 @@ hr{
   height: 100%;
   background: rgba(10, 10, 10, 0.7);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: 5000;
+  gap: 10px;
 }
 
 
-.poput-content {
+
+.popup-content {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   padding: 30px;
@@ -225,18 +228,20 @@ hr{
   width: 100%;
   margin: 10px 9;
   border-radius: 8px;
+  margin-top: 9px;
   padding: 12px;
   border: none;
   outline: none;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(240, 234, 234, 0.02);
   color: white;
-
+ 
 }
 
-.popub-buttons {
+.popup-buttons {
   display: flex;
   justify-content: space-around;
   margin-top: 15px;
+  gap:  10px;
 }
 
 .confirm-btn {
@@ -266,6 +271,7 @@ hr{
 hr {
   width: 50%;
 }
+
 /* responsive */
 @media (max-width: 600px) {
   .checkout_nav ul {

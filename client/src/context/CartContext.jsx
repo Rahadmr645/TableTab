@@ -8,7 +8,9 @@ export const ContextProvider = ({ children }) => {
 
   const [quantities, setQuantities] = useState({});
   const [cart, setCart] = useState([]);
- 
+  const [user, setUser] = useState(null);
+  const [myOrders, setMyOrders] = useState([]);
+
 
   const URL = 'http://10.124.132.227:5000';
 
@@ -20,6 +22,10 @@ export const ContextProvider = ({ children }) => {
     setQuantities,
     cart,
     setCart,
+    user,
+    setUser,
+    myOrders,
+    setMyOrders,
 
   }
 

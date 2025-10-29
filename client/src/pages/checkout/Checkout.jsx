@@ -3,14 +3,15 @@ import CartItem from '../../components/CartItem/CartItem.jsx'
 import { AuthContext } from "../../context/CartContext";
 import './Checkout.css'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
 
 const Checkout = () => {
-  const { cart, setCart, URL } = useContext(AuthContext);
+  const { cart, setCart, URL, setQuantities, user } = useContext(AuthContext);
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [tableId, setTableId] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const navigator = useNavigate();
 
   // total 
   const subTotal = cart.reduce((acc, item) =>
@@ -25,6 +26,7 @@ const Checkout = () => {
       return;
     }
 
+    let guestToken = localStorage.getItem("guestToken");
 
     setLoading(true);
 
@@ -33,6 +35,8 @@ const Checkout = () => {
       const orderFormData = new FormData();
       orderFormData.append("customerName", customerName);
       orderFormData.append("tableId", tableId);
+      orderFormData.append("userID", user?._id || "");
+      orderFormData.append("guestToken", guestToken || "");
       orderFormData.append("items", JSON.stringify(cart));
       orderFormData.append("totalPrice", subTotal);
 
@@ -42,12 +46,25 @@ const Checkout = () => {
         { headers: { 'Content-Type': "application/json" } }
       );
 
+      //  store token if backend create new one
+      if (!guestToken && res.data?.Order?.guestToken) {
+        localStorage.setItem("guestToken", res.data.Order.guestToken)
+      }
+
+
+
       alert("Ordr placed successfully")
       console.log(res.data);
 
+
+      // clear quantity state
+      setQuantities({});
+
       // clearing the cart 
       setCart([]);
+
       setPopup(false);
+      navigator('/myOrders');
 
     } catch (error) {
       alert("faild to place order")
@@ -90,6 +107,9 @@ const Checkout = () => {
         <button onClick={() => setPopup(true)}>Palce Order
         </button>
       </div>
+
+      {/* popup section */}
+
 
       {popup && (
         <div className="popup">

@@ -6,6 +6,8 @@ export const SocketContext = createContext();
 export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [orderBox, setOrderBox] = useState([]);
+  const [timers, setTimers] = useState({});
+
 
   const URL = "http://10.124.132.227:5000";
 
@@ -67,11 +69,52 @@ export const SocketContextProvider = ({ children }) => {
   }, [])
 
 
+
+  // for timer 
+  useEffect(() => {
+    if (!orderBox || orderBox.length === 0) return;
+
+    const updateTimers = () => {
+      const newTimers = {};
+      const now = Date.now();
+
+      orderBox.forEach((order) => {
+        const created = new Date(order.createdAt).getTime();
+        const elapsed = Math.floor((now - created) / 1000);
+        const remaining = Math.max(0, 600 - elapsed); // 5 minutes total
+        newTimers[order._id] = remaining;
+      });
+
+      setTimers(newTimers);
+    };
+
+    // Run immediately + every second
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
+  }, [orderBox]);
+
+
+
+  //  Update timers every second — based on real time difference
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec.toString().padStart(2, "0")}`;
+  };
+
+
+
+  // socket context velu
   const socketContextValue = {
     socket,
     orderBox,
     setOrderBox,
+    formatTime,
+    timers,
+    setTimers
   };
+
 
   return (
     <SocketContext.Provider value={socketContextValue}>

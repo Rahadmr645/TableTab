@@ -1,45 +1,9 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import { SocketContext } from "../../context/SocketContext.jsx";
-import { AuthContext } from "../../context/CartContext.jsx";
-import axios from "axios";
 import './OrderBoard.css'
 
 const OrderBoard = () => {
-  const { orderBox } = useContext(SocketContext);
-  const { URL } = useContext(AuthContext);
-  const [timers, setTimers] = useState({});
-
-  //  Update timers every second — based on real time difference
-  useEffect(() => {
-    if (!orderBox || orderBox.length === 0) return;
-
-    const updateTimers = () => {
-      const newTimers = {};
-      const now = Date.now();
-
-      orderBox.forEach((order) => {
-        const created = new Date(order.createdAt).getTime();
-        const elapsed = Math.floor((now - created) / 1000);
-        const remaining = Math.max(0, 600 - elapsed); // 5 minutes total
-        newTimers[order._id] = remaining;
-      });
-
-      setTimers(newTimers);
-    };
-
-    // Run immediately + every second
-    updateTimers();
-    const interval = setInterval(updateTimers, 1000);
-    return () => clearInterval(interval);
-  }, [orderBox]);
-
-  const formatTime = (seconds) => {
-    const min = Math.floor(seconds / 60);
-    const sec = seconds % 60;
-    return `${min}:${sec.toString().padStart(2, "0")}`;
-  };
-
-
+  const { orderBox, formatTime, timers } = useContext(SocketContext);
   return (
     <div>
       <h2>OrderBoard</h2>

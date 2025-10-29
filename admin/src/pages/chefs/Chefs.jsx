@@ -83,6 +83,10 @@ const Chefs = () => {
               <div className="chef-order-card" key={order._id} style={{ borderBottom: "1px solid #ccc", marginBottom: "10px", padding: "8px" }}>
                 <strong>Order #{i + 1}</strong> — <strong>C.N. </strong> {order.customerName}
                 <br />
+                <strong>TableId: </strong> {order.tableId}
+                <br />
+                <strong>UserId: </strong> {order.guestToken}
+                <br />
                 <strong>Total:</strong> ${order.totalPrice}
                 <br />
                 <strong>Status:</strong> {order.status}
@@ -91,7 +95,7 @@ const Chefs = () => {
                   <strong>Items :</strong>
                   {order.items.map((item, i) => (
                     <div key={item._id} >
-                      <span>{item.name}: {item.quantity}p</span> 
+                      <span>{item.name}: {item.quantity}p</span>
                     </div>
                   ))}
                 </div>

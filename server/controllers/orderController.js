@@ -3,13 +3,16 @@ import Order from "../models/OrderModel.js";
 
 import { getIo } from '../socket/socket.js'
 
+import crypto from 'crypto'
 // 01: create order
 export const createOrder = async (req, res) => {
 
     try {
 
+        console.log("request body", req.body)
+
         const io = getIo();
-        const { customerName, totalPrice, tableId } = req.body;
+        const { customerName, totalPrice, tableId, userID, guestToken } = req.body;
 
         let items = req.body.items;
 
@@ -18,11 +21,23 @@ export const createOrder = async (req, res) => {
             items = JSON.parse(items);
         }
 
+
+
+        //generate guest token only if not logged in 
+        let finalGuestToken = guestToken;
+        if (!userID && !guestToken) {
+            finalGuestToken = crypto.randomBytes(10).toString("hex");
+        }
+
+        console.log("final token", finalGuestToken);
+
         const neworder = new Order({
             customerName,
             tableId,
             items,
-            totalPrice
+            totalPrice,
+            userID: userID || null,
+            guestToken: finalGuestToken || null,
 
         });
 
@@ -118,3 +133,26 @@ export const activeOrders = async (req, res) => {
 }
 
 
+// 06: get orders by userID
+export const getOrdersByUser = async (req, res) => {
+
+    try {
+        const { guestToken } = req.params;
+
+        if (!guestToken) {
+            return res.status(400).json({ message: "token is requried" });
+        }
+
+     
+        const orders = await Order.find({ guestToken }).sort({ createdAt: -1 });
+
+
+        if (orders.length === 0) return res.status(404).json({ message: 'No order found for this order' });
+
+
+        res.status(200).json({ message: 'Orders fetch successfully', orders: orders });
+
+    } catch (error) {
+        res.status(500).json({ message: "faild to fetch orders", error: error.message })
+    }
+}

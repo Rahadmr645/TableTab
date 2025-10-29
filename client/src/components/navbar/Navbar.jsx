@@ -38,8 +38,8 @@ const Navbar = () => {
                     </NavLink>
                 </div>
                 <div className='nav-box'>
-                    <NavLink className='navLink' to='/Orders' >
-                        <span>Orders</span>
+                    <NavLink className='navLink' to='/myOrders' >
+                        <span>MyOrders</span>
                         <PiReadCvLogo className='icon' />
                     </NavLink>
                 </div>
