@@ -7,7 +7,7 @@ export const SocketProvider = ({ children }) => {
 
   const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
-  const URL = "http://192.168.8.225:5000"
+  const URL = "http://10.161.68.227:5000"
 
   useEffect(() => {
     const newSocket = io(URL, {
@@ -55,7 +55,7 @@ export const SocketProvider = ({ children }) => {
     const fetchActiveOrders = async () => {
       const res = await axios.get(`${URL}/api/order/active-orders`);
 
-     
+
 
       if (!res) return console.log("active order not found ");
 

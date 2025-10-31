@@ -29,8 +29,8 @@ const Login = () => {
 
     const endPoint =
       currState === 'SignUp'
-        ? `${URL}/api/user/create`
-        : `${URL}/api/user/login`;
+        ? `${URL}/api/admin/create`
+        : `${URL}/api/admin/login`;
 
     const bodyData =
       currState === 'SignUp'
@@ -136,7 +136,7 @@ const Login = () => {
         {currState === "SignUp" ?
           <div className='rol-container'>
             <select name='role' required value={formData.role} onChange={handleChange}>
-              <option value='' selected hidden>Role</option>
+              <option value='' disabled hidden>Role</option>
               <option value="admin">Admin</option>
               <option value="chef">Chef</option>
             </select>

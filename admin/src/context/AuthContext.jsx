@@ -1,5 +1,4 @@
 
-
 import Rect, { createContext, useState, useEffect } from 'react';
 import { getUserFromToken } from '../utils/decodeToken';
 
@@ -13,17 +12,17 @@ export const AuthContextProvider = ({ children }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [showMenuForm, setShowMenuForm] = useState(false);
     const [currState, setCurrState] = useState('Signup')
-    const URL = "http://192.168.8.225:5000";
+    const URL = "http://10.161.68.227:5000";
 
 
-    // get user from token
+    // get admin from token
 
-    const [user, setUser] = useState(null)
+    const [admin, setAdmin] = useState(null)
 
     useEffect(() => {
         const decoded = getUserFromToken();
         console.log(decoded)
-        if (decoded) setUser(decoded);
+        if (decoded) setAdmin(decoded);
 
     }, [])
 
@@ -36,8 +35,8 @@ export const AuthContextProvider = ({ children }) => {
         currState,
         setCurrState,
         URL,
-        user,
-        setUser,
+        admin,
+        setAdmin,
 
     }
 

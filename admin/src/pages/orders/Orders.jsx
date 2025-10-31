@@ -7,7 +7,7 @@ import './Orders.css'
 const Orders = () => {
 
 
-  const { URL, user } = useContext(AuthContext);
+  const { URL, admin } = useContext(AuthContext);
 
   const [allOrderList, setAllOrderList] = useState([]);
 
@@ -17,7 +17,7 @@ const Orders = () => {
     try {
 
       let res;
-      if (user.role === "admin") {
+      if (admin.role === "admin") {
         res = await axios.get(`${URL}/api/order/all-orders`);
         setAllOrderList(res.data.orders)
       } else {

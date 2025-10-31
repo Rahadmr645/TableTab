@@ -12,18 +12,17 @@ const SECTRATE_KEY = process.env.SECTRATE_KEY
 export const adminCreate = async (req, res) => {
 
     try {
-
-        
-        const { username, email, password, role, profilePic } = req.body;
+        console.log('rahad', req.body);
+        const { email, username, password, role, profilePic } = req.body;
 
         if (!username || !email || !password) {
             return res.status(400).json({ message: "please fill all the fields" });
         }
 
 
-        const isExist = await User.findOne({ email });
+        const isExist = await Admin.findOne({ email });
 
-        if (isExist) return res.status(400).json({ message: "User aleady exist" });
+        if (isExist) return res.status(400).json({ message: "admin aleady exist" });
 
 
         // hash password
@@ -32,7 +31,7 @@ export const adminCreate = async (req, res) => {
 
 
 
-        const newUser = new User({
+        const newAdmin = new Admin({
             username,
             email,
             password: hashedPassword,
@@ -42,11 +41,11 @@ export const adminCreate = async (req, res) => {
 
 
         // genarate the token
-        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username, role: newUser.role }, SECTRATE_KEY, { expiresIn: '1d' });
+        const token = JWT.sign({ id: newAdmin._id, email: newAdmin.email, username: newAdmin.username, role: newAdmin.role }, SECTRATE_KEY, { expiresIn: '1d' });
 
-        await newUser.save();
+        await newAdmin.save();
 
-        res.status(200).json({ messasge: "user create susccessfully", user: newUser, token: token })
+        res.status(200).json({ messasge: "admin create susccessfully", admin: newAdmin, token: token })
 
 
     } catch (error) {
@@ -66,9 +65,9 @@ export const adminLogin = async (req, res) => {
             return res.status(400).json({ message: "please fill all the fields" });
         }
 
-        const isExist = await User.find({ email });
+        const isExist = await Admin.find({ email });
 
-        if (!isExist) return res.status(400).json({ message: "User not exist" });
+        if (!isExist) return res.status(400).json({ message: "Admin not exist" });
 
 
         // hash password
@@ -100,12 +99,12 @@ export const updateProfilePic = async (req, res) => {
         console.log(req.body)
         if (!userId || !profilePic) return res.status(400).json({ message: "user id and profileimage required" })
 
-        const user = await User.findByIdAndUpdate(
+        const admin = await Admin.findByIdAndUpdate(
             userId,
             { profilePic },
             { new: true } // returns the updated document
         )
-        if (!user) return res.status(400).json({ message: 'user not found' });
+        if (!admin) return res.status(400).json({ message: 'admin not found' });
         res.status(200).json({ message: ' image updated successfully' });
 
     } catch (error) {

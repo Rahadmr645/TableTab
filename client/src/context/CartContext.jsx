@@ -12,7 +12,7 @@ export const ContextProvider = ({ children }) => {
   const [myOrders, setMyOrders] = useState([]);
 
 
-  const URL = 'http://192.168.8.225:5000';
+  const URL = 'http://10.161.68.227:5000';
 
 
 

@@ -47,8 +47,8 @@ const Checkout = () => {
       );
 
       //  store token if backend create new one
-      if (!guestToken && res.data?.Order?.guestToken) {
-        localStorage.setItem("guestToken", res.data.Order.guestToken)
+      if (!guestToken && res.data?.order?.guestToken) {
+        localStorage.setItem("guestToken", res.data.order.guestToken)
       }
 
 

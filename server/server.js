@@ -7,6 +7,7 @@ import userRoutes from './rotues/userRoutes.js';
 import menuRoutes from './rotues/menuRoutes.js';
 import qrRoutes from './rotues/qrRoutes.js'
 import orderRoutes from './rotues/orderRoutes.js'
+import adminRoutes from './rotues/adminRoutes.js'
 import cors from 'cors';
 import path from 'path'
 import { fileURLToPath } from 'url';
@@ -18,7 +19,7 @@ const server = http.createServer(app);
 
 
 
- const io =    initSocket(server);
+const io = initSocket(server);
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,7 @@ const PORT = process.env.PORT || 4000;
 
 // router section
 app.use('/api/user/', userRoutes)
+app.use('/api/admin', adminRoutes)
 app.use('/api/menu/', menuRoutes);
 app.use('/api/order', orderRoutes)
 app.use('/api/qr', qrRoutes)
@@ -54,7 +56,7 @@ connectToDB();
 
 
 server.listen(5000, () => {
-  console.log(`Server is running on http://192.168.8.225:5000`);
+  console.log(`Server is running on http://10.161.68.227::5000`);
 });
 
 

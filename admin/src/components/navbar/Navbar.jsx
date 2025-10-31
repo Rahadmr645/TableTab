@@ -12,7 +12,7 @@ import { Link, NavLink } from 'react-router-dom'
 
 const Navbar = () => {
   const [selected, setSelected] = useState('orders');
-  const { setShowLogin, user } = useContext(AuthContext);
+  const { setShowLogin, admin } = useContext(AuthContext);
 
   return (
     <div className='navbar'>
@@ -21,8 +21,12 @@ const Navbar = () => {
         <div className="left-box d-flex align-items-center gap-3 justify-content-center">
           <Link to='/profile-pic' > <img className='profilepic' src={profileImage} alt="profile" /> </Link>
           <div>
-            <h3>{user ? user.username : "Guest"}</h3>
-            <p>{user ? user.role : ""}</p>
+            <h3>{admin ? admin.username : "Guest"}</h3>
+            {admin ? (
+              <p >{admin.role}</p>
+            ) : <></>
+            }
+
 
           </div>
 
@@ -42,8 +46,8 @@ const Navbar = () => {
             <span className="nav-text">Orders</span>
           </NavLink>
 
-          {/* check  is user are chef  */}
-          {user && user.role === 'admin' && (
+          {/* check  is admin are chef  */}
+          {admin && admin.role === 'admin' && (
 
             <NavLink
               to='/menu'
@@ -88,7 +92,7 @@ const Navbar = () => {
 
       {/* ==== RIGHT BOX (Login / Logout Button) ==== */}
       <div className='col-3 simple-border d-flex justify-content-center align-items-center'>
-        {user ? (
+        {admin ? (
           <button
             onClick={() => {
               localStorage.removeItem("token");

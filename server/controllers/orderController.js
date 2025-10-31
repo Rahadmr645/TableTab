@@ -3,7 +3,8 @@ import Order from "../models/OrderModel.js";
 
 import { getIo } from '../socket/socket.js'
 
-import crypto from 'crypto'
+import crypto from 'crypto';
+
 // 01: create order
 export const createOrder = async (req, res) => {
 
@@ -25,10 +26,10 @@ export const createOrder = async (req, res) => {
 
         //generate guest token only if not logged in 
         let finalGuestToken = guestToken;
-        if (!userID && !guestToken) {
+        
+        if (!userID && (!guestToken || guestToken.trim() === "")) {
             finalGuestToken = crypto.randomBytes(10).toString("hex");
         }
-
         console.log("final token", finalGuestToken);
 
         const neworder = new Order({
@@ -144,7 +145,7 @@ export const getOrdersByUser = async (req, res) => {
             return res.status(400).json({ message: "token is requried" });
         }
 
-     
+
         const orders = await Order.find({ guestToken }).sort({ createdAt: -1 });
 
 
