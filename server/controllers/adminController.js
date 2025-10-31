@@ -1,5 +1,5 @@
 import express from 'express';
-import User from '../models/UserModel.js';
+import Admin from '../models/AdminModel.js';
 import dotenv from 'dotenv';
 dotenv.config();
 import bcrypt from 'bcryptjs';
@@ -9,12 +9,12 @@ const SECTRATE_KEY = process.env.SECTRATE_KEY
 
 
 // 01 :  create controller
-export const userCreate = async (req, res) => {
+export const adminCreate = async (req, res) => {
 
     try {
 
         
-        const { username, email, password, profilePic } = req.body;
+        const { username, email, password, role, profilePic } = req.body;
 
         if (!username || !email || !password) {
             return res.status(400).json({ message: "please fill all the fields" });
@@ -36,12 +36,13 @@ export const userCreate = async (req, res) => {
             username,
             email,
             password: hashedPassword,
+            role,
             profilePic,
         });
 
 
         // genarate the token
-        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username }, SECTRATE_KEY, { expiresIn: '1d' });
+        const token = JWT.sign({ id: newUser._id, email: newUser.email, username: newUser.username, role: newUser.role }, SECTRATE_KEY, { expiresIn: '1d' });
 
         await newUser.save();
 
@@ -55,7 +56,7 @@ export const userCreate = async (req, res) => {
 
 
 // 02 :  Login controller
-export const userLogin = async (req, res) => {
+export const adminLogin = async (req, res) => {
 
     try {
 

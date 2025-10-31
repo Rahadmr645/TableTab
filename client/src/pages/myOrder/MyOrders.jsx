@@ -12,6 +12,7 @@ const MyOrders = () => {
   const fetchMyOrders = async (token) => {
     try {
       if (!token) return;
+      console.log(token)
       const res = await axios.get(`${URL}/api/order/my-orders/${token}`);
       setMyOrders(res.data.orders);
 

@@ -55,7 +55,7 @@ const Checkout = () => {
 
       alert("Ordr placed successfully")
       console.log(res.data);
-
+     console.log(res.data.guestToken)
 
       // clear quantity state
       setQuantities({});

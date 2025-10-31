@@ -6,7 +6,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
+const UserRegistration = () => {
   const { currState, setCurrState, setShowLogin, URL, setUser } = useContext(AuthContext);
 
   const navigate = useNavigate();
@@ -133,18 +133,7 @@ const Login = () => {
             value={formData.password}
           />
         </div>
-        {currState === "SignUp" ?
-          <div className='rol-container'>
-            <select name='role' required value={formData.role} onChange={handleChange}>
-              <option value='' selected hidden>Role</option>
-              <option value="admin">Admin</option>
-              <option value="chef">Chef</option>
-            </select>
-          </div> :
-          <></>
-        }
-
-
+        
         <button type="submit" className="btn submitn-btn btn-primary submit-btn">
           Submit
         </button>
@@ -169,4 +158,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default UserRegistration;

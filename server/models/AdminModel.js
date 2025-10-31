@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-const usersSchema = mongoose.Schema({
+const adminSchema = mongoose.Schema({
 
     username: {
         type: String,
@@ -18,10 +18,14 @@ const usersSchema = mongoose.Schema({
         type: String,
         default: "",
     },
-    
+    role: {
+        type: String,
+        default: "",
+        enum: ["chef", "admin"]
+    }
 
 }, { timestamps: true });
 
-const User = mongoose.model('User', usersSchema);
+const Admin = mongoose.model('admin', adminSchema);
 
-export default User;
+export default Admin;
