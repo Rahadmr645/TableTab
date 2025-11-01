@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const { currState, setCurrState, setShowLogin, URL, setUser } = useContext(AuthContext);
+  const { currState, setCurrState, setShowLogin, URL, setAdmin } = useContext(AuthContext);
 
   const navigate = useNavigate();
 
@@ -51,7 +51,7 @@ const Login = () => {
         alert('Fail: ' + data.message);
       }
 
-      setUser(res.data.user);
+      setAdmin(res.data.user);
       const token = res.data.token;
 
       if (token) {

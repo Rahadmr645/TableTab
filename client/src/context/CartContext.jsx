@@ -12,7 +12,7 @@ export const ContextProvider = ({ children }) => {
   const [myOrders, setMyOrders] = useState([]);
 
 
-  const URL = 'http://10.161.68.227:5000';
+  const URL = import.meta.env.VITE_API_URL;
 
 
 

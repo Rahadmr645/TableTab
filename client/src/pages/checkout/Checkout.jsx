@@ -6,13 +6,12 @@ import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
 
 const Checkout = () => {
-  const { cart, setCart, URL, setQuantities, user } = useContext(AuthContext);
+  const { cart, setCart, setQuantities, URL, user } = useContext(AuthContext);
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [tableId, setTableId] = useState("");
   const [loading, setLoading] = useState(false);
   const navigator = useNavigate();
-
   // total 
   const subTotal = cart.reduce((acc, item) =>
     acc + item.price * item.quantity, 0
@@ -55,7 +54,7 @@ const Checkout = () => {
 
       alert("Ordr placed successfully")
       console.log(res.data);
-     console.log(res.data.guestToken)
+      console.log(res.data.guestToken)
 
       // clear quantity state
       setQuantities({});

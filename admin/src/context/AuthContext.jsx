@@ -12,7 +12,7 @@ export const AuthContextProvider = ({ children }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [showMenuForm, setShowMenuForm] = useState(false);
     const [currState, setCurrState] = useState('Signup')
-    const URL = "http://10.161.68.227:5000";
+    const URL = import.meta.env.VITE_API_URL;
 
 
     // get admin from token

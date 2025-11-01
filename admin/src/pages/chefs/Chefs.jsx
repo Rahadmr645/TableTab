@@ -7,7 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import './Chefs.css'
 const Chefs = () => {
   const { chefOrders } = useContext(SocketContext);
-  const { user, URL } = useContext(AuthContext);
+  const { admin, URL } = useContext(AuthContext);
   const [timers, setTimers] = useState({});
 
   useEffect(() => {
@@ -101,7 +101,7 @@ const Chefs = () => {
                 </div>
                 <br />
                 <strong>Timer : </strong> <span>  {remaining > 0 ? formatTime(remaining) : "Time's up !"} </span>
-                {user ? user.role === 'chef' &&
+                {admin ? admin.role === 'chef' &&
                   <div className="status-btn">
                     <button onClick={() => handleStatusChange(order._id, "Coking")}>Cooking</button>
                     <button onClick={() => handleStatusChange(order._id, "Ready")}>Ready</button>

@@ -1,7 +1,17 @@
 import { useEffect, useState, createContext } from "react";
 import { io } from "socket.io-client";
 import axios from 'axios'
+
+
+
+
+
+
 export const SocketContext = createContext();
+
+
+
+
 
 export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
@@ -9,7 +19,8 @@ export const SocketContextProvider = ({ children }) => {
   const [timers, setTimers] = useState({});
   const [serverTimeOffset, setServerTimeOffset] = useState(0)
 
-  const URL = "http://10.161.68.227:5000";
+
+  const URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const newSocket = io(URL, {

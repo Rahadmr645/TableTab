@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import connectToDB from './config/db.js';
 
 
+
 const app = express();
 const server = http.createServer(app);
 
@@ -32,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 
 // socket setup
 
@@ -55,8 +56,8 @@ app.get('/', (req, res) => {
 connectToDB();
 
 
-server.listen(5000, () => {
-  console.log(`Server is running on http://10.161.68.227::5000`);
+server.listen(PORT, () => {
+  console.log(`Server is running on http://10.161.68.227:${PORT}`);
 });
 
 
