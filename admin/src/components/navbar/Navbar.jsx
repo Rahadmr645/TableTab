@@ -56,7 +56,7 @@ const handleLogout = () => {
 
           {/* check  is admin are chef  */}
           {admin && admin.role === 'admin' && (
-
+          <> 
             <NavLink
               to='/menu'
               className={`nav_icon_box ${selected === 'menu' ? "selectedboder" : ""}`}
@@ -66,9 +66,6 @@ const handleLogout = () => {
               <span className="nav-text">Menu</span>
             </NavLink>
 
-          )}
-
-
           <NavLink
             to='/summary'
             className={`nav_icon_box ${selected === 'summary' ? "selectedboder" : ""}`}
@@ -76,7 +73,19 @@ const handleLogout = () => {
           >
             <FaChartLine className="nav-icon" />
             <span className="nav-text">Summary</span>
+          </NavLink> 
+          
+          <NavLink
+            to='/about'
+            className={`nav_icon_box ${selected === 'about' ? "selectedboder" : ""}`}
+            onClick={() => setSelected('about')}
+          >
+            <FaInfoCircle className="nav-icon" />
+            <span className="nav-text">About</span>
           </NavLink>
+        </>
+          )}
+
 
           <NavLink
             to='/chef'
@@ -87,14 +96,7 @@ const handleLogout = () => {
             <span className="nav-text">Chefs</span>
           </NavLink>
 
-          <NavLink
-            to='/about'
-            className={`nav_icon_box ${selected === 'about' ? "selectedboder" : ""}`}
-            onClick={() => setSelected('about')}
-          >
-            <FaInfoCircle className="nav-icon" />
-            <span className="nav-text">About</span>
-          </NavLink>
+          
         </div>
       </div>
 

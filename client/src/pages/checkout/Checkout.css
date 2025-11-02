@@ -1,124 +1,3 @@
-/* .cartItem{
-  border : 1px solid green;
-}
-.checkout_nav {
-  margin-top: 20px;
-  width: 100℅;
-  height: 30px;
-  display: flex;
-  align-items: center;
-}
-.checkout_nav ul {
-  display: flex;
-  list-style: none;
-  align-items: center;
-  gap: 20px;
-  justify-content: space-beteen ;
-  padding: 10px;
-}
-hr{
-  margin: 0px !important;
-  
-}
-.checkout_nav ul li {
-  font-size: 13px;
-  
-}
-.pobtn {
-  width: 100℅;
-  display: flex;
-  justify-content: center;
-  margin-top: 20px; 
-}
-.pobtn button {
-  width: 250px;
-  padding: 10px 10px;
-  font-size: 20px;
-  border: none ;
-  border-radius: 5px;
-}
-
-.pobtn button:hover {
-  background : green;
-  color: black;
-}
-
-.subtotal{
-  width: 100%;
-  display: flex;
-  justify-content: right;
- 
-}
-.subtotal h3 {
-  padding-right: 10px;
-  font-size: 15px;
-}
-
-
-
-.popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.popup-content {
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-}
-
-.popup-content h3 {
-  margin-bottom: 10px;
-}
-
-.popup-content input {
-  width: 90%;
-  padding: 10px;
-  font-size: 16px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.popup-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-left: 10px;
-}
-
-.confirm-btn {
-  background: #28a745;
-  color: white;
-  height: 40px;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-}
- */
-
-
-
 
 /* new design */
 
@@ -129,18 +8,19 @@ hr{
   backdrop-filter: blur(40px);
   color: #fff;
   font-family: "Poppins", sans-serif;
-
+ border: 1px solid red;
   border-radius: 12px;
 }
 
 .checkout_nav {
-
+  border: 1px solid green;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .checkout_nav ul {
+  border: 1px solid red;
   display: grid;
   width: 50%;
   grid-template-columns: 80px 1fr 100px 100px 100px 80px;
@@ -154,13 +34,7 @@ hr{
 
 }
 
-.cart-container {
-  display: flex;
-  flex-direction: column;
-  gap: px;
 
-
-}
 
 .subtotal {
   margin-top: 30px;
@@ -275,11 +149,16 @@ hr {
 /* responsive */
 @media (max-width: 600px) {
   .checkout_nav ul {
-    grid-template-columns: 60px 1fr 80px 60px;
+    grid-template-columns: 30px 1fr 1fr 1fr 1fr 1fr;
     font-size: 14px;
+    width: 100%;
+  gap: 5px
   }
 
   .popup-content {
     width: 90%;
   }
+  .checkout_nav {
+    width: 100%;
+    
 }

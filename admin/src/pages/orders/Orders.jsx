@@ -74,7 +74,6 @@ const Orders = () => {
           {allOrderList.map((order) => (
 
             <div key={order._id} className="order-card">
-              <p>order id {order._id}</p>
               <h3>Order ID: {order._id.slice(-6)}</h3>
               <p><strong>Customer: </strong> {order.customerName}</p>
               <p><strong>TableId: </strong> {order.tableId}</p>
@@ -96,9 +95,11 @@ const Orders = () => {
                 <strong>Date:</strong>
                 {new Date(order.createdAt).toLocaleString()}
               </p>
-              <p>{order.status}</p>
-
+              <p>Status: {order.status}</p>
+            {admin.role === "admin"  && 
               <button onClick={() => deleteHandler(order._id)} className='btn btn-outline-danger'>Delete</button>
+            }
+              
             </div>
           )
 

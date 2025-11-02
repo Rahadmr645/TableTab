@@ -89,3 +89,30 @@
    
 }
 
+
+
+@media ( max-width: 500px) {
+  
+.navLink span {
+   display: none !important;
+}
+.left-side img {
+    width: 30px;
+}
+.left-side span {
+  font-size: 12px;
+
+}
+
+
+.middle-side {
+  gap: 15px;
+}
+.cart-span {
+  display: none;
+}
+
+.navabr-container {
+  height:40px;
+}
+}

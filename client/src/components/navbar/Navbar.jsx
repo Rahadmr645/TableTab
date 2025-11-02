@@ -33,7 +33,7 @@ const Navbar = () => {
                                 alert("You need to add something in your card")
                             }
                         }} >
-                        <span>Cart</span>
+                        <span className="cart-span">Cart</span>
                         <IoCart className='icon' />
                     </NavLink>
                 </div>
