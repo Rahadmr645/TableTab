@@ -7,8 +7,10 @@ import './Orders.css'
 const Orders = () => {
 
 
-  const { URL, admin } = useContext(AuthContext);
-
+  const {  admin } = useContext(AuthContext);
+  
+ const URL = import.meta.env.VITE_API_URL;
+ 
   const [allOrderList, setAllOrderList] = useState([]);
 
 
