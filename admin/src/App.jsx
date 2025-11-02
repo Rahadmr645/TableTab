@@ -8,10 +8,11 @@ import AppRoutes from './AppRoutes.jsx'
 const App = () => {
   return (
     <>
+      <div className="app-container">
        <Navbar/>
        <AppRoutes/>
        <Dashbord/>
-      
+      </div>
      </>
   )
 }

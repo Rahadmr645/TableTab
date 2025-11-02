@@ -8,12 +8,20 @@ import { GrCafeteria } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { PiChefHat } from "react-icons/pi";
 import { FaInfoCircle } from "react-icons/fa";
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink,useNavigate } from 'react-router-dom'
+
 
 const Navbar = () => {
   const [selected, setSelected] = useState('orders');
-  const { setShowLogin, admin } = useContext(AuthContext);
-
+  const { setShowLogin, admin,setAdmin } = useContext(AuthContext);
+const navigate = useNavigate() ;
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  
+  setAdmin(null);
+  
+  navigate('/login')
+}
   return (
     <div className='navbar'>
       {/* ==== LEFT BOX (Profile Info) ==== */}
@@ -94,10 +102,7 @@ const Navbar = () => {
       <div className='col-3 simple-border d-flex justify-content-center align-items-center'>
         {admin ? (
           <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              window.location.reload();
-            }}
+            onClick={handleLogout}
             className='btn btn-danger lg-btn'
           >
             LOGOUT

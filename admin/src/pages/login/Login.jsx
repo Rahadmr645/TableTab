@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, {useEffect, useContext, useState } from 'react';
 import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
@@ -10,7 +10,7 @@ const Login = () => {
   const { currState, setCurrState, setShowLogin, URL, setAdmin } = useContext(AuthContext);
 
   const navigate = useNavigate();
-
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -18,11 +18,22 @@ const Login = () => {
     profilePic: '',
     role: '',
   });
+  
+  
+  useEffect(() => {
+    document.body.style.overflow = "hidden"
+    
+    
+    return() => {
+      document.body.style.overflow = "auto"
+    }
+  },[])
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
 
   const submitHandler = async (e) => {
     e.preventDefault();

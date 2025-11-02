@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import Dashbord from './pages/deshboard/Dashbord';
 import Login from './pages/login/Login';
 
-
+import ProtectRoutes from './utils/ProtectRoutes.jsx'
 import Chefs from './pages/chefs/Chefs';
 import Menu from './pages/menu/Menu';
 import Orders from './pages/orders/Orders';
@@ -15,7 +15,9 @@ const AppRoutes = () => {
         <>
 
             <Routes>
-                <Route path='/' element={<Dashbord />} />
+                <Route path='/' element={   <ProtectRoutes>
+                  <Dashbord /> 
+                  </ProtectRoutes>} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/menu' element={<Menu />} />
                 <Route path='/orders' element={<Orders />} />
