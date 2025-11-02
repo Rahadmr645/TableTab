@@ -12,21 +12,18 @@ import Checkout from "./pages/checkout/Checkout.jsx"
 import OrderBoard from "./pages/orderBoard/OrderBoard.jsx"
 import Navbar from './components/navbar/Navbar.jsx'
 import MyOrders from './pages/myOrder/MyOrders.jsx'
+import Home from './pages/home/Home.jsx'
 
 const App = () => {
 
-  const { a } = useContext(AuthContext)
-
+  
   return (
     <>
-
+     
       <Navbar />
-      {/* <QRGenerator /> */}
-      {/* <Link to="/orderboard" >Order Board</Link> */}
-      <br />
-
       {/* Router section */}
       <Routes>
+         <Route path='/' element={<Home />} />
         <Route path='/menu' element={<MenuList />} />
         <Route path="/chackout" element={<Checkout />} />
         <Route path="/orderboard" element={<OrderBoard />} />
