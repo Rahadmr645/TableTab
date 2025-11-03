@@ -1,122 +1,113 @@
-.navabr-container {
-    width: 100%;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    margin-top: 30px;
-    background-color: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px);
-    border: none;
-    border-radius: 10px;
-    border: 1px solid red;
-
-}
-.navabr-container{
+.navbar-container {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   display: flex;
+  align-items: center;
+  margin-top: 30px;
+  background-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  border-radius: 10px;
+  border: 1px solid red;
 }
+
 .left-side {
-    width: 30%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
+  width: 30%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
 .left-side img {
-    width: 50px;
-
+  width: 50px;
 }
 
 .middle-side {
-    display: flex;
-    gap: 40px;
-    width: 50%;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  gap: 40px;
+  width: 50%;
+  justify-content: center;
+  align-items: center;
 }
 
 .right-side {
-    width: 20%;
-    display: flex;
-    justify-content: center;
-
+  width: 20%;
+  display: flex;
+  justify-content: center;
 }
 
 .right-side button {
-    width: 100px;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
+  width: 100px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
 }
 
 .right-side button:hover {
-    cursor: pointer;
-    background-color: green;
-    color: white;
-}
- .icon , span{
-    font-size: 20px;
-    font-weight: bold;
-    
-   
+  cursor: pointer;
+  background-color: green;
+  color: white;
 }
 
+/* ✅ Scoped styling */
+.navbar-container .icon,
+.navbar-container span {
+  font-size: 20px;
+  font-weight: bold;
+}
 
-.navLink, .active {
-    text-decoration: none;
-    color: black;
-    display: flex;
-    align-items: center;
-    font-size: 20px;
-    justify-content: center;
-    gap: 10px;
+.navLink,
+.active {
+  text-decoration: none;
+  color: black;
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .nav-box {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
 }
 
 .disble {
-    pointer-events: none;
-    opacity: 0.6;
-    color: rgb(224, 213, 213);
-    text-decoration: none;
-    display: flex;
-    gap: 10px;
-    border: 1px solid white;
-   
-}
-
-
-
-@media ( max-width: 500px) {
-  
-.navLink span {
-   display: none !important;
-}
-.left-side img {
-    width: 30px;
-}
-.left-side span {
-  font-size: 12px;
-
-}
-
-
-.middle-side {
-  gap: 15px;
-}
-.cart-span {
-  display: none;
-}
-
-.navabr-container {
-  height:40px;
+  pointer-events: none;
+  opacity: 0.6;
+  color: rgb(224, 213, 213);
+  text-decoration: none;
   display: flex;
+  gap: 10px;
+  border: 1px solid white;
 }
+
+@media (max-width: 500px) {
+  .navLink span {
+    display: none !important;
+  }
+
+  .left-side img {
+    width: 30px;
+  }
+
+  .left-side span {
+    font-size: 12px;
+  }
+
+  .middle-side {
+    gap: 15px;
+  }
+
+  .cart-span {
+    display: none;
+  }
+
+  .navbar-container {
+    height: 40px;
+  }
 }

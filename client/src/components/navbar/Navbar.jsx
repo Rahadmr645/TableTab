@@ -13,7 +13,7 @@ const Navbar = () => {
 
 
     return (
-        <div className='navabr-container'>
+        <div className='navbar-container'>
             <div className='left-side'>
                 <img src={logo} alt="" />
                 <span>TableTab</span>
@@ -26,7 +26,7 @@ const Navbar = () => {
                     </NavLink>
                 </div>
                 <div className='nav-box'>
-                    <NavLink className={`navLink, ${cart.length > 0 ? "active" : "disble"}`} to={cart.length > 0 ? "/chackout" : "#"}
+                    <NavLink className={`navLink ${cart.length > 0 ? "active" : "disble"}`} to={cart.length > 0 ? "/chackout" : "#"}
                         onClick={(e) => {
                             if (cart.length === 0) {
                                 e.preventDefault();
