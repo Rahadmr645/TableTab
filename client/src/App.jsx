@@ -23,7 +23,6 @@ const App = () => {
       <Navbar />
       {/* Router section */}
       <Routes>
-         <Route path='/' element={<Home />} />
         <Route path='/menu' element={<MenuList />} />
         <Route path="/chackout" element={<Checkout />} />
         <Route path="/orderboard" element={<OrderBoard />} />

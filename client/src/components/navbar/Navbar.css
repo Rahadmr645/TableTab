@@ -13,7 +13,9 @@
     border: 1px solid red;
 
 }
-
+.navabr-container{
+  display: flex;
+}
 .left-side {
     width: 30%;
     display: flex;
