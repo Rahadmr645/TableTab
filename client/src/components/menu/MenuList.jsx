@@ -7,7 +7,7 @@ import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
 
 const MenuList = () => {
-  const { URL, quantities, setQuantities, cart, setCart } = useContext(AuthContext);
+  const { URL, quantities, setQuantities, cart, setCart, handleRemove } = useContext(AuthContext);
   const [menuItems, setMenuItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
@@ -76,23 +76,7 @@ const MenuList = () => {
     });
   };
 
-  // Remove item from cart & update quantities
-  const handleRemove = (item) => {
-    setQuantities(prev => ({
-      ...prev,
-      [item._id]: Math.max((prev[item._id] || 0) - 1, 0),
-    }));
 
-    setCart(prevCart => {
-      return prevCart
-        .map(i =>
-          i._id === item._id
-            ? { ...i, quantity: Math.max(i.quantity - 1, 0) }
-            : i
-        )
-        .filter(i => i.quantity > 0); // remove items with 0 quantity
-    });
-  };
 
   return (
     <div className="menu-list-container">
@@ -109,7 +93,7 @@ const MenuList = () => {
             {cat}
           </button>
         ))}
-       
+
       </div>
 
       {/* Menu Cards */}
@@ -127,7 +111,7 @@ const MenuList = () => {
                 <div className="quantities-box">
                   <p onClick={() => handleAdd(item)}><IoAddCircleOutline /></p>
                   {quantities[item._id]}
-                  <p onClick={() => handleRemove(item)}><RxDividerHorizontal /></p>
+                  <p onClick={() => handleRemove(item._id)}><RxDividerHorizontal /></p>
                 </div>
               ) : (
                 <div className="adding-btn">

@@ -17,6 +17,9 @@
   border-radius: 12px;
   backdrop-filter: blur(10px);
   transition: transform 0.3s ease;
+  position: relative;
+  z-index: 0;
+  pointer-events: auto;
 }
 
 .cartItem-box:hover {
@@ -28,6 +31,7 @@
   height: 40px;
   object-fit: cover;
   border-radius: 10px;
+  pointer-events: none;
 
 }
 

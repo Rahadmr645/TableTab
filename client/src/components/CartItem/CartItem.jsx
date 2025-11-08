@@ -4,7 +4,7 @@ import { AuthContext } from "../../context/CartContext";
 import './CartItem.css'
 const CartItem = ({ name, id, price, quantity, image }) => {
 
-  const { URL } = useContext(AuthContext);
+  const { URL, handleRemove } = useContext(AuthContext);
   const Total = price * quantity;
   return (
     <>
@@ -19,7 +19,7 @@ const CartItem = ({ name, id, price, quantity, image }) => {
             <p>{quantity}</p>
             <p>{price}</p>
             <p>{Total}/-</p>
-            <p>X</p>
+            <p onClick={() => handleRemove(id)}>X</p>
           </div>
         </div>
         <hr className='hr' style={{ color: "rgba(255,255,255,0.2)" }} />
