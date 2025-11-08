@@ -86,8 +86,7 @@ const Checkout = () => {
           <li>Cancel</li>
         </ul>
       </div>
-      <hr />
-
+      <hr className='hr'  />
 
       {
         cart.length > 0 ?

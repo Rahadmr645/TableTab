@@ -22,7 +22,7 @@ const CartItem = ({ name, id, price, quantity, image }) => {
             <p>X</p>
           </div>
         </div>
-        <hr style={{ color: "rgba(255,255,255,0.2)" }} />
+        <hr className='hr' style={{ color: "rgba(255,255,255,0.2)" }} />
       </div>
 
     </>

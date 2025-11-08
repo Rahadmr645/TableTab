@@ -1,4 +1,3 @@
-
 /* new design */
 
 .cartItem {
@@ -8,19 +7,16 @@
   backdrop-filter: blur(40px);
   color: #fff;
   font-family: "Poppins", sans-serif;
- border: 1px solid red;
   border-radius: 12px;
 }
 
 .checkout_nav {
-  border: 1px solid green;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .checkout_nav ul {
-  border: 1px solid red;
   display: grid;
   width: 50%;
   grid-template-columns: 80px 1fr 100px 100px 100px 80px;
@@ -108,14 +104,14 @@
   outline: none;
   background: rgba(240, 234, 234, 0.02);
   color: white;
- 
+
 }
 
 .popup-buttons {
   display: flex;
   justify-content: space-around;
   margin-top: 15px;
-  gap:  10px;
+  gap: 10px;
 }
 
 .confirm-btn {
@@ -152,13 +148,19 @@ hr {
     grid-template-columns: 30px 1fr 1fr 1fr 1fr 1fr;
     font-size: 14px;
     width: 100%;
-  gap: 5px
+    gap: 5px
   }
 
   .popup-content {
     width: 90%;
   }
+
   .checkout_nav {
     width: 100%;
-    
+
+  }
+
+  .subtotal {
+    margin-right: 50px;
+  }
 }
