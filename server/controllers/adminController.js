@@ -15,7 +15,7 @@ export const adminCreate = async (req, res) => {
         console.log('rahad', req.body);
         const { email, username, password, role, profilePic } = req.body;
 
-        if (!username || !email || !password) {
+        if (!username || !email || !password || !role) {
             return res.status(400).json({ message: "please fill all the fields" });
         }
 

@@ -12,8 +12,7 @@ import cors from 'cors';
 import path from 'path'
 import { fileURLToPath } from 'url';
 import connectToDB from './config/db.js';
-
-
+import adminOtpRoutes from './rotues/adminOtpRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -46,6 +45,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/menu/', menuRoutes);
 app.use('/api/order', orderRoutes)
 app.use('/api/qr', qrRoutes)
+app.use('/api/otp', adminOtpRoutes)
 
 
 app.get('/', (req, res) => {
@@ -57,7 +57,7 @@ connectToDB();
 
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://10.161.68.227:${PORT}`);
+  console.log(`Server is running on http://192.168.1.102:${PORT}`);
 });
 
 

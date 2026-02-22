@@ -1,65 +1,90 @@
-import React, {useEffect, useContext, useState } from 'react';
-import './Login.css';
-import { AuthContext } from '../../context/AuthContext';
-import axios from 'axios';
+import React, { useEffect, useContext, useState } from "react";
+import "./Login.css";
+import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
 
-import { jwtDecode } from 'jwt-decode';
-import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const { currState, setCurrState, setShowLogin, URL, setAdmin } = useContext(AuthContext);
+  const { currState, setCurrState, setShowLogin, URL, setAdmin } =
+    useContext(AuthContext);
+  const [otpSend, setOtpSend] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const sendOtpHandler = async (e) => {
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${URL}/api/otp/send-otp`,
+        { email: formData.email },
+        { headers: { "Content-Type": "application/json" } },
+      );
+
+      if (res.status === 200) {
+        alert("OTP send to your email");
+        setOtpSend(true);
+
+        // save email temporarily to the localstorage
+        localStorage.setItem("otpEmail", formData.email);
+        navigate("/verify-otp");
+      }
+    } catch (error) {
+      alert("Failed to send OTP:");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    profilePic: '',
-    role: '',
+    username: "",
+    email: "",
+    password: "",
+    profilePic: "",
+    role: "",
   });
-  
-  
+
   useEffect(() => {
-    document.body.style.overflow = "hidden"
-    
-    
-    return() => {
-      document.body.style.overflow = "auto"
-    }
-  },[])
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
     const endPoint =
-      currState === 'SignUp'
+      currState === "SignUp"
         ? `${URL}/api/admin/create`
         : `${URL}/api/admin/login`;
 
     const bodyData =
-      currState === 'SignUp'
+      currState === "SignUp"
         ? formData
         : { email: formData.email, password: formData.password };
-    console.log(bodyData)
-
+    console.log(bodyData);
 
     try {
-      const res = await axios.post(endPoint, bodyData,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      //  put here the otp verification before sending the login or signup requuest how i can do that
+      const res = await axios.post(endPoint, bodyData, {
+        headers: { "Content-Type": "application/json" },
+      });
       const data = res.data;
       if (res.status === 200) {
-        alert('Success');
+        alert("Success");
         console.log(data);
       } else {
-        alert('Fail: ' + data.message);
+        alert("Fail: " + data.message);
       }
 
       setAdmin(res.data.user);
@@ -69,30 +94,20 @@ const Login = () => {
         localStorage.setItem("token", token);
         console.log("token saved:", localStorage.getItem("token"));
       } else {
-        console.log("no token found from backend")
+        console.log("no token found from backend");
       }
 
       // saving to the localstorage
+      setFormData({ username: "", email: "", password: "" });
+      navigate("/");
+      setShowLogin(false);
 
-
-      setFormData({ username: '', email: '', password: '' });
-
-
-      navigate('/');
-      setShowLogin(false)
-
-
-
+      window.location.reload();
     } catch (error) {
       console.error(error);
-      alert('Something went wrong: ' + error.message);
+      alert("Something went wrong: " + error.message);
     }
-
-
-
   };
-
-
 
   return (
     <div className="loginForm-container">
@@ -101,15 +116,17 @@ const Login = () => {
           <p>{currState}</p>
           <p
             onClick={() => setShowLogin(false)}
-            style={{ fontSize: '20px', cursor: 'pointer' }}
+            style={{ fontSize: "20px", cursor: "pointer" }}
           >
             x
           </p>
         </div>
 
-        {currState === 'SignUp' && (
+        {currState === "SignUp" && (
           <div className="mb-3">
-            <label htmlFor="username" className="form-label">Username</label>
+            <label htmlFor="username" className="form-label">
+              Username
+            </label>
             <input
               type="text"
               className="form-control"
@@ -122,7 +139,9 @@ const Login = () => {
         )}
 
         <div className="mb-3">
-          <label htmlFor="email" className="form-label">Email address</label>
+          <label htmlFor="email" className="form-label">
+            Email address
+          </label>
           <input
             type="email"
             className="form-control"
@@ -134,7 +153,9 @@ const Login = () => {
         </div>
 
         <div className="mb-3">
-          <label htmlFor="password" className="form-label">Password</label>
+          <label htmlFor="password" className="form-label">
+            Password
+          </label>
           <input
             type="password"
             className="form-control"
@@ -144,33 +165,45 @@ const Login = () => {
             value={formData.password}
           />
         </div>
-        {currState === "SignUp" ?
-          <div className='rol-container'>
-            <select name='role' required value={formData.role} onChange={handleChange}>
-              <option value='' disabled hidden>Role</option>
+        {currState === "SignUp" ? (
+          <div className="rol-container">
+            <select
+              name="role"
+              required
+              value={formData.role}
+              onChange={handleChange}
+            >
+              <option value="" disabled hidden>
+                Role
+              </option>
               <option value="admin">Admin</option>
               <option value="chef">Chef</option>
             </select>
-          </div> :
+          </div>
+        ) : (
           <></>
-        }
+        )}
 
-
-        <button type="submit" className="btn submitn-btn btn-primary submit-btn">
-          Submit
+        <button
+          type="submit"
+          onClick={sendOtpHandler}
+          disabled={loading}
+          className="btn submitn-btn btn-primary submit-btn"
+        >
+          {loading ? "Sending OTP..." : "Send OTP"}
         </button>
 
-        {currState === 'SignUp' ? (
+        {currState === "SignUp" ? (
           <p>
-            Already have an account?{' '}
-            <span className="span" onClick={() => setCurrState('Login')}>
+            Already have an account?{" "}
+            <span className="span" onClick={() => setCurrState("Login")}>
               Click here
             </span>
           </p>
         ) : (
           <p>
-            Don't have an account?{' '}
-            <span className="span" onClick={() => setCurrState('SignUp')}>
+            Don't have an account?{" "}
+            <span className="span" onClick={() => setCurrState("SignUp")}>
               Click here
             </span>
           </p>

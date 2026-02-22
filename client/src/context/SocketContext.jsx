@@ -20,7 +20,8 @@ export const SocketContextProvider = ({ children }) => {
   const [serverTimeOffset, setServerTimeOffset] = useState(0)
 
 
-  const URL = import.meta.env.VITE_API_URL;
+  // const URL = import.meta.env.VITE_API_URL;
+  const URL = "http://192.168.1.102:4000"
 
   useEffect(() => {
     const newSocket = io(URL, {

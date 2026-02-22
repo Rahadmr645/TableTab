@@ -1,19 +1,15 @@
 import { createContext, useState } from "react";
 
-
 export const AuthContext = createContext();
 
-
 export const ContextProvider = ({ children }) => {
-
   const [quantities, setQuantities] = useState({});
   const [cart, setCart] = useState([]);
   const [user, setUser] = useState(null);
   const [myOrders, setMyOrders] = useState([]);
 
-
-  const URL = import.meta.env.VITE_API_URL;
-
+  // const URL = import.meta.env.VITE_API_URL;
+  const URL = "http://192.168.1.102:4000";
 
   // Remove item from cart & update quantities
   // const handleRemove = (id) => {
@@ -33,21 +29,18 @@ export const ContextProvider = ({ children }) => {
   //   });
   // };
 
-
   const handleRemove = (id) => {
-    setQuantities(prev => ({
+    setQuantities((prev) => ({
       ...prev,
       [id]: Math.max((prev[id] || 0) - 1, 0),
     }));
 
-
-    setCart(prevCart =>
+    setCart((prevCart) =>
       prevCart
-        .map(i => i._id == id
-          ? { ...i, quantity: Math.max(i.quantity - 1, 0) }
-          : i
+        .map((i) =>
+          i._id == id ? { ...i, quantity: Math.max(i.quantity - 1, 0) } : i,
         )
-        .filter(i => i.quantity > 0)
+        .filter((i) => i.quantity > 0),
     );
   };
 
@@ -62,13 +55,9 @@ export const ContextProvider = ({ children }) => {
     myOrders,
     setMyOrders,
     handleRemove,
-
-  }
+  };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-
-  )
-}
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
+};
