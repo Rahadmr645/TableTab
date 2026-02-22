@@ -6,13 +6,13 @@ import { useState } from "react";
 import { AuthContext } from "../../context/AuthContext.jsx";
 import "./VerifyOtp.css";
 import { useEffect } from "react";
-const VerifyOtp =  () => {
-  const { URL } = useContext(AuthContext);
+
+const VerifyOtp = () => {
+  const { URL, isVerified, setIsVerified } = useContext(AuthContext);
   const Navigate = useNavigate();
   const [otp, setOtp] = useState("");
-  const email =localStorage.getItem("otpEmail");
-  const [timeLeft, setTimeLeft] = useState(300)
-
+  const email = localStorage.getItem("otpEmail");
+  const [timeLeft, setTimeLeft] = useState(300);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -34,6 +34,7 @@ const VerifyOtp =  () => {
         alert("OTP verified successfully");
 
         localStorage.removeItem("otpEmail");
+        setIsVerified(true);
         // now create user
         Navigate("/");
       }

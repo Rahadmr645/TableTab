@@ -39,3 +39,22 @@
     background-color: rgb(233, 176, 21);
     color: black;
 }
+
+
+/* responsive for mobile */
+
+@media (max-width: 600px) {
+    .otp-box {
+        width: 360px;
+        height: auto;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 200px;
+    }
+    .otp-input-btn-box input{
+        width: 172px;
+    }
+
+}

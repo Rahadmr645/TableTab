@@ -7,12 +7,20 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const { currState, setCurrState, setShowLogin, URL, setAdmin } =
-    useContext(AuthContext);
+  const {
+    currState,
+    setCurrState,
+    setShowLogin,
+    URL,
+    setAdmin,
+    isVerified,
+    setIsVerified,
+  } = useContext(AuthContext);
   const [otpSend, setOtpSend] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const sendOtpHandler = async (e) => {
+    e.preventDefault();
     try {
       setLoading(true);
       const res = await axios.post(
@@ -108,6 +116,9 @@ const Login = () => {
       alert("Something went wrong: " + error.message);
     }
   };
+  if (isVerified) {
+    submitHandler
+  }
 
   return (
     <div className="loginForm-container">
