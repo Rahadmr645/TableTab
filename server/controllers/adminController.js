@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import bcrypt from "bcryptjs";
 import JWT from "jsonwebtoken";
+import cloudinary from "../config/cloudinary.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY;
 
@@ -47,13 +48,11 @@ export const adminCreate = async (req, res) => {
 
     await newAdmin.save();
 
-    res
-      .status(200)
-      .json({
-        messasge: "admin create susccessfully",
-        admin: newAdmin,
-        token: token,
-      });
+    res.status(200).json({
+      messasge: "admin create susccessfully",
+      admin: newAdmin,
+      token: token,
+    });
   } catch (error) {
     res
       .status(500)
@@ -90,16 +89,14 @@ export const adminLogin = async (req, res) => {
         role: isExist.role,
       },
       SECTRATE_KEY,
-      {expiresIn : "1d"},
+      { expiresIn: "1d" },
     );
 
-    res
-      .status(200)
-      .json({
-        messasge: "user Login susccessfully",
-        user: isExist,
-        token: token,
-      });
+    res.status(200).json({
+      messasge: "user Login susccessfully",
+      user: isExist,
+      token: token,
+    });
   } catch (error) {
     res
       .status(500)
@@ -111,19 +108,57 @@ export const adminLogin = async (req, res) => {
 
 export const updateProfilePic = async (req, res) => {
   try {
-    const { userId, profilePic } = req.body;
-    console.log(req.body);
-    if (!userId || !profilePic)
-      return res
-        .status(400)
-        .json({ message: "user id and profileimage required" });
+   
+      const { userId } = req.body;
 
-    const admin = await Admin.findByIdAndUpdate(
+    if (!userId || !req.file) {
+      return res.status(400).json({ message: "userId and iamge are required" });
+    }
+
+    // upload image to cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "profile_pics",
+    });
+
+    // save image url to database
+    const updateAdmin = await Admin.findByIdAndUpdate(
       userId,
-      { profilePic },
-      { new: true }, // returns the updated document
+      { profilePic: result.secure_url },
+      { new: true },
     );
-    if (!admin) return res.status(400).json({ message: "admin not found" });
-    res.status(200).json({ message: " image updated successfully" });
-  } catch (error) {}
+
+    if (!updateAdmin)
+      return res.status(404).json({ message: "admin not found" });
+
+    console.log("update admin", updateAdmin)
+    res.status(200).json({
+      message: "Profile picture updated successfully",
+      profilePic: result.secure_url,
+      admin: updateAdmin,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update profile picture",
+      error: error.message,
+    });
+  }
 };
+
+// export const updateProfilePic = async (req, res) => {
+//   try {
+//     const { userId, profilePic } = req.body;
+//     console.log(req.body);
+//     if (!userId || !profilePic)
+//       return res
+//         .status(400)
+//         .json({ message: "user id and profileimage required" });
+
+//     const admin = await Admin.findByIdAndUpdate(
+//       userId,
+//       { profilePic },
+//       { new: true }, // returns the updated document
+//     );
+//     if (!admin) return res.status(400).json({ message: "admin not found" });
+//     res.status(200).json({ message: " image updated successfully" });
+//   } catch (error) {}
+// };

@@ -8,6 +8,7 @@ export const AuthContextProvider = ({ children }) => {
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [currState, setCurrState] = useState("Signup");
   const [expiresAt, setExpiresAt] = useState(null);
+  const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(true);
 
   // const URL = import.meta.env.VITE_API_URL;
   const URL = "http:///192.168.1.100:4000";
@@ -33,6 +34,8 @@ export const AuthContextProvider = ({ children }) => {
     setAdmin,
     expiresAt,
     setExpiresAt,
+    showUpdateProfilePic,
+    setShowUpdateProfilePic,
   };
 
   return (
