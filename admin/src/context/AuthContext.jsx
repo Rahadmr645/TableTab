@@ -7,13 +7,13 @@ export const AuthContextProvider = ({ children }) => {
   const [showLogin, setShowLogin] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [currState, setCurrState] = useState("Signup");
-  const [isVerified, setIsVerified] = useState(false);
 
-  // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.1.102:4000";
+  
+   // const URL = import.meta.env.VITE_API_URL;
+  const URL = "http://10.145.1.182:4000";
 
+ 
   // get admin from token
-
   const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
@@ -32,8 +32,6 @@ export const AuthContextProvider = ({ children }) => {
     URL,
     admin,
     setAdmin,
-    isVerified,
-    setIsVerified,
   };
 
   return (

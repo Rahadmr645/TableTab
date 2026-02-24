@@ -19,10 +19,41 @@ const Login = () => {
   const [otpSend, setOtpSend] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const sendOtpHandler = async (e) => {
-    e.preventDefault();
+  // handle send otp
+  // const sendOtpHandler = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     setLoading(true);
+  //     const res = await axios.post(
+  //       `${URL}/api/otp/send-otp`,
+  //       { email: formData.email },
+  //       { headers: { "Content-Type": "application/json" } },
+  //     );
+
+  //     if (res.status === 200) {
+  //       alert("OTP send to your email");
+  //       setOtpSend(true);
+
+  //       // save email temporarily to the localstorage
+  //       localStorage.setItem("otpEmail", formData.email);
+  //       navigate("/verify-otp");
+  //     }
+  //   } catch (error) {
+  //     alert("Failed to send OTP:");
+  //     console.error(error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const sendOtpHandler = async () => {
     try {
       setLoading(true);
+
+      //  save full form data before sending the otp
+      localStorage.setItem("otpFormData", JSON.stringify(formData));
+      localStorage.setItem("currState", currState);
+
       const res = await axios.post(
         `${URL}/api/otp/send-otp`,
         { email: formData.email },
@@ -30,11 +61,7 @@ const Login = () => {
       );
 
       if (res.status === 200) {
-        alert("OTP send to your email");
-        setOtpSend(true);
-
-        // save email temporarily to the localstorage
-        localStorage.setItem("otpEmail", formData.email);
+        alert("OTP send to your email successfullly");
         navigate("/verify-otp");
       }
     } catch (error) {
@@ -84,6 +111,7 @@ const Login = () => {
 
     try {
       //  put here the otp verification before sending the login or signup requuest how i can do that
+
       const res = await axios.post(endPoint, bodyData, {
         headers: { "Content-Type": "application/json" },
       });
@@ -116,12 +144,15 @@ const Login = () => {
       alert("Something went wrong: " + error.message);
     }
   };
-  if (isVerified) {
-    submitHandler
-  }
+
+  // useEffect(() => {
+  //   console.log(isVerified)
+  // },[isVerified])
 
   return (
     <div className="loginForm-container">
+      <button onClick={() => setIsVerified(true)}>test</button>
+      <button onClick={() => setIsVerified(false)}>test</button>
       <form className="lgoinForm" onSubmit={submitHandler}>
         <div className="login-header">
           <p>{currState}</p>
@@ -196,7 +227,7 @@ const Login = () => {
         )}
 
         <button
-          type="submit"
+          type="button"
           onClick={sendOtpHandler}
           disabled={loading}
           className="btn submitn-btn btn-primary submit-btn"

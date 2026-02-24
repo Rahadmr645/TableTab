@@ -8,7 +8,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
   // const URL = import.meta.env.VITE_API_URL;
-const URL = "http://192.168.1.102:4000"
+const URL = "http://10.145.1.182:4000"
 
   useEffect(() => {
     const newSocket = io(URL, {

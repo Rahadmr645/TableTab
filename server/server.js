@@ -57,7 +57,7 @@ connectToDB();
 
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://192.168.1.102:${PORT}`);
+  console.log(`Server is running on http://10.145.1.182:${PORT}`);
 });
 
 
