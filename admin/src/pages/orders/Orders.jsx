@@ -1,43 +1,40 @@
-import React from 'react'
-import { useContext, useState, useEffect } from 'react'
-import { AuthContext } from '../../context/AuthContext'
-import axios from 'axios'
+import React from "react";
+import { useContext, useState, useEffect } from "react";
+import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
 
-import './Orders.css'
+import "./Orders.css";
 const Orders = () => {
+  const { admin } = useContext(AuthContext);
 
+  const URL = import.meta.env.VITE_API_URL;
 
-  const {  admin } = useContext(AuthContext);
-  
- const URL = import.meta.env.VITE_API_URL;
- 
   const [allOrderList, setAllOrderList] = useState([]);
 
+ 
+
+ 
 
   const fetchAllTimeOrder = async () => {
-
     try {
-
       let res;
       if (admin.role === "admin") {
         res = await axios.get(`${URL}/api/order/all-orders`);
-        setAllOrderList(res.data.orders)
+        setAllOrderList(res.data.orders);
       } else {
         res = await axios.get(`${URL}/api/order/active-orders`);
-        setAllOrderList(res.data.activeOrders)
+        setAllOrderList(res.data.activeOrders);
       }
 
       console.log(res.data);
-
     } catch (error) {
-      console.error("faild to fetch all order", error)
+      console.error("faild to fetch all order", error);
     }
-  }
+  };
 
-  // delete order by id 
+  // delete order by id
   const deleteHandler = async (id) => {
     try {
-
       const res = await axios.delete(`${URL}/api/order/delete-order/${id}`);
 
       alert(res.data.message);
@@ -47,46 +44,46 @@ const Orders = () => {
       console.error("Error deleting order: ", err);
       alert("failed to delete order");
     }
-  }
-
-
+  };
 
   useEffect(() => {
     fetchAllTimeOrder();
-  }, [])
+  }, []);
 
-  console.log("all list", allOrderList)
+  console.log("all list", allOrderList);
   return (
-    <div className='orders-container'>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+    <div className="orders-container">
+      <div style={{ display: "flex", alignItems: "center", gap: "30px" }}>
         <h3 className="orders-title">All Orders</h3>
         <h3>{allOrderList.length}</h3>
       </div>
 
       {allOrderList.length === 0 ? (
         <p>No ordres found yet</p>
-
       ) : (
         <div className="orders-list">
-
           <p>Order : {allOrderList.length}</p>
 
           {allOrderList.map((order) => (
-
             <div key={order._id} className="order-card">
               <h3>Order ID: {order._id.slice(-6)}</h3>
-              <p><strong>Customer: </strong> {order.customerName}</p>
-              <p><strong>TableId: </strong> {order.tableId}</p>
-              <p><strong>Total Price: </strong> {order.totalPrice}sar</p>
+              <p>
+                <strong>Customer: </strong> {order.customerName}
+              </p>
+              <p>
+                <strong>TableId: </strong> {order.tableId}
+              </p>
+              <p>
+                <strong>Total Price: </strong> {order.totalPrice}sar
+              </p>
 
               <div className="order-items">
                 <h4>Items:</h4>
                 <ul>
                   {order.items.map((item, i) => (
                     <li key={i}>
-                      {item.name} : {item.quantity} * {item.price} = {" "}
+                      {item.name} : {item.quantity} * {item.price} ={" "}
                       <strong>{item.quantity * item.price}/-</strong>
-
                     </li>
                   ))}
                 </ul>
@@ -96,19 +93,20 @@ const Orders = () => {
                 {new Date(order.createdAt).toLocaleString()}
               </p>
               <p>Status: {order.status}</p>
-            {admin.role === "admin"  && 
-              <button onClick={() => deleteHandler(order._id)} className='btn btn-outline-danger'>Delete</button>
-            }
-              
+              {admin.role === "admin" && (
+                <button
+                  onClick={() => deleteHandler(order._id)}
+                  className="btn btn-outline-danger"
+                >
+                  Delete
+                </button>
+              )}
             </div>
-          )
-
-          )}
+          ))}
         </div>
-      )
-      }
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default Orders
+export default Orders;

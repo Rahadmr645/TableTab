@@ -13,38 +13,11 @@ const Login = () => {
     setShowLogin,
     URL,
     setAdmin,
-    isVerified,
-    setIsVerified,
+    expiresAt,
+    setExpiresAt,
   } = useContext(AuthContext);
-  const [otpSend, setOtpSend] = useState(false);
+
   const [loading, setLoading] = useState(false);
-
-  // handle send otp
-  // const sendOtpHandler = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     setLoading(true);
-  //     const res = await axios.post(
-  //       `${URL}/api/otp/send-otp`,
-  //       { email: formData.email },
-  //       { headers: { "Content-Type": "application/json" } },
-  //     );
-
-  //     if (res.status === 200) {
-  //       alert("OTP send to your email");
-  //       setOtpSend(true);
-
-  //       // save email temporarily to the localstorage
-  //       localStorage.setItem("otpEmail", formData.email);
-  //       navigate("/verify-otp");
-  //     }
-  //   } catch (error) {
-  //     alert("Failed to send OTP:");
-  //     console.error(error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const sendOtpHandler = async () => {
     try {
@@ -61,6 +34,14 @@ const Login = () => {
       );
 
       if (res.status === 200) {
+        const backendExpiry = res.data.expiresAt;
+        console.log("expiry from backend:", backendExpiry);
+
+        if (backendExpiry) {
+          localStorage.setItem("otpExpiresAt", backendExpiry);
+          setExpiresAt(Number(backendExpiry));
+        }
+
         alert("OTP send to your email successfullly");
         navigate("/verify-otp");
       }
