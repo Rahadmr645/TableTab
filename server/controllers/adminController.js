@@ -12,7 +12,8 @@ const SECTRATE_KEY = process.env.SECTRATE_KEY;
 export const adminCreate = async (req, res) => {
   try {
     console.log("rahad", req.body);
-    const { email, username, password, role, profilePic } = req.body;
+    const { email, username, password, role, profilePic, profilePicId } =
+      req.body;
 
     if (!username || !email || !password || !role) {
       return res.status(400).json({ message: "please fill all the fields" });
@@ -32,6 +33,7 @@ export const adminCreate = async (req, res) => {
       password: hashedPassword,
       role,
       profilePic,
+      profilePicId,
     });
 
     // genarate the token
@@ -94,7 +96,7 @@ export const adminLogin = async (req, res) => {
 
     res.status(200).json({
       messasge: "user Login susccessfully",
-      user: isExist,
+      admin: isExist,
       token: token,
     });
   } catch (error) {
@@ -104,15 +106,44 @@ export const adminLogin = async (req, res) => {
   }
 };
 
-// 03: update the user Image
+// fetch user
+export const fetchAdmin = async (req, res) => {
+  try {
+    const id = req.params.id;
 
+    const isAdminExist = await Admin.findById(id);
+
+    if (!isAdminExist)
+      return res.status(404).json({ message: "Admin not find " });
+
+    res
+      .status(200)
+      .json({ message: "admin fetch successfully", admin: isAdminExist });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "faild to fetch admin", error: error.message });
+  }
+};
+
+// 03: update the user Image
 export const updateProfilePic = async (req, res) => {
   try {
-   
-      const { userId } = req.body;
+    const { userId } = req.body;
 
     if (!userId || !req.file) {
       return res.status(400).json({ message: "userId and iamge are required" });
+    }
+
+    // find the admin
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin ont found" });
+    }
+
+    // delete old image from cloudinary if exist
+    if (admin.profilePicId) {
+      await cloudinary.uploader.destroy(admin.profilePicId);
     }
 
     // upload image to cloudinary
@@ -121,20 +152,28 @@ export const updateProfilePic = async (req, res) => {
     });
 
     // save image url to database
-    const updateAdmin = await Admin.findByIdAndUpdate(
-      userId,
-      { profilePic: result.secure_url },
-      { new: true },
-    );
+    // const updateAdmin = await Admin.findByIdAndUpdate(
+    //   userId,
+    //   { profilePic: result.secure_url },
+    //   { profilePicId: result.public_id },
+    //   { new: true },
+    // );
 
-    if (!updateAdmin)
-      return res.status(404).json({ message: "admin not found" });
+    // if (!updateAdmin)
+    //   return res.status(404).json({ message: "admin not found" });
 
-    console.log("update admin", updateAdmin)
+    admin.profilePic = result.secure_url;
+    admin.profilePicId = result.public_id;
+
+    // console.log("update admin", updateAdmin);
+    await admin.save();
+    const fs = await import("fs");
+    fs.unlinkSync(req.file.path);
+
     res.status(200).json({
       message: "Profile picture updated successfully",
-      profilePic: result.secure_url,
-      admin: updateAdmin,
+      // profilePic: result.secure_url,
+      admin,
     });
   } catch (error) {
     res.status(500).json({
@@ -143,22 +182,3 @@ export const updateProfilePic = async (req, res) => {
     });
   }
 };
-
-// export const updateProfilePic = async (req, res) => {
-//   try {
-//     const { userId, profilePic } = req.body;
-//     console.log(req.body);
-//     if (!userId || !profilePic)
-//       return res
-//         .status(400)
-//         .json({ message: "user id and profileimage required" });
-
-//     const admin = await Admin.findByIdAndUpdate(
-//       userId,
-//       { profilePic },
-//       { new: true }, // returns the updated document
-//     );
-//     if (!admin) return res.status(400).json({ message: "admin not found" });
-//     res.status(200).json({ message: " image updated successfully" });
-//   } catch (error) {}
-// };

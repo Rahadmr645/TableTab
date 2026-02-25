@@ -5,7 +5,7 @@
   top: 0;
   z-index: 10000;
   background-color: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
 }
@@ -33,4 +33,13 @@
     border: none;
     border-radius: 5px;
 
+}
+
+.btn-profile-pic-cancel:hover{
+  background-color: rgb(224, 57, 57);
+  color: white;
+}
+.profile-pic-update-btn:hover {
+  background-color: rgb(21, 208, 21);
+  color: white;
 }

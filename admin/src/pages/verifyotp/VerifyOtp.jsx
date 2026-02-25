@@ -12,7 +12,8 @@ const VerifyOtp = () => {
 
   const Navigate = useNavigate();
 
-  const email = localStorage.getItem("otpEmail");
+  const otpFormData = JSON.parse(localStorage.getItem("otpFormData"));
+  const email = otpFormData.email;
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -85,6 +86,10 @@ const VerifyOtp = () => {
 
       if (res.status === 200) {
         alert("OTP verified successfully");
+
+        // remove after verified
+        localStorage.removeItem("otpExpiresAt");
+        // localStorage.removeItem("otpEmail");
 
         // get stored data
         const savedFormData = JSON.parse(localStorage.getItem("otpFormData"));

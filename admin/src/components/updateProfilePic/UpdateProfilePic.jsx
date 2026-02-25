@@ -1,12 +1,21 @@
-import React, { useContext, useState,useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 
 import { AuthContext } from "../../context/AuthContext";
-import  './UpdateProfilePic.css';
+import "./UpdateProfilePic.css";
 const UpdateProfilePic = () => {
-  const { admin, URL, setAdmin } = useContext(AuthContext);
+  const {
+    admin,
+    URL,
+    setAdmin,
+    setShowUpdateProfilePic,
+    showUpdateProfilePic,
+    profileImage,
+    setProfileImage,
+  } = useContext(AuthContext);
 
   const [imageUrl, setImageUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -19,8 +28,9 @@ const UpdateProfilePic = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setLoading(true);
     if (!imageUrl) return alert("Enter your image");
-    console.log(admin ? admin.id : null);
+    
     try {
       // create formate data to send file
       const formData = new FormData();
@@ -33,15 +43,21 @@ const UpdateProfilePic = () => {
       }
 
       const res = await axios.put(`${URL}/api/admin/profile-pic`, formData, {
-        headers: { "Content-Type": "multipart/form-Data" },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (res.status === 200) {
         alert("profile picture updated");
         setAdmin(res.data.admin);
+        setShowUpdateProfilePic(false);
+        window.location.reload();
       }
+
+      console.log("Navbar showUpdateProfilePic:", showUpdateProfilePic);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,7 +70,15 @@ const UpdateProfilePic = () => {
           accept="image/*"
           onChange={(e) => setImageUrl(e.target.files[0])}
         />
-        <button type="submit">Update Profile pic</button>
+        <button className="profile-pic-update-btn" disabled={loading} type="submit">
+          {loading ? "Updating..." : "Update Profile pic"}
+        </button>
+        <button
+          className="btn-profile-pic-cancel"
+          onClick={() => setShowUpdateProfilePic(false)}
+        >
+          Cancel
+        </button>
       </form>
     </div>
   );

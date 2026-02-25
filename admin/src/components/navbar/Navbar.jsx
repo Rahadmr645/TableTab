@@ -13,9 +13,15 @@ import UpdateProfilePic from "../updateProfilePic/UpdateProfilePic";
 
 const Navbar = () => {
   const [selected, setSelected] = useState("orders");
-  const { setShowLogin, admin, setAdmin ,showUpdateProfilePic, setShowUpdateProfilePic} = useContext(AuthContext);
-
- 
+  const {
+    setShowLogin,
+    admin,
+    setAdmin,
+    showUpdateProfilePic,
+    setShowUpdateProfilePic,
+    profileImage,
+   
+  } = useContext(AuthContext);
 
   const navigate = useNavigate();
   const handleLogout = () => {
@@ -24,98 +30,98 @@ const Navbar = () => {
     navigate("/login");
   };
   return (
-   { showUpdateProfilePic ?  <UpdateProfilePic /> :<></>}
-    <div className="navbar">
-      {/* ==== LEFT BOX (Profile Info) ==== */}
-      <div className="col-3 simple-border">
-        <div className="left-box d-flex align-items-center gap-3 justify-content-center">
-          <Link to="/profile-pic">
-            {" "}
+    <>
+      {showUpdateProfilePic && <UpdateProfilePic />}
+
+      <div className="navbar">
+        {/* ==== LEFT BOX (Profile Info) ==== */}
+        <div className="col-3 simple-border">
+          <div className="left-box d-flex align-items-center gap-3 justify-content-center">
             <img
               className="profilepic"
               onClick={() => setShowUpdateProfilePic(true)}
-              src={profileImage}
+              src={profileImage || profileImage}
               alt="profile"
             />{" "}
-          </Link>
-          <div>
-            <h3>{admin ? admin.username : "Guest"}</h3>
-            {admin ? <p>{admin.role}</p> : <></>}
+            <div>
+              <h3>{admin ? admin.username : "Guest"}</h3>
+              {admin ? <p>{admin.role}</p> : <></>}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ==== MIDDLE NAV LINKS ==== */}
-      <div className="col-6 simple-border">
-        <div className="middle-box">
-          <NavLink
-            to="/orders"
-            className={`nav_icon_box ${selected === "orders" ? "selectedboder" : ""}`}
-            onClick={() => setSelected("orders")}
-          >
-            <FaCartPlus className="nav-icon" />
-            <span className="nav-text">Orders</span>
-          </NavLink>
+        {/* ==== MIDDLE NAV LINKS ==== */}
+        <div className="col-6 simple-border">
+          <div className="middle-box">
+            <NavLink
+              to="/orders"
+              className={`nav_icon_box ${selected === "orders" ? "selectedboder" : ""}`}
+              onClick={() => setSelected("orders")}
+            >
+              <FaCartPlus className="nav-icon" />
+              <span className="nav-text">Orders</span>
+            </NavLink>
 
-          {/* check  is admin are chef  */}
-          {admin && admin.role === "admin" && (
-            <>
-              <NavLink
-                to="/menu"
-                className={`nav_icon_box ${selected === "menu" ? "selectedboder" : ""}`}
-                onClick={() => setSelected("menu")}
-              >
-                <GrCafeteria className="nav-icon" />
-                <span className="nav-text">Menu</span>
-              </NavLink>
+            {/* check  is admin are chef  */}
+            {admin && admin.role === "admin" && (
+              <>
+                <NavLink
+                  to="/menu"
+                  className={`nav_icon_box ${selected === "menu" ? "selectedboder" : ""}`}
+                  onClick={() => setSelected("menu")}
+                >
+                  <GrCafeteria className="nav-icon" />
+                  <span className="nav-text">Menu</span>
+                </NavLink>
 
-              <NavLink
-                to="/summary"
-                className={`nav_icon_box ${selected === "summary" ? "selectedboder" : ""}`}
-                onClick={() => setSelected("summary")}
-              >
-                <FaChartLine className="nav-icon" />
-                <span className="nav-text">Summary</span>
-              </NavLink>
+                <NavLink
+                  to="/summary"
+                  className={`nav_icon_box ${selected === "summary" ? "selectedboder" : ""}`}
+                  onClick={() => setSelected("summary")}
+                >
+                  <FaChartLine className="nav-icon" />
+                  <span className="nav-text">Summary</span>
+                </NavLink>
 
-              <NavLink
-                to="/about"
-                className={`nav_icon_box ${selected === "about" ? "selectedboder" : ""}`}
-                onClick={() => setSelected("about")}
-              >
-                <FaInfoCircle className="nav-icon" />
-                <span className="nav-text">About</span>
-              </NavLink>
-            </>
+                <NavLink
+                  to="/about"
+                  className={`nav_icon_box ${selected === "about" ? "selectedboder" : ""}`}
+                  onClick={() => setSelected("about")}
+                >
+                  <FaInfoCircle className="nav-icon" />
+                  <span className="nav-text">About</span>
+                </NavLink>
+              </>
+            )}
+
+            <NavLink
+              to="/chef"
+              className={`nav_icon_box ${selected === "chef" ? "selectedboder" : ""}`}
+              onClick={() => setSelected("chef")}
+            >
+              <PiChefHat className="nav-icon" />
+              <span className="nav-text">Chefs</span>
+            </NavLink>
+          </div>
+        </div>
+
+        {/* ==== RIGHT BOX (Login / Logout Button) ==== */}
+        <div className="col-3 simple-border d-flex justify-content-center align-items-center">
+          {admin ? (
+            <button onClick={handleLogout} className="btn btn-danger lg-btn">
+              LOGOUT
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLogin(true)}
+              className="btn btn-primary lg-btn"
+            >
+              LOGIN
+            </button>
           )}
-
-          <NavLink
-            to="/chef"
-            className={`nav_icon_box ${selected === "chef" ? "selectedboder" : ""}`}
-            onClick={() => setSelected("chef")}
-          >
-            <PiChefHat className="nav-icon" />
-            <span className="nav-text">Chefs</span>
-          </NavLink>
         </div>
       </div>
-
-      {/* ==== RIGHT BOX (Login / Logout Button) ==== */}
-      <div className="col-3 simple-border d-flex justify-content-center align-items-center">
-        {admin ? (
-          <button onClick={handleLogout} className="btn btn-danger lg-btn">
-            LOGOUT
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowLogin(true)}
-            className="btn btn-primary lg-btn"
-          >
-            LOGIN
-          </button>
-        )}
-      </div>
-    </div>
+    </>
   );
 };
 

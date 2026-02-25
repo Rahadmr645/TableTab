@@ -1,5 +1,6 @@
-import Rect, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect } from "react";
 import { getUserFromToken } from "../utils/decodeToken";
+import axios from "axios";
 
 export const AuthContext = createContext();
 
@@ -8,7 +9,8 @@ export const AuthContextProvider = ({ children }) => {
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [currState, setCurrState] = useState("Signup");
   const [expiresAt, setExpiresAt] = useState(null);
-  const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(true);
+  const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
 
   // const URL = import.meta.env.VITE_API_URL;
   const URL = "http:///192.168.1.100:4000";
@@ -21,6 +23,28 @@ export const AuthContextProvider = ({ children }) => {
     console.log(decoded);
     if (decoded) setAdmin(decoded);
   }, []);
+
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      if (!admin || !admin.id) {
+        return console.log("admin not find yet");
+      }
+      try {
+        const res = await axios.get(`${URL}/api/admin/fetchAdmin/${admin.id}`, {
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const data = res.data;
+        const profilePic = res.data.admin.profilePic;
+        setProfileImage(profilePic);
+      } catch (error) {
+        console.error(error.message);
+      }
+    };
+    fetchAdmin();
+  }, [admin]);
+
+  //fetchadmin
 
   const contextVelu = {
     showLogin,
@@ -36,6 +60,8 @@ export const AuthContextProvider = ({ children }) => {
     setExpiresAt,
     showUpdateProfilePic,
     setShowUpdateProfilePic,
+    profileImage,
+    setProfileImage,
   };
 
   return (
