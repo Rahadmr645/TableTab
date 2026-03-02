@@ -9,25 +9,7 @@ export const ContextProvider = ({ children }) => {
   const [myOrders, setMyOrders] = useState([]);
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.1.100:4000";
-
-  // Remove item from cart & update quantities
-  // const handleRemove = (id) => {
-  //   setQuantities(prev => ({
-  //     ...prev,
-  //     [item._id]: Math.max((prev[item._id] || 0) - 1, 0),
-  //   }));
-
-  //   setCart(prevCart => {
-  //     return prevCart
-  //       .map(i =>
-  //         i._id === item._id
-  //           ? { ...i, quantity: Math.max(i.quantity - 1, 0) }
-  //           : i
-  //       )
-  //       .filter(i => i.quantity > 0); // remove items with 0 quantity
-  //   });
-  // };
+  const URL = "http://192.168.1.105:4000";
 
   const handleRemove = (id) => {
     setQuantities((prev) => ({

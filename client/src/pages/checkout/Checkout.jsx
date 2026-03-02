@@ -1,84 +1,74 @@
-import React, { useContext, useState } from 'react'
-import CartItem from '../../components/CartItem/CartItem.jsx'
+import React, { useContext, useState } from "react";
+import CartItem from "../../components/CartItem/CartItem.jsx";
 import { AuthContext } from "../../context/CartContext";
-import './Checkout.css'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom';
+import "./Checkout.css";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import StripePayment from "../payment/PaymentForm.jsx";
 
 const Checkout = () => {
-  const { cart, setCart, setQuantities, URL, user } = useContext(AuthContext);
+  const { cart, setCart, setQuantities, URL, user } =
+    useContext(AuthContext);
+
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [tableId, setTableId] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigator = useNavigate();
-  // total 
-  const subTotal = cart.reduce((acc, item) =>
-    acc + item.price * item.quantity, 0
+
+  // Calculate total
+  const subTotal = cart.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
   );
 
-
-  // handle place order
-  const handlePlaceOrder = async () => {
+  // Create Order AFTER payment success
+  const createOrder = async () => {
     if (!customerName || !tableId) {
-      alert("Please Enter your name and tableID")
+      alert("Please enter your name and table number");
       return;
     }
 
     let guestToken = localStorage.getItem("guestToken");
-
     setLoading(true);
 
-    // append the data 
     try {
-      const orderFormData = new FormData();
-      orderFormData.append("customerName", customerName);
-      orderFormData.append("tableId", tableId);
-      orderFormData.append("userID", user?._id || "");
-      orderFormData.append("guestToken", guestToken || "");
-      orderFormData.append("items", JSON.stringify(cart));
-      orderFormData.append("totalPrice", subTotal);
+      const res = await axios.post(`${URL}/api/order/create-order/`, {
+        customerName,
+        tableId,
+        userID: user?._id || "",
+        guestToken: guestToken || "",
+        items: cart,
+        totalPrice: subTotal,
+      });
 
-
-      const res = await axios.post(`${URL}/api/order/create-order/`,
-        orderFormData,
-        { headers: { 'Content-Type': "application/json" } }
-      );
-
-      //  store token if backend create new one
+      // Save guest token if backend sends one
       if (!guestToken && res.data?.order?.guestToken) {
-        localStorage.setItem("guestToken", res.data.order.guestToken)
+        localStorage.setItem("guestToken", res.data.order.guestToken);
       }
 
+      alert("Order placed successfully");
 
-
-      alert("Ordr placed successfully")
-      console.log(res.data);
-      console.log(res.data.guestToken)
-
-      // clear quantity state
+      // Clear states
       setQuantities({});
-
-      // clearing the cart 
       setCart([]);
-
       setPopup(false);
-      navigator('/myOrders');
 
+      navigator("/myOrders");
     } catch (error) {
-      alert("faild to place order")
-      console.error(error)
+      alert("Failed to place order");
+      console.error(error);
     } finally {
       setLoading(false);
     }
-  }
-
+  };
 
   return (
     <div className="cartItem">
       <div className="checkout_nav">
         <ul>
-          <li>image</li>
+          <li>Image</li>
           <li>Name</li>
           <li>Quantity</li>
           <li>Price</li>
@@ -86,55 +76,79 @@ const Checkout = () => {
           <li>Cancel</li>
         </ul>
       </div>
-      <hr className='hr'  />
 
-      {
-        cart.length > 0 ?
-          <div className="cart-container">
-            {cart.map((item, index) => {
-              return (
-                <CartItem key={index} name={item.name} price={item.price} id={item._id} quantity={item.quantity} image={item.image} />
+      <hr className="hr" />
 
-              );
-            })}
+      {cart.length > 0 ? (
+        <div className="cart-container">
+          {cart.map((item, index) => (
+            <CartItem
+              key={index}
+              name={item.name}
+              price={item.price}
+              id={item._id}
+              quantity={item.quantity}
+              image={item.image}
+            />
+          ))}
+        </div>
+      ) : (
+        <p>You don't have any orders yet</p>
+      )}
 
-          </div> : <>You Don't Have any order Yet</>
-      }
-      <div className="subtotal"><h3>SubTotal: {`${subTotal.toFixed(2)}/-`}</h3></div>
-      <div className="pobtn">
-        <button onClick={() => setPopup(true)}>Palce Order
-        </button>
+      <div className="subtotal">
+        <h3>SubTotal: {subTotal.toFixed(2)} /-</h3>
       </div>
 
-      {/* popup section */}
+      {cart.length > 0 && (
+        <div className="pobtn">
+          <button onClick={() => setPopup(true)}>Place Order</button>
+        </div>
+      )}
 
-
+      {/* Popup */}
       {popup && (
         <div className="popup">
           <div className="popup-content">
             <h3>Enter your Name and Table Number</h3>
-            <input type="text" placeholder='Your name' value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            <input type="number" placeholder='Your table number' value={tableId} onChange={(e) => setTableId(e.target.value)} />
+
+            <input
+              type="text"
+              placeholder="Your name"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+
+            <input
+              type="number"
+              placeholder="Your table number"
+              value={tableId}
+              onChange={(e) => setTableId(e.target.value)}
+            />
           </div>
+
+          {/* Stripe Payment appears ONLY when required data exists */}
+          {customerName && tableId && cart.length > 0 && (
+            <StripePayment
+              amount={subTotal * 100} // Stripe requires cents
+              onSuccess={createOrder}
+              onError={(msg) => alert("Payment failed: " + msg)}
+            />
+          )}
+
           <div className="popup-buttons">
             <button
-              onClick={handlePlaceOrder}
+              onClick={() => setPopup(false)}
+              className="cancel-btn"
               disabled={loading}
-              className='confirm-btn'
             >
-              {loading ? "placing..." : "confirm order"}
-
-            </button>
-            <button onClick={() => setPopup(false)} className='cancel-btn'>
               Cancel
             </button>
           </div>
         </div>
       )}
-
-
     </div>
-  )
-}
+  );
+};
 
-export default Checkout
+export default Checkout;
