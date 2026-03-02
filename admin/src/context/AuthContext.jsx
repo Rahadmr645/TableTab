@@ -7,13 +7,13 @@ export const AuthContext = createContext();
 export const AuthContextProvider = ({ children }) => {
   const [showLogin, setShowLogin] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
-  const [currState, setCurrState] = useState("Signup");
+  const [currState, setCurrState] = useState("login");
   const [expiresAt, setExpiresAt] = useState(null);
   const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http:///192.168.1.100:4000";
+  const URL = "http:///192.168.1.105:4000";
 
   // get admin from token
   const [admin, setAdmin] = useState(null);
@@ -45,7 +45,7 @@ export const AuthContextProvider = ({ children }) => {
   }, [admin]);
 
   //fetchadmin
-
+ console.log(currState)
   const contextVelu = {
     showLogin,
     showMenuForm,

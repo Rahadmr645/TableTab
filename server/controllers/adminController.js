@@ -65,6 +65,8 @@ export const adminCreate = async (req, res) => {
 // 02 :  Login controller
 export const adminLogin = async (req, res) => {
   try {
+    console.log("hello rahad", req.body);
+    
     const { email, password } = req.body;
 
     if (!email || !password) {

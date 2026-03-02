@@ -13,7 +13,11 @@ const VerifyOtp = () => {
   const Navigate = useNavigate();
 
   const otpFormData = JSON.parse(localStorage.getItem("otpFormData"));
-  const email = otpFormData.email;
+
+  if(!otpFormData) {
+    Navigate('/login')
+  }
+  const email = otpFormData?.email;
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -132,7 +136,8 @@ const VerifyOtp = () => {
         window.location.reload();
       }
     } catch (error) {
-      alert("Invalid OTP");
+     console.log("full error", error)
+      alert(" something failed");
     }
   };
 
@@ -169,8 +174,9 @@ const VerifyOtp = () => {
           {otp.map((digit, idx) => (
             <input
               key={idx}
-              type="number"
+              type="text"
               maxLength="1"
+              inputMode="numeric"
               value={digit}
               placeholder="Enter otp"
               onChange={(e) => handleChange(e.target.value, idx)}

@@ -9,7 +9,7 @@ export const ContextProvider = ({ children }) => {
   const [myOrders, setMyOrders] = useState([]);
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.1.102:4000";
+  const URL = "http://192.168.1.100:4000";
 
   // Remove item from cart & update quantities
   // const handleRemove = (id) => {

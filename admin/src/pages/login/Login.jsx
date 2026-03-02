@@ -132,9 +132,7 @@ const Login = () => {
 
   return (
     <div className="loginForm-container">
-      <button onClick={() => setIsVerified(true)}>test</button>
-      <button onClick={() => setIsVerified(false)}>test</button>
-      <form className="lgoinForm" onSubmit={submitHandler}>
+      <form className="lgoinForm" >
         <div className="login-header">
           <p>{currState}</p>
           <p

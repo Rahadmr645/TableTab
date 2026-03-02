@@ -21,7 +21,7 @@ export const SocketContextProvider = ({ children }) => {
 
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.1.102:4000"
+  const URL = "http://192.168.1.100:4000"
 
   useEffect(() => {
     const newSocket = io(URL, {

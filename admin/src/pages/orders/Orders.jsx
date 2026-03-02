@@ -5,9 +5,9 @@ import axios from "axios";
 
 import "./Orders.css";
 const Orders = () => {
-  const { admin } = useContext(AuthContext);
+  const { admin,URL } = useContext(AuthContext);
 
-  const URL = import.meta.env.VITE_API_URL;
+  // const URL = import.meta.env.VITE_API_URL;
 
   const [allOrderList, setAllOrderList] = useState([]);
 
