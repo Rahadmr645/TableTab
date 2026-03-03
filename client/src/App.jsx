@@ -16,7 +16,7 @@ import Home from "./pages/home/Home.jsx";
 
 const App = () => {
   return (
-    <>
+    <div className="body-container">
       <Navbar />
       {/* Router section */}
       <Routes>
@@ -25,7 +25,7 @@ const App = () => {
         <Route path="/orderboard" element={<OrderBoard />} />
         <Route path="/myOrders" element={<MyOrders />} />
       </Routes>
-    </>
+    </div>
   );
 };
 

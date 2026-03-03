@@ -1,9 +1,9 @@
 .navbar-container {
     width: 100%;
-    position: sticky;
     top: 0;
     z-index: 1000;
     display: flex;
+    position: sticky;
     align-items: center;
     margin-top: 30px;
     background-color: rgba(255, 255, 255, 0.06);

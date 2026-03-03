@@ -19,6 +19,83 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    profilePic: "",
+    role: "",
+  });
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // const submitHandler = async (e) => {
+  //   e.preventDefault();
+
+  //   const endPoint =
+  //     currState === "SignUp"
+  //       ? `${URL}/api/admin/create`
+  //       : `${URL}/api/admin/login`;
+
+  //   const bodyData =
+  //     currState === "SignUp"
+  //       ? formData
+  //       : { email: formData.email, password: formData.password };
+  //   console.log(bodyData);
+
+  //   try {
+  //     //  put here the otp verification before sending the login or signup requuest how i can do that
+
+  //     const res = await axios.post(endPoint, bodyData, {
+  //       headers: { "Content-Type": "application/json" },
+  //     });
+  //     const data = res.data;
+  //     if (res.status === 200) {
+  //       alert("Success");
+  //       console.log(data);
+  //     } else {
+  //       alert("Fail: " + data.message);
+  //     }
+
+  //     setAdmin(res.data.user);
+  //     const token = res.data.token;
+
+  //     if (token) {
+  //       localStorage.setItem("token", token);
+  //       console.log("token saved:", localStorage.getItem("token"));
+  //     } else {
+  //       console.log("no token found from backend");
+  //     }
+
+  //     // saving to the localstorage
+  //     setFormData({ username: "", email: "", password: "" });
+  //     navigate("/");
+  //     setShowLogin(false);
+
+  //     window.location.reload();
+  //   } catch (error) {
+  //     console.error(error);
+  //     alert("Something went wrong: " + error.message);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   console.log(isVerified)
+  // },[isVerified])
+
   const sendOtpHandler = async () => {
     try {
       setLoading(true);
@@ -52,87 +129,9 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    profilePic: "",
-    role: "",
-  });
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const submitHandler = async (e) => {
-    e.preventDefault();
-
-    const endPoint =
-      currState === "SignUp"
-        ? `${URL}/api/admin/create`
-        : `${URL}/api/admin/login`;
-
-    const bodyData =
-      currState === "SignUp"
-        ? formData
-        : { email: formData.email, password: formData.password };
-    console.log(bodyData);
-
-    try {
-      //  put here the otp verification before sending the login or signup requuest how i can do that
-
-      const res = await axios.post(endPoint, bodyData, {
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = res.data;
-      if (res.status === 200) {
-        alert("Success");
-        console.log(data);
-      } else {
-        alert("Fail: " + data.message);
-      }
-
-      setAdmin(res.data.user);
-      const token = res.data.token;
-
-      if (token) {
-        localStorage.setItem("token", token);
-        console.log("token saved:", localStorage.getItem("token"));
-      } else {
-        console.log("no token found from backend");
-      }
-
-      // saving to the localstorage
-      setFormData({ username: "", email: "", password: "" });
-      navigate("/");
-      setShowLogin(false);
-
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
-      alert("Something went wrong: " + error.message);
-    }
-  };
-
-  // useEffect(() => {
-  //   console.log(isVerified)
-  // },[isVerified])
-
   return (
     <div className="loginForm-container">
-      <form className="lgoinForm" >
+      <form className="lgoinForm">
         <div className="login-header">
           <p>{currState}</p>
           <p

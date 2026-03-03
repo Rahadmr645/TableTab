@@ -2,12 +2,19 @@
 
 .cartItem {
   width: 100%;
+  height: auto;
   padding: 10px;
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(40px);
+  backdrop-filter: blur(10);
   color: #fff;
   font-family: "Poppins", sans-serif;
   border-radius: 12px;
+  border: 1px solid red;
+  position: absolute;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding-top: 200px;
 }
 
 .checkout_nav {

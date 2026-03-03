@@ -7,20 +7,20 @@ import { useNavigate } from "react-router-dom";
 import StripePayment from "../payment/PaymentForm.jsx";
 
 const Checkout = () => {
-  const { cart, setCart, setQuantities, URL, user } =
-    useContext(AuthContext);
+  const { cart, setCart, setQuantities, URL, user } = useContext(AuthContext);
 
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [tableId, setTableId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [payment, setPayment] = useState(false);
 
   const navigator = useNavigate();
 
   // Calculate total
   const subTotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
-    0
+    0,
   );
 
   // Create Order AFTER payment success
@@ -62,6 +62,22 @@ const Checkout = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProceedToPayment = () => {
+    if (!customerName || !tableId) {
+      alert("plaese enter your name and table number");
+      return;
+    }
+
+    navigator("/payment", {
+      state: {
+        customerName,
+        tableId,
+        cart,
+        subTotal,
+      },
+    });
   };
 
   return (
@@ -125,16 +141,17 @@ const Checkout = () => {
               value={tableId}
               onChange={(e) => setTableId(e.target.value)}
             />
+            <button onClick={() => setPayment(true)}>confirm order</button>
           </div>
 
-          {/* Stripe Payment appears ONLY when required data exists */}
-          {customerName && tableId && cart.length > 0 && (
+          {/* Stripe Payment appears ONLY when required data exists  */}
+          {/* {customerName && tableId && cart.length > 0 && (
             <StripePayment
               amount={subTotal * 100} // Stripe requires cents
               onSuccess={createOrder}
               onError={(msg) => alert("Payment failed: " + msg)}
             />
-          )}
+          )} */}
 
           <div className="popup-buttons">
             <button

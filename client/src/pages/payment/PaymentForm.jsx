@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
 import "./PaymentForm.css";
+import { useEffect } from "react";
 
 // load stripe
 const stripePromise = loadStripe(import.meta.env.VITE_API_PUBLISH_KEY);
@@ -21,6 +22,15 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [cardError, setCardError] = useState("");
+
+
+  useEffect(() => {
+      document.body.style.overflow = 'hidden';
+
+      return() => {
+        document.body.overflow = 'auto';
+      };
+  },[])
 
 
   
@@ -64,7 +74,7 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
 
   return (
     <div className="payment_container">
-      <form onSubmit={handleSubmit} className="payment-form">
+      <form onSubmit={handleSubmit} className="payment-forms">
         <h3>Enter Your Card Details</h3>
 
         <label>Card Number</label>
@@ -104,6 +114,8 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
 
         <button type="submit" disabled={!stripe || loading} className="pay-btn">
           {loading ? "Processing..." : `Pay $${(amount / 100).toFixed(2)}`}
+        </button>
+        <button className="btn ">cancel
         </button>
       </form>
     </div>
