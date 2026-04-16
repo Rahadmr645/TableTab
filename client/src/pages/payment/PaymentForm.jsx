@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -11,49 +11,51 @@ import {
 import axios from "axios";
 import { AuthContext } from "../../context/CartContext";
 import "./PaymentForm.css";
-import { useEffect } from "react";
 
-// load stripe
 const stripePromise = loadStripe(import.meta.env.VITE_API_PUBLISH_KEY);
 
 const PaymentFormInner = ({ amount, onSuccess }) => {
   const { URL } = useContext(AuthContext);
   const stripe = useStripe();
   const elements = useElements();
+
   const [loading, setLoading] = useState(false);
   const [cardError, setCardError] = useState("");
 
-
   useEffect(() => {
-      document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
-      return() => {
-        document.body.overflow = 'auto';
-      };
-  },[])
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
 
-
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setCardError("");
+
     if (!stripe || !elements) return;
+
+    if (!amount || amount <= 0) {
+      setCardError("Invalid amount");
+      return;
+    }
 
     setLoading(true);
 
     try {
       const { data } = await axios.post(
         `${URL}/api/payment/create-payment-intent`,
-        { amount },
+        { amount }
       );
 
-      if (!data.clientSecrete) {
+      if (!data.clientSecret) {
         setCardError("Payment could not be initiated.");
         setLoading(false);
         return;
       }
 
-      const result = await stripe.confirmCardPayment(data.clientSecrete, {
+      const result = await stripe.confirmCardPayment(data.clientSecret, {
         payment_method: {
           card: elements.getElement(CardNumberElement),
         },
@@ -112,10 +114,16 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
 
         {cardError && <p className="error">{cardError}</p>}
 
-        <button type="submit" disabled={!stripe || loading} className="pay-btn">
+        <button
+          type="submit"
+          disabled={!stripe || loading}
+          className="pay-btn"
+        >
           {loading ? "Processing..." : `Pay $${(amount / 100).toFixed(2)}`}
         </button>
-        <button className="btn ">cancel
+
+        <button type="button" className="btn" disabled={loading}>
+          Cancel
         </button>
       </form>
     </div>
