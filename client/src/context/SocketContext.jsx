@@ -22,8 +22,8 @@ export const SocketContextProvider = ({ children }) => {
   const [serverTimeOffset, setServerTimeOffset] = useState(0)
 
 
-  // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://10.166.225.227:5000"
+  const URL = import.meta.env.VITE_API_URL;
+  // const URL = "http://10.166.225.227:5000"
 
   useEffect(() => {
     const newSocket = io(URL, {
