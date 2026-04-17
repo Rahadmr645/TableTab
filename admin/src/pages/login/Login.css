@@ -1,81 +1,186 @@
 .loginForm-container {
   width: 100%;
   position: absolute;
-  top: 0px;
+  inset: 0;
   z-index: 1000;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: white;
-  background-color: rgba(255,255,255,0.1);
-  backdrop-filter: blur(20px);
+  justify-content: flex-start;
+  padding: 24px 16px 48px;
+  color: var(--text);
+  background: rgba(6, 8, 12, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-
 .lgoinForm {
-  width: 400px;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 26px 26px;
+  margin-top: min(12vh, 120px);
+  background: linear-gradient(
+    165deg,
+    rgba(28, 34, 46, 0.98) 0%,
+    rgba(14, 18, 26, 0.99) 100%
+  );
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    var(--shadow-float);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 100px;
+  gap: 6px;
 }
 
 .login-header {
   display: flex;
   width: 100%;
   justify-content: space-between;
-  padding: 0px 20px;
   align-items: center;
-
+  padding: 0 0 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.submitn-btn {
-  width: 300px;
-  margin-left: 40px;
+.login-header p:first-child {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.span {
-  color: tomato;
-}
-
-.span:hover {
-  font-size: 1.03em;
+.login-header p:last-child {
+  margin: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem !important;
+  line-height: 1;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.25);
   cursor: pointer;
+  transition: background var(--transition), color var(--transition);
 }
 
+.login-header p:last-child:hover {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+.lgoinForm .mb-3 {
+  margin-bottom: 14px !important;
+}
+
+.lgoinForm .form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.lgoinForm .form-control {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) inset;
+}
+
+.lgoinForm .form-control:focus {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(56, 189, 248, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.25) inset;
+  outline: none;
+}
 
 .rol-container {
   width: 100%;
-  display: flex;
+  margin-bottom: 8px;
   cursor: pointer;
 }
 
-
 .rol-container select {
   width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.rol-container select:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.submitn-btn,
+.submit-btn {
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 14px 20px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   border: none;
-  padding: 10px;
-  
+  border-radius: 12px;
+  cursor: pointer;
+  color: #0c1220;
+  background: linear-gradient(180deg, #7dd3fc 0%, var(--accent) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 10px 28px rgba(56, 189, 248, 0.35);
+  transition: filter var(--transition), transform var(--transition);
 }
 
-
-.rol-container select option {
-  border-radius: 5px;
+.submitn-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
 }
 
+.submitn-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
 
-/*mobile responsive*/
+.lgoinForm > p {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
 
-@media (max-width : 475px) {
+.span {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.span:hover {
+  color: #7dd3fc;
+}
+
+@media (max-width: 475px) {
   .lgoinForm {
-    width: 300px;
-  }
-
-  .submit-btn {
-    width: 200px;
+    padding: 22px 18px 20px;
+    margin-top: 48px;
   }
 }

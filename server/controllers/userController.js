@@ -1,9 +1,14 @@
 import express from 'express';
-import User from '../models/UserModel.js';
-import dotenv from 'dotenv';
+import User from "../models/UserModel.js";
+import dotenv from "dotenv";
 dotenv.config();
-import bcrypt from 'bcryptjs';
-import JWT from 'jsonwebtoken';
+import bcrypt from "bcryptjs";
+import JWT from "jsonwebtoken";
+import {
+  uploadImageBuffer,
+  destroyCloudinaryAsset,
+  isCloudinaryConfigured,
+} from "../utils/cloudinaryUpload.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY
 
@@ -91,23 +96,46 @@ export const userLogin = async (req, res) => {
 
 
 
-// 03: update the user Image 
-
+// 03: update customer profile photo (Cloudinary)
 export const updateProfilePic = async (req, res) => {
-    try {
-        const { userId, profilePic } = req.body;
-        console.log(req.body)
-        if (!userId || !profilePic) return res.status(400).json({ message: "user id and profileimage required" })
-
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { profilePic },
-            { new: true } // returns the updated document
-        )
-        if (!user) return res.status(400).json({ message: 'user not found' });
-        res.status(200).json({ message: ' image updated successfully' });
-
-    } catch (error) {
-
+  try {
+    const { userId } = req.body;
+    if (!userId || !req.file?.buffer) {
+      return res
+        .status(400)
+        .json({ message: "userId and image file are required" });
     }
-}
+
+    if (!isCloudinaryConfigured()) {
+      return res.status(503).json({
+        message:
+          "Cloudinary is not configured. Set CLOUDINARY_URL or cloud name + API key + secret.",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.profilePicId) {
+      await destroyCloudinaryAsset(user.profilePicId);
+    }
+
+    const result = await uploadImageBuffer(
+      req.file.buffer,
+      req.file.mimetype,
+      "tabletab/profiles/customers",
+    );
+
+    user.profilePic = result.secure_url;
+    user.profilePicId = result.public_id;
+    await user.save();
+
+    res.status(200).json({ message: "Image updated successfully", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to update profile picture",
+      error: error.message,
+    });
+  }
+};

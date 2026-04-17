@@ -1,18 +1,197 @@
+.order-board-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: 48px;
+}
 
+.order-board-hero {
+  text-align: center;
+  margin-bottom: 32px;
+}
 
-.status-btn{
-    display: flex;
-    gap: 5px;
-    margin-top: 10px;
+.order-board-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  font-weight: 800;
+  background: linear-gradient(100deg, #fff, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.order-board-hero p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.order-board-hero strong {
+  color: var(--accent);
+}
+
+.order-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  perspective: 1400px;
+}
+
+.order-board-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 56px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--glass-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+}
+
+.order-board-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent);
+  border: 1px solid var(--glass-border);
+  animation: pulse3d 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse3d {
+  0%,
+  100% {
+    transform: translateZ(0) scale(1);
+    box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.15);
+  }
+  50% {
+    transform: translateZ(8px) scale(1.04);
+    box-shadow: 0 0 40px rgba(240, 180, 41, 0.12);
+  }
+}
+
+.ob-card {
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  transform-style: preserve-3d;
+  transition: transform 0.45s var(--ease-out), box-shadow 0.45s var(--ease-out);
+  box-shadow: var(--shadow-3d);
+}
+
+.ob-card:hover {
+  transform: rotateY(-4deg) rotateX(4deg) translateZ(14px);
+  border-color: rgba(240, 180, 41, 0.22);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45), 0 0 40px rgba(240, 180, 41, 0.08);
+}
+
+.ob-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ob-invoice {
+  margin: 0 0 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.ob-ticket {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.ob-status {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--teal);
+}
+
+.ob-customer {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.ob-meta {
+  margin: 0 0 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ob-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ob-stats > div {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+}
+
+.ob-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ob-stats strong {
+  font-family: "Syne", sans-serif;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.status-btn {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .status-btn button {
-    border: none;
-    border-radius: 5px;
-    padding: 5px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.2s;
 }
 
 .status-btn button:hover {
-    background-color: green;
-    color: white;
+  background: rgba(45, 212, 191, 0.15);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-board-empty-icon {
+    animation: none;
+  }
+
+  .ob-card:hover {
+    transform: none;
+  }
 }

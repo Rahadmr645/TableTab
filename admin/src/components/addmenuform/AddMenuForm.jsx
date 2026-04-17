@@ -11,9 +11,10 @@ const AddMenuForm = () => {
     name: "",
     price: "",
     description: "",
-    image: "",
     category: "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const { URL, setShowMenuForm } = useContext(AuthContext)
 
@@ -39,9 +40,14 @@ const AddMenuForm = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
-  }
+  };
+
+  const handleImageChange = (e) => {
+    const f = e.target.files?.[0];
+    setImageFile(f || null);
+  };
 
 
   // opitions hanlde changed
@@ -66,36 +72,40 @@ const AddMenuForm = () => {
 
     setMessage("");
 
-    console.log(formData)
-    try {
+    if (!imageFile) {
+      setMessage("Please choose an image file.");
+      return;
+    }
 
+    try {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("price", formData.price);
       data.append("description", formData.description);
-      data.append("image", formData.image);
       data.append("category", formData.category);
-
+      data.append("image", imageFile);
 
       const res = await axios.post(`${URL}/api/menu/add-menu`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-
       setMessage("Menu item added successfully");
       console.log(res.data);
-
 
       setFormData({
         name: "",
         price: "",
         description: "",
         category: "",
-        image: null,
       });
-
+      setImageFile(null);
+      setFileInputKey((k) => k + 1);
     } catch (error) {
-
+      setMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to add menu item.",
+      );
     }
   }
   return (
@@ -116,7 +126,14 @@ const AddMenuForm = () => {
 
         <textarea name="description" placeholder='description' value={formData.description} onChange={handleChange} id="" required />
 
-        <input type="file" name='image' placeholder='image' value={formData.image} onChange={handleChange} required />
+        <input
+          key={fileInputKey}
+          type="file"
+          name="image"
+          accept="image/*"
+          onChange={handleImageChange}
+          required
+        />
 
         <select name='category' value={formData.category} onChange={handleChange} required>
           <option value="" >Select Category</option>

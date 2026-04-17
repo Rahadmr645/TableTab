@@ -1,43 +1,78 @@
 .menu_container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 10%;
-    
-
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0;
+  margin-bottom: 8px;
 }
 
 .menu_form {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    border-radius: 5px;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    background-color: rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  justify-content: center;
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(
+    165deg,
+    rgba(22, 28, 40, 0.95) 0%,
+    rgba(12, 16, 24, 0.98) 100%
+  );
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-3d);
 }
 
 .menu_form input,
-textarea,
-select {
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    width: 300px;
-
+.menu_form textarea,
+.menu_form select {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  width: 100%;
+  max-width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) inset;
 }
 
+.menu_form input:focus,
+.menu_form textarea:focus,
+.menu_form select:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow:
+    0 0 0 3px rgba(56, 189, 248, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.2) inset;
+}
 
 .manu_btn {
-    border: none;
-    width: 200px;
-    padding: 5px;
-    border-radius: 5px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #0c1220;
+  background: linear-gradient(180deg, #7dd3fc 0%, var(--accent) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 8px 22px rgba(56, 189, 248, 0.28);
+  transition: transform var(--transition), filter var(--transition);
 }
+
 .manu_btn:hover {
-    background-color: green;
-    color: white;
+  filter: brightness(1.06);
+  transform: translateY(-2px);
 }

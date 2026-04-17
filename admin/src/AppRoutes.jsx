@@ -10,6 +10,8 @@ import Menu from "./pages/menu/Menu";
 import Orders from "./pages/orders/Orders";
 import UpdateProfilePic from "./components/updateProfilePic/UpdateProfilePic";
 import VerifyOtp from "./pages/verifyotp/VerifyOtp.jsx";
+import Summary from "./pages/summary/Summary.jsx";
+import BarcodeMenu from "./pages/barcode/BarcodeMenu.jsx";
 
 const AppRoutes = () => {
   return (
@@ -26,6 +28,15 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/summary" element={<Summary />} />
+        <Route
+          path="/barcode"
+          element={
+            <ProtectRoutes>
+              <BarcodeMenu />
+            </ProtectRoutes>
+          }
+        />
         <Route path="/chef" element={<Chefs />} />
         <Route path="/profile-pic" element={<UpdateProfilePic />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />

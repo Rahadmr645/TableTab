@@ -1,7 +1,6 @@
+import "dotenv/config";
 import express from "express";
 import http from "http";
-import dotenv from "dotenv";
-dotenv.config();
 import { initSocket } from "./socket/socket.js";
 import userRoutes from "./routes/userRoutes.js";
 import menuRoutes from "./routes/menuRoutes.js";
@@ -54,5 +53,5 @@ app.get("/", (req, res) => {
 connectToDB();
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://192.168.8.43:${PORT}`);
+  console.log(`Server is running on http://10.166.225.227:${PORT}`);
 });

@@ -28,14 +28,23 @@ const UpdateProfilePic = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!imageUrl) {
+      alert("Choose an image file.");
+      return;
+    }
+
+    const uid = admin?.id || admin?._id;
+    if (!uid) {
+      alert("Not logged in.");
+      return;
+    }
+
     setLoading(true);
-    if (!imageUrl) return alert("Enter your image");
-    
     try {
       // create formate data to send file
       const formData = new FormData();
 
-      formData.append("userId", admin.id);
+      formData.append("userId", uid);
       formData.append("image", imageUrl);
 
       for (let [key, value] of formData.entries()) {
@@ -48,9 +57,10 @@ const UpdateProfilePic = () => {
 
       if (res.status === 200) {
         alert("profile picture updated");
-        setAdmin(res.data.admin);
+        const next = res.data.admin;
+        setAdmin(next);
+        setProfileImage(next?.profilePic || null);
         setShowUpdateProfilePic(false);
-        window.location.reload();
       }
 
       console.log("Navbar showUpdateProfilePic:", showUpdateProfilePic);

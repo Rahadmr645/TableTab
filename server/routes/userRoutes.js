@@ -1,6 +1,6 @@
 import express from 'express';
 import { updateProfilePic, userCreate, userLogin } from '../controllers/userController.js';
-import upload from '../middlewares/multer.js';
+import upload from "../middlewares/memoryMulter.js";
 
 const router = express.Router();
 

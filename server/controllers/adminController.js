@@ -4,7 +4,11 @@ import dotenv from "dotenv";
 dotenv.config();
 import bcrypt from "bcryptjs";
 import JWT from "jsonwebtoken";
-import cloudinary from "../config/cloudinary.js";
+import {
+  uploadImageBuffer,
+  destroyCloudinaryAsset,
+  isCloudinaryConfigured,
+} from "../utils/cloudinaryUpload.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY;
 
@@ -128,56 +132,47 @@ export const fetchAdmin = async (req, res) => {
   }
 };
 
-// 03: update the user Image
+// 03: update admin / chef profile photo (Cloudinary)
 export const updateProfilePic = async (req, res) => {
   try {
     const { userId } = req.body;
 
-    if (!userId || !req.file) {
-      return res.status(400).json({ message: "userId and iamge are required" });
+    if (!userId || !req.file?.buffer) {
+      return res.status(400).json({ message: "userId and image file are required" });
     }
 
-    // find the admin
+    if (!isCloudinaryConfigured()) {
+      return res.status(503).json({
+        message:
+          "Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET (or CLOUDE_NAME + CLOUD_API_KEY + CLOUD_API_SECRET).",
+      });
+    }
+
     const admin = await Admin.findById(userId);
     if (!admin) {
-      return res.status(404).json({ message: "Admin ont found" });
+      return res.status(404).json({ message: "Admin not found" });
     }
 
-    // delete old image from cloudinary if exist
     if (admin.profilePicId) {
-      await cloudinary.uploader.destroy(admin.profilePicId);
+      await destroyCloudinaryAsset(admin.profilePicId);
     }
 
-    // upload image to cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "profile_pics",
-    });
-
-    // save image url to database
-    // const updateAdmin = await Admin.findByIdAndUpdate(
-    //   userId,
-    //   { profilePic: result.secure_url },
-    //   { profilePicId: result.public_id },
-    //   { new: true },
-    // );
-
-    // if (!updateAdmin)
-    //   return res.status(404).json({ message: "admin not found" });
+    const result = await uploadImageBuffer(
+      req.file.buffer,
+      req.file.mimetype,
+      "tabletab/profiles/admin",
+    );
 
     admin.profilePic = result.secure_url;
     admin.profilePicId = result.public_id;
-
-    // console.log("update admin", updateAdmin);
     await admin.save();
-    const fs = await import("fs");
-    fs.unlinkSync(req.file.path);
 
     res.status(200).json({
       message: "Profile picture updated successfully",
-      // profilePic: result.secure_url,
       admin,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Failed to update profile picture",
       error: error.message,

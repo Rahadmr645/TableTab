@@ -5,6 +5,8 @@ const menuSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     description: { type: String, required: true },
     image: { type: String },
+    /** Cloudinary public_id for replace/delete */
+    imagePublicId: { type: String, default: "" },
     category: {
         type: String,
         enum: [
@@ -28,7 +30,13 @@ const menuSchema = new mongoose.Schema({
             values: [String],
         }
 
-    ]
+    ],
+
+    soldCount: { type: Number, default: 0, min: 0 },
+    likeCount: { type: Number, default: 0, min: 0 },
+    dislikeCount: { type: Number, default: 0, min: 0 },
+    ratingSum: { type: Number, default: 0, min: 0 },
+    ratingCount: { type: Number, default: 0, min: 0 },
 
 }, { timestamps: true });
 

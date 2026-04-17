@@ -1,23 +1,64 @@
+.menu-page {
+  width: calc(100% - 32px);
+  max-width: 720px;
+  margin: 24px auto 48px;
+  padding: 0 4px;
+}
 
-
-.menuList-container{
+.menuList-container {
   width: 100%;
-  border: 1px solid green;
+  border: none;
   display: flex;
-  gap: 20px;
+  gap: 24px;
   justify-content: center;
   flex-direction: column;
-  align-items: center;
-  padding-top: 50px;
-}
-.menuList-container button {
-  border: none;
-  border-radius: 5px;
-  padding: 5px;
-  width: 200px;
+  align-items: stretch;
+  padding: 28px 26px 32px;
+  background: linear-gradient(155deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3d);
 }
 
-.menuList-container button:hover {
-  background : green;
-  color: white;
+.menuList-container > button {
+  align-self: flex-start;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  cursor: pointer;
+  color: #0c1220;
+  background: linear-gradient(180deg, #7dd3fc 0%, var(--accent) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 8px 22px rgba(56, 189, 248, 0.3);
+  transition: transform var(--transition), filter var(--transition);
+}
+
+.menuList-container > button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+
+.menuList-container h3 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .menu-page {
+    width: calc(100% - 20px);
+    margin-top: 16px;
+  }
+
+  .menuList-container {
+    padding: 22px 18px 26px;
+  }
 }

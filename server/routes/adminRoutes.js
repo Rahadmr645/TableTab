@@ -5,7 +5,7 @@ import {
   adminLogin,
   fetchAdmin,
 } from "../controllers/adminController.js";
-import uploadAdmin from "../middlewares/adminMulter.js";
+import uploadAdmin from "../middlewares/memoryMulter.js";
 
 const router = express.Router();
 

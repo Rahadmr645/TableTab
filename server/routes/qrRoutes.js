@@ -1,11 +1,9 @@
-import express from 'express'
-import { QRCodegen } from '../controllers/qrcodeController.js';
+import express from "express";
+import { QRCodegen, barcodeCodegen } from "../controllers/qrcodeController.js";
 
 const router = express.Router();
 
-
-
-// generate the qrcode 
-router.get('/generate/:tableId', QRCodegen);
+router.get("/generate/:tableId", QRCodegen);
+router.get("/barcode/:tableId", barcodeCodegen);
 
 export default router;

@@ -1,14 +1,25 @@
 import { createContext, useEffect, useState } from "react"
 import { io } from "socket.io-client";
 import axios from 'axios'
+import { playNewOrderAlert, showNewOrderNotification } from "../utils/orderAlerts.js";
+import { addChefNotificationFromOrder } from "../utils/chefNotificationStore.js";
 export const SocketContext = createContext();
+
+function sortOrdersNewestFirst(orders) {
+  if (!Array.isArray(orders)) return [];
+  return [...orders].sort(
+    (a, b) =>
+      new Date(b.createdAt || 0).getTime() -
+      new Date(a.createdAt || 0).getTime(),
+  );
+}
 
 export const SocketProvider = ({ children }) => {
 
   const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
   // const URL = import.meta.env.VITE_API_URL;
-const URL = "http://192.168.8.43:5000"
+const URL = "http://10.166.225.227:5000"
 
   useEffect(() => {
     const newSocket = io(URL, {
@@ -23,10 +34,22 @@ const URL = "http://192.168.8.43:5000"
       console.log(" Socket connected:", newSocket.id);
     });
 
-    //  THIS IS THE MISSING PART
+    const refetchActiveOrders = async () => {
+      try {
+        const res = await axios.get(`${URL}/api/order/active-orders`);
+        setChefOrders(sortOrdersNewestFirst(res.data.activeOrders || []));
+      } catch (e) {
+        console.error("active-orders refetch failed:", e);
+      }
+    };
+
     newSocket.on("newOrder", (order) => {
-      console.log(" New order received globally:", order);
-      setChefOrders((prev) => [order, ...prev]);
+      refetchActiveOrders();
+      playNewOrderAlert();
+      if (order && typeof order === "object") {
+        showNewOrderNotification(order);
+        addChefNotificationFromOrder(order);
+      }
     });
 
     newSocket.on("disconnect", () => {
@@ -34,9 +57,8 @@ const URL = "http://192.168.8.43:5000"
     });
 
 
-    newSocket.on('orderUpdated', (updatedOrder) => {
-      setChefOrders((prev) => prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
-      );
+    newSocket.on("orderUpdated", () => {
+      refetchActiveOrders();
     });
 
 
@@ -60,13 +82,13 @@ const URL = "http://192.168.8.43:5000"
 
       if (!res) return console.log("active order not found ");
 
-      setChefOrders(res.data.activeOrders);
+      setChefOrders(sortOrdersNewestFirst(res.data.activeOrders || []));
 
     }
 
     fetchActiveOrders();
   }, [])
-  console.log("fetched active orders:", chefOrders)
+
   const contextValue = {
     socket,
     chefOrders,

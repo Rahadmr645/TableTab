@@ -3,7 +3,6 @@ import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
 const UserRegistration = () => {

@@ -13,7 +13,7 @@ export const AuthContextProvider = ({ children }) => {
   const [profileImage, setProfileImage] = useState(null);
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.8.43:5000";
+  const URL = "http://10.166.225.227:5000";
 
   // get admin from token
   const [admin, setAdmin] = useState(null);

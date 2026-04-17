@@ -1,6 +1,7 @@
 import React, { useContext } from 'react'
 
 import { AuthContext } from "../../context/CartContext";
+import { resolveAssetUrl } from "../../utils/mediaUrl.js";
 import './CartItem.css'
 const CartItem = ({ name, id, price, quantity, image }) => {
 
@@ -11,18 +12,27 @@ const CartItem = ({ name, id, price, quantity, image }) => {
       <div className="cart-container">
         <div className="cartItem-box">
           <div className="cartImage">
-            <img src={`${URL}${image}`} alt="" />
+            <img src={resolveAssetUrl(URL, image)} alt="" />
 
           </div>
           <div className="name_container">
-            <p>{name}</p>
+            <p className="col-name">{name}</p>
             <p>{quantity}</p>
             <p>{price}</p>
             <p>{Total}/-</p>
-            <p onClick={() => handleRemove(id)}>X</p>
+            <p
+              className="col-remove"
+              onClick={() => handleRemove(id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && handleRemove(id)}
+              aria-label={`Remove ${name}`}
+            >
+              ×
+            </p>
           </div>
         </div>
-        <hr className='hr' style={{ color: "rgba(255,255,255,0.2)" }} />
+        <hr className="hr" />
       </div>
 
     </>

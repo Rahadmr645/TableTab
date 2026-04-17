@@ -13,7 +13,7 @@ const Dashbord = () => {
 
 
   return (
-    <div style={{ height: "200vh" , position:'relative'}}>
+    <div className="admin-login-host">
       {showLogin && <Login />}
 
 

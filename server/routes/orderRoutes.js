@@ -1,7 +1,7 @@
 import express from 'express';
 
 
-import { activeOrders, createOrder, deleteOrder, getAllOrders, getOrdersByUser, updateOrderStatus } from '../controllers/orderController.js';
+import { activeOrders, createOrder, deleteOrder, getAllOrders, getOrdersByUser, getSummaryStats, updateOrderStatus } from '../controllers/orderController.js';
 
 
 const router = express.Router();
@@ -13,6 +13,9 @@ router.post('/create-order', createOrder);
 
 // 02: get all the orders
 router.get('/all-orders', getAllOrders);
+
+// 02b: dashboard summary (orders + menu aggregates)
+router.get('/summary-stats', getSummaryStats);
 
 // 03 delete the order
 router.delete('/delete-order/:id', deleteOrder);

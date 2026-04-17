@@ -1,0 +1,220 @@
+.summary-page {
+  width: calc(100% - 32px);
+  max-width: 1200px;
+  margin: 24px auto 48px;
+  padding: 0 4px;
+}
+
+.summary-container {
+  padding: 28px 26px 36px;
+  background: linear-gradient(155deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3d);
+}
+
+.summary-container--narrow {
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.summary-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.summary-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.summary-title-icon {
+  flex-shrink: 0;
+  font-size: 1.75rem;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.summary-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.summary-sub {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 42ch;
+}
+
+.summary-refresh {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.summary-refresh:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 108px;
+}
+
+.summary-card--accent {
+  border-color: rgba(56, 189, 248, 0.25);
+  background: linear-gradient(
+    165deg,
+    rgba(56, 189, 248, 0.12) 0%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+}
+
+.summary-card--likes {
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.summary-card--dislikes {
+  border-color: rgba(248, 113, 113, 0.22);
+}
+
+.summary-card--stars {
+  border-color: rgba(250, 204, 21, 0.25);
+}
+
+.summary-card-currency {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+.summary-card-icon {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+  opacity: 0.9;
+}
+
+.summary-card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.summary-card-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.summary-card-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.summary-section-title {
+  margin: 28px 0 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.summary-status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.summary-status-name {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.summary-status-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.summary-loading,
+.summary-gate {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 32px 16px;
+}
+
+.summary-error {
+  text-align: center;
+  color: #f87171;
+}
+
+.summary-error p {
+  margin: 0 0 12px;
+}
+
+.summary-retry {
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--text);
+}
+
+.summary-retry:hover {
+  background: rgba(248, 113, 113, 0.2);
+}

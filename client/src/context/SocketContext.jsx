@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- context + provider in one module */
 import { useEffect, useState, createContext } from "react";
 import { io } from "socket.io-client";
 import axios from 'axios'
@@ -5,6 +6,14 @@ import axios from 'axios'
 
 export const SocketContext = createContext();
 
+function sortOrdersNewestFirst(orders) {
+  if (!Array.isArray(orders)) return [];
+  return [...orders].sort(
+    (a, b) =>
+      new Date(b.createdAt || 0).getTime() -
+      new Date(a.createdAt || 0).getTime(),
+  );
+}
 
 export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
@@ -14,7 +23,7 @@ export const SocketContextProvider = ({ children }) => {
 
 
   // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://192.168.8.43:5000"
+  const URL = "http://10.166.225.227:5000"
 
   useEffect(() => {
     const newSocket = io(URL, {
@@ -29,10 +38,21 @@ export const SocketContextProvider = ({ children }) => {
       console.log(" Socket connected:", newSocket.id);
     });
 
-    //  THIS IS THE MISSING PART
-    newSocket.on("newOrder", (order) => {
-      console.log(" New order received globally:", order);
-      setOrderBox((prev) => [order, ...prev]);
+    const refetchActiveOrders = async () => {
+      try {
+        const res = await axios.get(`${URL}/api/order/active-orders`);
+        const serverDateHeader = res.headers.date
+          ? new Date(res.headers.date).getTime()
+          : Date.now();
+        setServerTimeOffset(serverDateHeader - Date.now());
+        setOrderBox(sortOrdersNewestFirst(res.data.activeOrders || []));
+      } catch (e) {
+        console.error("active-orders refetch failed:", e);
+      }
+    };
+
+    newSocket.on("newOrder", () => {
+      refetchActiveOrders();
     });
 
     newSocket.on("disconnect", () => {
@@ -40,9 +60,8 @@ export const SocketContextProvider = ({ children }) => {
     });
 
 
-    newSocket.on('orderUpdated', (updatedOrder) => {
-      setOrderBox((prev) => prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
-      );
+    newSocket.on("orderUpdated", () => {
+      refetchActiveOrders();
     });
 
 
@@ -79,7 +98,7 @@ export const SocketContextProvider = ({ children }) => {
 
       console.log('these all are the active orders:', res.data)
 
-      setOrderBox(res.data.activeOrders);
+      setOrderBox(sortOrdersNewestFirst(res.data.activeOrders || []));
 
     }
 

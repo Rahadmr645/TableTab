@@ -1,9 +1,96 @@
+/* TableTab Admin — design tokens & base */
 
+:root {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, sans-serif;
 
+  --bg-deep: #080a0e;
+  --bg-base: #0d1118;
+  --bg-surface: #131a24;
+  --bg-elevated: #1a2332;
+  --bg-glass: rgba(22, 30, 42, 0.72);
 
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
 
-body{
-  background-color: gray;
+  --text: #eef2f8;
+  --text-muted: #8b98ab;
+  --text-faint: #5c6a7e;
+
+  --accent: #38bdf8;
+  --accent-dim: rgba(56, 189, 248, 0.15);
+  --accent-hot: #fb923c;
+  --chef-warm: #fcd34d;
+
+  --shadow-3d:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.35) inset,
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.55);
+
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --transition: 0.2s ease;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -30%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(251, 146, 60, 0.06), transparent 45%),
+    linear-gradient(180deg, var(--bg-base) 0%, var(--bg-deep) 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.admin-login-host {
+  position: relative;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Shared “lifted” surface (3D card) */
+.admin-surface {
+  background: linear-gradient(155deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3d);
+}
+
+.admin-surface--chef {
+  background: linear-gradient(
+    155deg,
+    rgba(30, 24, 18, 0.95) 0%,
+    rgba(18, 22, 30, 0.98) 100%
+  );
+  border-color: rgba(252, 211, 77, 0.12);
+  box-shadow:
+    0 1px 0 rgba(252, 211, 77, 0.08) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset,
+    0 10px 32px rgba(0, 0, 0, 0.5),
+    0 2px 10px rgba(251, 146, 60, 0.08);
+}

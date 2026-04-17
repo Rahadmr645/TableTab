@@ -39,6 +39,7 @@ const Menu = () => {
   
   return (
     <>
+      <div className="menu-page">
       <div className='menuList-container'>
         {
           showMenuForm ?
@@ -61,6 +62,7 @@ const Menu = () => {
             : <></>
           }
         </div>
+      </div>
       </div>
     </>
   )

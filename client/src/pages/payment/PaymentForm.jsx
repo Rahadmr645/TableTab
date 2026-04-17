@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -21,14 +21,6 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
 
   const [loading, setLoading] = useState(false);
   const [cardError, setCardError] = useState("");
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,26 +69,35 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
   return (
     <div className="payment_container">
       <form onSubmit={handleSubmit} className="payment-forms">
-        <h3>Enter Your Card Details</h3>
+        <h3>Card details</h3>
 
-        <label>Card Number</label>
+        <label>Card number</label>
         <CardNumberElement
           className="StripeElement"
           options={{
             style: {
-              base: { fontSize: "16px", color: "#424770" },
-              invalid: { color: "#9e2146" },
+              base: {
+                fontSize: "16px",
+                color: "#e8ecf1",
+                fontFamily: "DM Sans, system-ui, sans-serif",
+                "::placeholder": { color: "#6b7280" },
+              },
+              invalid: { color: "#fca5a5" },
             },
           }}
         />
 
-        <label>Expiry Date</label>
+        <label>Expiry</label>
         <CardExpiryElement
           className="StripeElement"
           options={{
             style: {
-              base: { fontSize: "16px", color: "#424770" },
-              invalid: { color: "#9e2146" },
+              base: {
+                fontSize: "16px",
+                color: "#e8ecf1",
+                fontFamily: "DM Sans, system-ui, sans-serif",
+              },
+              invalid: { color: "#fca5a5" },
             },
           }}
         />
@@ -106,8 +107,12 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
           className="StripeElement"
           options={{
             style: {
-              base: { fontSize: "16px", color: "#424770" },
-              invalid: { color: "#9e2146" },
+              base: {
+                fontSize: "16px",
+                color: "#e8ecf1",
+                fontFamily: "DM Sans, system-ui, sans-serif",
+              },
+              invalid: { color: "#fca5a5" },
             },
           }}
         />
@@ -119,11 +124,7 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
           disabled={!stripe || loading}
           className="pay-btn"
         >
-          {loading ? "Processing..." : `Pay $${(amount / 100).toFixed(2)}`}
-        </button>
-
-        <button type="button" className="btn" disabled={loading}>
-          Cancel
+          {loading ? "Processing…" : `Pay $${(amount / 100).toFixed(2)}`}
         </button>
       </form>
     </div>

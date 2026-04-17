@@ -1,4 +1,10 @@
 .app-container {
-  border: 1px solid green;
   position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container > *:last-child {
+  flex: 1;
 }

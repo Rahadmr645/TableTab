@@ -1,5 +1,29 @@
-.body-container{
-    position: relative;
-    border: 1px solid red;
-  
+.body-container {
+  position: relative;
+  min-height: 100vh;
+  padding: 0 clamp(16px, 4vw, 48px) 64px;
+  perspective: 1400px;
+  perspective-origin: 50% 0%;
+}
+
+.body-container::after {
+  content: "";
+  position: fixed;
+  bottom: -30%;
+  left: 50%;
+  transform: translateX(-50%) rotateX(72deg);
+  width: 120%;
+  height: 55%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(240, 180, 41, 0.06) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.body-container > * {
+  position: relative;
+  z-index: 1;
 }

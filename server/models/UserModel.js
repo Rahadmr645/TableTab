@@ -18,8 +18,10 @@ const usersSchema = mongoose.Schema({
         type: String,
         default: "",
     },
-    
-
+    profilePicId: {
+        type: String,
+        default: "",
+    },
 }, { timestamps: true });
 
 const User = mongoose.model('User', usersSchema);
