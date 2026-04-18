@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from "react"
 import { io } from "socket.io-client";
-import axios from 'axios'
+import axios from "axios";
+import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 import { playNewOrderAlert, showNewOrderNotification } from "../utils/orderAlerts.js";
 import { addChefNotificationFromOrder } from "../utils/chefNotificationStore.js";
 export const SocketContext = createContext();
@@ -18,13 +19,13 @@ export const SocketProvider = ({ children }) => {
 
   const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
-  const URL = import.meta.env.VITE_API_URL;
-// const URL = "http://10.166.225.227:5000"
+  const URL = API_BASE_URL;
+  const socketOrigin =
+    URL || (typeof window !== "undefined" ? window.location.origin : "");
 
   useEffect(() => {
-    const newSocket = io(URL, {
-      transports: ["websocket"],
-      upgrade: false,
+    const newSocket = io(socketOrigin, {
+      transports: ["polling", "websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

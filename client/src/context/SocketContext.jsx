@@ -1,8 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- context + provider in one module */
 import { useEffect, useState, createContext } from "react";
 import { io } from "socket.io-client";
-import axios from 'axios'
-
+import axios from "axios";
+import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 
 export const SocketContext = createContext();
 
@@ -22,13 +22,14 @@ export const SocketContextProvider = ({ children }) => {
   const [serverTimeOffset, setServerTimeOffset] = useState(0)
 
 
-  const URL = import.meta.env.VITE_API_URL;
-  // const URL = "http://10.166.225.227:5000"
+  const URL = API_BASE_URL;
+  const socketOrigin =
+    URL || (typeof window !== "undefined" ? window.location.origin : "");
 
   useEffect(() => {
-    const newSocket = io(URL, {
-      transports: ["websocket"],
-      upgrade: false,
+    const newSocket = io(socketOrigin, {
+      // Polling first works more reliably through Vite’s dev proxy; then upgrades to websocket.
+      transports: ["polling", "websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

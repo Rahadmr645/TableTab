@@ -36,11 +36,11 @@ const orderSchema = new mongoose.Schema({
     },
 
     /** Calendar day YYYY-MM-DD in ORDER_BUSINESS_TZ — dailyOrderNumber resets at midnight there */
-    businessDay: { type: String, trim: true, index: true },
+    businessDay: { type: String, trim: true },
     /** 1-based sequence for that calendar day; unique together with businessDay */
     dailyOrderNumber: { type: Number, min: 1 },
-    /** Global invoice-style id, e.g. TT-0000001 (never resets) */
-    invoiceSerial: { type: String, trim: true, index: true },
+    /** Global invoice-style id, e.g. TT-0000001 (never resets) — indexed via schema.index() below */
+    invoiceSerial: { type: String, trim: true },
 
     createdAt: {
         type: Date,

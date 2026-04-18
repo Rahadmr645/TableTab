@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import { getUserFromToken } from "../utils/decodeToken";
 import axios from "axios";
+import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 
 export const AuthContext = createContext();
 
@@ -12,8 +13,7 @@ export const AuthContextProvider = ({ children }) => {
   const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
 
-  const URL = import.meta.env.VITE_API_URL;
-  // const URL = "http://10.166.225.227:5000";
+  const URL = API_BASE_URL;
 
   // get admin from token
   const [admin, setAdmin] = useState(null);

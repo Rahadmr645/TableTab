@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 // socket setup
 
@@ -49,9 +49,14 @@ app.get("/", (req, res) => {
   res.send("Hello user");
 });
 
+/** Quick check from browser / Railway health checks */
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ ok: true, service: "tabletab-api" });
+});
+
 // DB connection
 connectToDB();
 
-server.listen(PORT, () => {
-  console.log(`Server is running on http://10.166.225.227:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening on 0.0.0.0:${PORT}`);
 });

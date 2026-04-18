@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- context + provider in one module */
 import { createContext, useState } from "react";
+import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 
 export const AuthContext = createContext();
 
@@ -9,8 +10,7 @@ export const ContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [myOrders, setMyOrders] = useState([]);
 
-  // const URL = import.meta.env.VITE_API_URL;
-  const URL = "http://10.166.225.227:5000";
+  const URL = API_BASE_URL;
 
   const handleRemove = (id) => {
     setQuantities((prev) => ({
