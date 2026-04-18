@@ -45,6 +45,7 @@ app.use("/api/qr", qrRoutes);
 app.use("/api/otp", adminOtpRoutes);
 app.use("/api/payment/", paymentRoutes);
 
+app.use(express.json())
 app.get("/", (req, res) => {
   res.send("Hello user");
 });
@@ -58,5 +59,5 @@ app.get("/api/health", (req, res) => {
 connectToDB();
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on 0.0.0.0:${PORT}`);
+  console.log(`Server listening on http://0.0.0.0:${PORT}`);
 });
