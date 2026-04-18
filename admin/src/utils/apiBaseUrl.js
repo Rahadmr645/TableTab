@@ -1,17 +1,15 @@
 const fromEnv = String(import.meta.env.VITE_API_URL ?? "").trim();
 
 function computeBase() {
-  if (import.meta.env.DEV) {
-    return "";
-  }
-  const base = (fromEnv || "").replace(/\/$/, "");
+  const base = fromEnv.replace(/\/$/, "");
+
   if (!base) {
-    // eslint-disable-next-line no-console
     console.error(
-      "[TableTab Admin] VITE_API_URL is missing. Rebuild with your Railway API URL.",
+      "[TableTab Admin] VITE_API_URL is missing. Please set it in Vercel and redeploy."
     );
-    return "";
+    return null; // ❗ important: fail clearly, don't silently break
   }
+
   return base;
 }
 

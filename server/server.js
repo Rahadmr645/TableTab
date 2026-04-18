@@ -45,7 +45,7 @@ app.use("/api/qr", qrRoutes);
 app.use("/api/otp", adminOtpRoutes);
 app.use("/api/payment/", paymentRoutes);
 
-app.use(express.json())
+
 app.get("/", (req, res) => {
   res.send("Hello user");
 });

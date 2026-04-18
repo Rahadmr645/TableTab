@@ -75,4 +75,5 @@
 .manu_btn:hover {
   filter: brightness(1.06);
   transform: translateY(-2px);
+  color: green;
 }
