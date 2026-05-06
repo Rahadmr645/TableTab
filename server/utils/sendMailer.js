@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, text) => {
   await transporter.sendMail({
-    from: "TableTab",
+    from: `TableTab <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,

@@ -7,7 +7,7 @@ import sendEmail from "../utils/sendMailer.js";
 
 export const sendOTP = async (req, res) => {
   
-  console.log('data, req.body')
+  console.log('data', req.body)
   try {
     const { email } = req.body;
 
