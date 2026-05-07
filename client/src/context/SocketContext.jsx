@@ -1,10 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- context + provider in one module */
-import { useEffect, useState, createContext } from "react";
+import { useEffect, useState, createContext, useCallback } from "react";
 import { io } from "socket.io-client";
-import axios from "axios";
 import { API_BASE_URL } from "../utils/apiBaseUrl.js";
+import { api } from "../utils/api.js";
 
 export const SocketContext = createContext();
+
+/** Kitchen / guest prep countdown length (seconds); keep in sync with UI copy. */
+export const ORDER_PREP_WINDOW_SECONDS = 600;
 
 function sortOrdersNewestFirst(orders) {
   if (!Array.isArray(orders)) return [];
@@ -19,8 +22,16 @@ export const SocketContextProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [orderBox, setOrderBox] = useState([]);
   const [timers, setTimers] = useState({});
-  const [serverTimeOffset, setServerTimeOffset] = useState(0)
+  const [serverTimeOffset, setServerTimeOffset] = useState(0);
 
+  /** Sync client clock from any API response `Date` header (HTTP-date). */
+  const syncServerTimeFromApiResponse = useCallback((res) => {
+    const raw = res?.headers?.date;
+    if (!raw) return;
+    const serverMs = new Date(raw).getTime();
+    if (!Number.isFinite(serverMs)) return;
+    setServerTimeOffset(serverMs - Date.now());
+  }, []);
 
   const URL = API_BASE_URL;
   const socketOrigin =
@@ -41,7 +52,7 @@ export const SocketContextProvider = ({ children }) => {
 
     const refetchActiveOrders = async () => {
       try {
-        const res = await axios.get(`${URL}/api/order/active-orders`);
+        const res = await api.get("/api/order/active-orders");
         const serverDateHeader = res.headers.date
           ? new Date(res.headers.date).getTime()
           : Date.now();
@@ -80,7 +91,7 @@ export const SocketContextProvider = ({ children }) => {
   // fetch all active order
   useEffect(() => {
     const syncServerTime = async () => {
-      const res = await axios.get(`${URL}/api/order/active-orders`);
+      const res = await api.get("/api/order/active-orders");
 
       if (!res) return console.log("active order not found");
 
@@ -120,7 +131,10 @@ export const SocketContextProvider = ({ children }) => {
       orderBox.forEach((order) => {
         const created = new Date(order.createdAt).getTime();
         const elapsed = Math.floor((now - created) / 1000);
-        const remaining = Math.max(0, 600 - elapsed); // 5 minutes total
+        const remaining = Math.max(
+          0,
+          ORDER_PREP_WINDOW_SECONDS - elapsed,
+        );
         newTimers[order._id] = remaining;
       });
 
@@ -151,7 +165,10 @@ export const SocketContextProvider = ({ children }) => {
     setOrderBox,
     formatTime,
     timers,
-    setTimers
+    setTimers,
+    serverTimeOffset,
+    syncServerTimeFromApiResponse,
+    orderPrepWindowSeconds: ORDER_PREP_WINDOW_SECONDS,
   };
 
 

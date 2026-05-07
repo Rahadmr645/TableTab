@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useRef } from "react";
 import { getUserFromToken } from "../utils/decodeToken";
 import axios from "axios";
 import { API_BASE_URL } from "../utils/apiBaseUrl.js";
@@ -12,6 +12,8 @@ export const AuthContextProvider = ({ children }) => {
   const [expiresAt, setExpiresAt] = useState(null);
   const [showUpdateProfilePic, setShowUpdateProfilePic] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const pendingRequestsRef = useRef(0);
 
   const URL = API_BASE_URL;
 
@@ -44,6 +46,39 @@ export const AuthContextProvider = ({ children }) => {
     fetchAdmin();
   }, [admin]);
 
+  useEffect(() => {
+    const requestInterceptor = axios.interceptors.request.use(
+      (config) => {
+        pendingRequestsRef.current += 1;
+        setPendingRequests(pendingRequestsRef.current);
+        return config;
+      },
+      (error) => {
+        pendingRequestsRef.current = Math.max(0, pendingRequestsRef.current - 1);
+        setPendingRequests(pendingRequestsRef.current);
+        return Promise.reject(error);
+      },
+    );
+
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => {
+        pendingRequestsRef.current = Math.max(0, pendingRequestsRef.current - 1);
+        setPendingRequests(pendingRequestsRef.current);
+        return response;
+      },
+      (error) => {
+        pendingRequestsRef.current = Math.max(0, pendingRequestsRef.current - 1);
+        setPendingRequests(pendingRequestsRef.current);
+        return Promise.reject(error);
+      },
+    );
+
+    return () => {
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
+    };
+  }, []);
+
   //fetchadmin
  console.log(currState)
   const contextVelu = {
@@ -62,6 +97,7 @@ export const AuthContextProvider = ({ children }) => {
     setShowUpdateProfilePic,
     profileImage,
     setProfileImage,
+    isGlobalLoading: pendingRequests > 0,
   };
 
   return (

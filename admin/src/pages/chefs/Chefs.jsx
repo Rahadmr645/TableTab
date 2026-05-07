@@ -4,6 +4,8 @@ import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
 import "./Chefs.css";
 import ChefNotificationBell from "../../components/chefNotifications/ChefNotificationBell.jsx";
+import { FaUser, FaWifi, FaUtensils } from "react-icons/fa6";
+import { MdOutlineTableRestaurant } from "react-icons/md";
 
 function formatOrderCreatedAt(createdAt) {
   if (!createdAt) return "—";
@@ -16,37 +18,39 @@ function formatOrderCreatedAt(createdAt) {
 }
 
 const Chefs = () => {
-  const { chefOrders } = useContext(SocketContext);
+  const { chefOrders, serverClock } = useContext(SocketContext);
   const { admin, URL } = useContext(AuthContext);
-  const [timers, setTimers] = useState({});
+  const [tickMs, setTickMs] = useState(Date.now());
+  const prepWindowSeconds = Number(serverClock?.prepWindowSeconds) || 600;
 
   useEffect(() => {
-    if (!chefOrders || chefOrders.length === 0) return;
-
-    const updateTimers = () => {
-      const now = Date.now();
-      setTimers((prevTime) => {
-        const newTimers = {};
-        chefOrders.forEach((order) => {
-          const created = new Date(order.createdAt).getTime();
-          const elapsed = Math.floor((now - created) / 1000);
-          const remaining = Math.max(0, 600 - elapsed);
-          newTimers[order._id] = remaining;
-        });
-        return newTimers;
-      });
-    };
-
-    updateTimers();
-    const interval = setInterval(updateTimers, 1000);
+    const interval = setInterval(() => setTickMs(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [chefOrders]);
+  }, []);
+
+  const getServerNowMs = () => {
+    const syncedAt = Number(serverClock?.syncedAtMs) || Date.now();
+    const baseServer = Number(serverClock?.serverNowMs) || Date.now();
+    const drift = Math.max(0, tickMs - syncedAt);
+    return baseServer + drift;
+  };
+
+  const getRemainingForOrder = (order) => {
+    const endsAt = new Date(order?.countdownEndsAt).getTime();
+    if (Number.isFinite(endsAt)) {
+      return Math.max(0, Math.floor((endsAt - getServerNowMs()) / 1000));
+    }
+    const created = new Date(order?.createdAt).getTime();
+    if (!Number.isFinite(created)) return 0;
+    const elapsed = Math.floor((getServerNowMs() - created) / 1000);
+    return Math.max(0, prepWindowSeconds - elapsed);
+  };
 
   const getTimerClass = (time) => {
-    if (time <= 0) return "chef-timer chef-timer--red";
-    if (time <= 60) return "chef-timer chef-timer--orange";
-    if (time <= 120) return "chef-timer chef-timer--yellow";
-    return "chef-timer chef-timer--green";
+    if (time <= 0) return "chef-timer--red";
+    if (time <= 60) return "chef-timer--orange";
+    if (time <= 120) return "chef-timer--yellow";
+    return "chef-timer--green";
   };
 
   const formatTime = (seconds) => {
@@ -88,26 +92,28 @@ const Chefs = () => {
           ) : (
             <div className="chef-grid">
               {chefOrders.map((order) => {
-                const remaining = timers[order._id] ?? 0;
+                const remaining = getRemainingForOrder(order);
+                const timerClass = getTimerClass(remaining);
+                const isTimeUp = remaining <= 0;
                 return (
                   <article className="chef-order-card" key={order._id}>
+                    <div className="chef-timer-corner">
+                      <span className={`chef-timer-dial ${timerClass}`} title="Server-driven prep countdown">
+                        {formatTime(remaining)}
+                      </span>
+                      {isTimeUp ? <span className="chef-timeup-indicator">Time up</span> : null}
+                    </div>
+
                     <div className="chef-card-head">
                       <div className="chef-card-head-row">
-                        <span
-                          className="chef-order-label"
-                          title="Today’s sequence # (same all day); not list position"
-                        >
+                        <h3 className="chef-order-label">
                           Order #
-                          {order.dailyOrderNumber != null
-                            ? order.dailyOrderNumber
-                            : "—"}
-                        </span>
+                          {order.dailyOrderNumber != null ? order.dailyOrderNumber : "—"}
+                        </h3>
                         <span className="chef-order-status">{order.status}</span>
                       </div>
                       {order.businessDay ? (
-                        <span className="chef-order-daykey" title="Counter resets at midnight (business timezone)">
-                          Day {order.businessDay}
-                        </span>
+                        <span className="chef-order-daykey">Day {order.businessDay}</span>
                       ) : null}
                       {order.createdAt && (
                         <time
@@ -120,17 +126,21 @@ const Chefs = () => {
                     </div>
 
                     <div className="chef-meta">
-                      <span>
-                        <strong>Guest</strong> {order.customerName}
+                      <span className="chef-meta-chip">
+                        <FaUser aria-hidden />
+                        <strong>Guest</strong> {order.customerName || "Guest"}
                       </span>
-                      <span>
+                      <span className="chef-meta-chip">
+                        <MdOutlineTableRestaurant aria-hidden />
                         <strong>Table</strong> {order.tableId}
                       </span>
-                      <span>
+                      <span className="chef-meta-chip chef-meta-chip--session">
+                        <FaWifi aria-hidden />
                         <strong>Session</strong> {order.guestToken}
                       </span>
-                      <span>
-                        <strong>Total</strong> ${order.totalPrice}
+                      <span className="chef-meta-chip chef-meta-chip--total">
+                        <FaUtensils aria-hidden />
+                        <strong>Total</strong> SAR {Number(order.totalPrice || 0).toLocaleString()}
                       </span>
                     </div>
 
@@ -144,14 +154,6 @@ const Chefs = () => {
                           </span>
                         </div>
                       ))}
-                    </div>
-
-                    <div className="chef-timer-row">
-                      <span className={getTimerClass(remaining)}>
-                        {remaining > 0
-                          ? formatTime(remaining)
-                          : "Time's up"}
-                      </span>
                     </div>
 
                     {admin?.role === "chef" && (

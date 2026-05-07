@@ -155,6 +155,10 @@ export const addPublicComment = async (req, res) => {
       text: text.trim(),
     });
 
+    await Menu.findByIdAndUpdate(mid, {
+      $inc: { commentCount: 1 },
+    });
+
     res.status(201).json({
       message: "Comment added",
       comment: doc,
@@ -208,9 +212,25 @@ export const getCommentsForMenuItem = async (req, res) => {
   }
 };
 
+/** Must match SocketContext.jsx `ORDER_PREP_WINDOW_SECONDS`. */
+export const ORDER_PREP_WINDOW_SECONDS = 600;
+
 function orderIsFinished(status) {
   const s = String(status || "").toLowerCase().replace(/\s+/g, "");
   return s === "finished" || s === "finised";
+}
+
+function prepWindowElapsed(order) {
+  if (!order?.createdAt) return false;
+  const t = new Date(order.createdAt).getTime();
+  if (!Number.isFinite(t)) return false;
+  const elapsedSec = Math.floor((Date.now() - t) / 1000);
+  return elapsedSec >= ORDER_PREP_WINDOW_SECONDS;
+}
+
+/** Guest may submit dish star reviews once finished or prep countdown has elapsed. */
+function orderAllowsItemReview(order) {
+  return orderIsFinished(order.status) || prepWindowElapsed(order);
 }
 
 export const getMyOrderReviews = async (req, res) => {
@@ -262,7 +282,7 @@ export const getPendingItemReviews = async (req, res) => {
 
     const pending = [];
     for (const o of orders) {
-      if (!orderIsFinished(o.status)) continue;
+      if (!orderAllowsItemReview(o)) continue;
       const oid = String(o._id);
       for (const it of o.items || []) {
         const resolved = resolveLineMenuId(it, nameMap);
@@ -307,8 +327,11 @@ export const addOrderItemReview = async (req, res) => {
       return res.status(403).json({ message: "Not your order" });
     }
 
-    if (!orderIsFinished(order.status)) {
-      return res.status(400).json({ message: "You can review after the order is finished" });
+    if (!orderAllowsItemReview(order)) {
+      return res.status(400).json({
+        message:
+          "You can leave a dish review once your preparation countdown finishes or after the restaurant marks your order finished.",
+      });
     }
 
     const nameMap = await getMenuNameToIdMap();

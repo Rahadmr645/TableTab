@@ -307,7 +307,25 @@
 
 @media (max-width: 960px) {
   .admin-navbar__nav {
+    display: flex;
+    justify-content: flex-start;
+    flex: 0 1 auto;
+  }
+
+  .admin-navbar__rail {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 230px;
+  }
+
+  .admin-navbar__rail::-webkit-scrollbar {
     display: none;
+  }
+
+  .admin-navbar__link {
+    padding: 8px 12px;
+    font-size: 0.78rem;
   }
 
   .admin-navbar__menu-toggle {

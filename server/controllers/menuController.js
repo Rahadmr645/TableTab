@@ -1,6 +1,4 @@
 import Menu from "../models/Menu.js";
-import MenuComment from "../models/MenuComment.js";
-import OrderItemReview from "../models/OrderItemReview.js";
 import { invalidateMenuNameMapCache } from "../utils/resolveMenuLine.js";
 import {
   uploadImageBuffer,
@@ -8,15 +6,20 @@ import {
   isCloudinaryConfigured,
 } from "../utils/cloudinaryUpload.js";
 
-/** Form labels → legacy enum spellings in Menu schema */
-const CATEGORY_ALIASES = {
-  "Cold Drinks": "Cold Dirinks",
-  Others: "Othres",
+/** Old DB/API typos → canonical category labels shown in admin + filters */
+const LEGACY_CATEGORY_MAP = {
+  "Cold Dirinks": "Cold Drinks",
+  Othres: "Others",
 };
 
+function canonicalCategory(cat) {
+  if (cat == null || cat === "") return cat;
+  const s = String(cat).trim();
+  return LEGACY_CATEGORY_MAP[s] ?? s;
+}
+
 function normalizeCategory(cat) {
-  if (!cat) return cat;
-  return CATEGORY_ALIASES[cat] ?? cat;
+  return canonicalCategory(cat);
 }
 
 function parseOptionsField(raw) {
@@ -76,55 +79,29 @@ export const addMenu = async (req, res) => {
 // 02: all menu items list
 export const getMenu = async (req, res) => {
   try {
-    const menuItems = await Menu.find();
-    const ids = menuItems.map((m) => m._id);
+    const menuItems = await Menu.find()
+      .select(
+        "name price description image category options soldCount likeCount dislikeCount commentCount ratingSum ratingCount",
+      )
+      .lean();
 
-    const [commentAgg, starAgg] = await Promise.all([
-      ids.length
-        ? MenuComment.aggregate([
-            { $match: { menuItemId: { $in: ids } } },
-            { $group: { _id: "$menuItemId", n: { $sum: 1 } } },
-          ])
-        : [],
-      ids.length
-        ? OrderItemReview.aggregate([
-            { $match: { menuItemId: { $in: ids } } },
-            {
-              $group: {
-                _id: "$menuItemId",
-                n: { $sum: 1 },
-                sum: { $sum: "$rating" },
-              },
-            },
-          ])
-        : [],
-    ]);
-
-    const nMap = Object.fromEntries(commentAgg.map((c) => [String(c._id), c.n]));
-    const starMap = Object.fromEntries(
-      starAgg.map((r) => [
-        String(r._id),
-        { n: r.n, avg: r.n > 0 ? r.sum / r.n : 0 },
-      ]),
-    );
-
-    const enriched = menuItems.map((m) => {
-      const o = m.toObject();
-      const idStr = String(m._id);
-
-      o.commentCount = nMap[idStr] || 0;
-
-      const stars = starMap[idStr];
-      o.ratingCount = stars ? stars.n : 0;
-      o.averageRating =
-        stars && stars.n > 0 ? Math.round(stars.avg * 10) / 10 : null;
-
-      o.feedbackThreadCount = o.commentCount + o.ratingCount;
-
-      o.soldCount = o.soldCount ?? 0;
-      o.likeCount = o.likeCount ?? 0;
-      o.dislikeCount = o.dislikeCount ?? 0;
-      return o;
+    const enriched = menuItems.map((o) => {
+      const ratingCount = Number(o.ratingCount) || 0;
+      const ratingSum = Number(o.ratingSum) || 0;
+      const commentCount = Number(o.commentCount) || 0;
+      const averageRating =
+        ratingCount > 0 ? Math.round((ratingSum / ratingCount) * 10) / 10 : null;
+      return {
+        ...o,
+        soldCount: o.soldCount ?? 0,
+        likeCount: o.likeCount ?? 0,
+        dislikeCount: o.dislikeCount ?? 0,
+        commentCount,
+        ratingCount,
+        averageRating,
+        feedbackThreadCount: commentCount + ratingCount,
+        category: canonicalCategory(o.category),
+      };
     });
 
     res.status(200).json({

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -8,14 +8,12 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import axios from "axios";
-import { AuthContext } from "../../context/CartContext";
+import { api } from "../../utils/api.js";
 import "./PaymentForm.css";
 
 const stripePromise = loadStripe(import.meta.env.VITE_API_PUBLISH_KEY);
 
 const PaymentFormInner = ({ amount, onSuccess }) => {
-  const { URL } = useContext(AuthContext);
   const stripe = useStripe();
   const elements = useElements();
 
@@ -36,10 +34,9 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(
-        `${URL}/api/payment/create-payment-intent`,
-        { amount }
-      );
+      const { data } = await api.post("/api/payment/create-payment-intent", {
+        amount,
+      });
 
       if (!data.clientSecret) {
         setCardError("Payment could not be initiated.");
@@ -56,7 +53,15 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
       if (result.error) {
         setCardError(result.error.message);
       } else if (result.paymentIntent?.status === "succeeded") {
-        onSuccess && onSuccess();
+        try {
+          await Promise.resolve(onSuccess?.());
+        } catch (finalizeErr) {
+          console.error(finalizeErr);
+          setCardError(
+            finalizeErr?.response?.data?.message ||
+              "Payment went through, but we could not finish your order. Please contact the venue.",
+          );
+        }
       }
     } catch (err) {
       console.error(err);
@@ -67,7 +72,16 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
   };
 
   return (
-    <div className="payment_container">
+    <div
+      className={`payment_container${loading ? " payment_container--busy" : ""}`}
+    >
+      {loading ? (
+        <div
+          className="payment-loading-shade"
+          role="presentation"
+          aria-hidden
+        />
+      ) : null}
       <form onSubmit={handleSubmit} className="payment-forms">
         <h3>Card details</h3>
 

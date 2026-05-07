@@ -355,19 +355,90 @@ export const deleteOrder = async (req, res) => {
 export const activeOrders = async (req, res) => {
 
     try {
+        const prepWindowSeconds = 600;
+        const serverNow = Date.now();
         const activeOrder = await Order.find({
             status: { $nin: ["Finished", "Finised"] },
         })
             .sort({ createdAt: -1 })
             .lean();
-        res.status(200).json({ message: 'fetching active user succesfully', activeOrders: activeOrder })
+        const activeOrders = activeOrder.map((order) => {
+            const createdMs = new Date(order.createdAt).getTime();
+            const countdownEndsAt = Number.isFinite(createdMs)
+                ? new Date(createdMs + prepWindowSeconds * 1000).toISOString()
+                : null;
+            const remainingSeconds = Number.isFinite(createdMs)
+                ? Math.max(0, Math.floor((createdMs + prepWindowSeconds * 1000 - serverNow) / 1000))
+                : 0;
+            return {
+                ...order,
+                countdownEndsAt,
+                remainingSeconds,
+            };
+        });
+        res.status(200).json({
+            message: 'fetching active user succesfully',
+            activeOrders,
+            serverNow,
+            prepWindowSeconds,
+        })
     } catch (error) {
         res.status(500).json({ message: "faild to get active users", error: error.message })
     }
 }
 
+export const getServerClock = async (_req, res) => {
+    try {
+        res.status(200).json({
+            serverNow: Date.now(),
+            prepWindowSeconds: 600,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "failed to fetch server clock",
+            error: error.message,
+        });
+    }
+}
 
-// 06: get orders by userID
+
+/** Shared enrichment for guest “my orders” and logged-in account orders. */
+async function enrichMyOrdersDocuments(orders) {
+    const nameMap = await getMenuNameToIdMap();
+    return orders.map((order) => {
+        const obj = typeof order.toObject === "function" ? order.toObject() : { ...order };
+        obj.items = (obj.items || []).map((it) => {
+            const resolved = resolveLineMenuId(it, nameMap);
+            return {
+                ...it,
+                resolvedMenuItemId: resolved ? String(resolved) : null,
+            };
+        });
+        return obj;
+    });
+}
+
+/** All orders for the authenticated customer (any device). Requires Bearer JWT. */
+export const getOrdersByCustomerAccount = async (req, res) => {
+    try {
+        const userId = req.customerId;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const orders = await Order.find({ userID: userId }).sort({ createdAt: -1 });
+        const enriched = await enrichMyOrdersDocuments(orders);
+
+        res.status(200).json({
+            message: "Orders fetch successfully",
+            orders: enriched,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "faild to fetch orders", error: error.message });
+    }
+};
+
+// 06: get orders by guestToken (browser session)
 export const getOrdersByUser = async (req, res) => {
 
     try {
@@ -383,18 +454,7 @@ export const getOrdersByUser = async (req, res) => {
 
         if (orders.length === 0) return res.status(404).json({ message: 'No order found for this order' });
 
-        const nameMap = await getMenuNameToIdMap();
-        const enriched = orders.map((order) => {
-            const obj = order.toObject();
-            obj.items = (obj.items || []).map((it) => {
-                const resolved = resolveLineMenuId(it, nameMap);
-                return {
-                    ...it,
-                    resolvedMenuItemId: resolved ? String(resolved) : null,
-                };
-            });
-            return obj;
-        });
+        const enriched = await enrichMyOrdersDocuments(orders);
 
         res.status(200).json({ message: 'Orders fetch successfully', orders: enriched });
 

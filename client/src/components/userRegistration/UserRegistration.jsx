@@ -1,12 +1,12 @@
 import React, { useContext, useState } from 'react';
 import './Login.css';
 import { AuthContext } from '../../context/AuthContext';
-import axios from 'axios';
+import { api } from '../../utils/api.js';
 
 import { useNavigate } from 'react-router-dom';
 
 const UserRegistration = () => {
-  const { currState, setCurrState, setShowLogin, URL, setUser } = useContext(AuthContext);
+  const { currState, setCurrState, setShowLogin, setUser } = useContext(AuthContext);
 
   const navigate = useNavigate();
 
@@ -26,22 +26,16 @@ const UserRegistration = () => {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    const endPoint =
-      currState === 'SignUp'
-        ? `${URL}/api/user/create`
-        : `${URL}/api/user/login`;
-
     const bodyData =
       currState === 'SignUp'
         ? formData
         : { email: formData.email, password: formData.password };
-    console.log(bodyData)
-
 
     try {
-      const res = await axios.post(endPoint, bodyData,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      const res =
+        currState === 'SignUp'
+          ? await api.post('/api/user/create', bodyData)
+          : await api.post('/api/user/login', bodyData);
       const data = res.data;
       if (res.status === 200) {
         alert('Success');

@@ -1,10 +1,48 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback, useContext, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/CartContext";
+import {
+  loadGuestOrdersForNav,
+  MY_ORDERS_EMPTY_MSG,
+} from "../../utils/myOrdersGate.js";
 import "./Home.css";
+import AsyncLoadingOverlay from "../../components/common/AsyncLoadingOverlay.jsx";
 
 const Home = () => {
+  const { setMyOrders } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [navBusy, setNavBusy] = useState(false);
+  const navLockRef = useRef(false);
+
+  const onMyOrdersClick = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (navLockRef.current) return;
+      navLockRef.current = true;
+      setNavBusy(true);
+      try {
+        const token = localStorage.getItem("guestToken")?.trim();
+        const { allowNav, orders } = await loadGuestOrdersForNav(token);
+        setMyOrders(orders);
+        if (!allowNav) {
+          alert(MY_ORDERS_EMPTY_MSG);
+          return;
+        }
+        navigate("/myOrders");
+      } finally {
+        navLockRef.current = false;
+        setNavBusy(false);
+      }
+    },
+    [setMyOrders, navigate],
+  );
+
   return (
     <div className="home-page">
+      <AsyncLoadingOverlay
+        open={navBusy}
+        message="Loading your orders…"
+      />
       <section className="home-hero">
         <div className="home-hero-glow" aria-hidden />
         <div className="home-hero-content">
@@ -21,7 +59,11 @@ const Home = () => {
             <Link className="home-btn home-btn--primary" to="/menu">
               Open menu
             </Link>
-            <Link className="home-btn home-btn--ghost" to="/myOrders">
+            <Link
+              className="home-btn home-btn--ghost"
+              to="/myOrders"
+              onClick={onMyOrdersClick}
+            >
               My orders
             </Link>
           </div>

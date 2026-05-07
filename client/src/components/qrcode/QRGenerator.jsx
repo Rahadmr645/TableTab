@@ -1,10 +1,8 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import "./QRGenerator.css";
-import { AuthContext } from "../../context/CartContext.jsx";
-import axios from "axios";
+import { api } from "../../utils/api.js";
 
 const QRGenerator = () => {
-  const { URL } = useContext(AuthContext);
   const [tableId, setTableId] = useState("");
   const [qr, setQr] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -13,7 +11,7 @@ const QRGenerator = () => {
     if (!tableId) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${URL}/api/qr/generate/${tableId}`);
+      const res = await api.get(`/api/qr/generate/${tableId}`);
       setQr(res.data);
     } catch (e) {
       console.error(e);
@@ -31,7 +29,7 @@ const QRGenerator = () => {
         <div className="qr-row">
           <input
             type="number"
-            placeholder="Table number"
+            placeholder="Look on your table for your table number (sticker or stand)"
             value={tableId}
             onChange={(e) => setTableId(e.target.value)}
             className="qr-input"

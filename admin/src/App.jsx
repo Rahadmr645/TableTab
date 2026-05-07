@@ -1,16 +1,20 @@
-import React, { useEffect } from 'react'
+import React, { useContext, useEffect } from 'react'
 
 import  './App.css'
 
 import Dashbord from './pages/deshboard/Dashbord'
 import Navbar from './components/navbar/Navbar.jsx'
 import AppRoutes from './AppRoutes.jsx'
+import { AuthContext } from './context/AuthContext.jsx'
+import AsyncLoadingOverlay from './components/common/AsyncLoadingOverlay.jsx'
 import {
   unlockOrderAudio,
   requestNotificationPermissionIfNeeded,
 } from './utils/orderAlerts.js'
 
 const App = () => {
+  const { isGlobalLoading } = useContext(AuthContext);
+
   useEffect(() => {
     const onFirstGesture = () => {
       unlockOrderAudio();
@@ -26,6 +30,7 @@ const App = () => {
        <Navbar/>
        <AppRoutes/>
        <Dashbord/>
+       <AsyncLoadingOverlay show={isGlobalLoading} />
       </div>
      </>
   )

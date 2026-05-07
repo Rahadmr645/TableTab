@@ -64,9 +64,134 @@
 }
 
 .orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-row {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: 22px;
+  grid-template-columns: minmax(90px, 0.8fr) minmax(120px, 1.2fr) minmax(95px, 0.9fr) minmax(120px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(168deg, rgba(32, 38, 52, 0.98) 0%, rgba(16, 22, 34, 0.99) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.35) inset,
+    0 8px 24px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.order-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.8), rgba(250, 204, 21, 0.75));
+}
+
+.order-row-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.order-row-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.order-row-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #eef7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-row-timer-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.order-row .order-status {
+  max-width: none;
+  width: fit-content;
+  min-width: 0;
+  padding: 6px 12px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.order-row-timer {
+  width: 78px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  background: radial-gradient(circle at 32% 32%, rgba(30, 41, 59, 0.95), rgba(2, 6, 23, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: #fde68a;
+}
+
+.order-row-timer--green {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.order-row-timer--yellow {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.order-row-timer--orange {
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.45);
+}
+
+.order-row-timer--red {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.5);
+  animation: order-timeup-pulse 1.2s ease-in-out infinite;
+}
+
+.order-row-timeup {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+@keyframes order-timeup-pulse {
+  50% {
+    opacity: 0.85;
+  }
 }
 
 /* —— Order card —— */
@@ -675,6 +800,14 @@
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.2));
 }
 
+.order-card__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .order-date {
   display: inline-flex;
   align-items: center;
@@ -690,6 +823,47 @@
   height: 0.9rem;
   opacity: 0.75;
   color: var(--accent);
+}
+
+.admin-btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: #fef08a;
+  background: linear-gradient(
+    180deg,
+    rgba(113, 63, 18, 0.4) 0%,
+    rgba(66, 32, 6, 0.55) 100%
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform var(--transition), filter var(--transition), box-shadow var(--transition);
+}
+
+.admin-btn-pdf svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.admin-btn-pdf:hover:not(:disabled) {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+
+.admin-btn-pdf:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .admin-btn-danger {
@@ -735,6 +909,20 @@
 
   .orders-container {
     padding: 20px 16px 28px;
+  }
+
+  .order-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+  }
+
+  .order-row-timer-wrap {
+    gap: 5px;
+  }
+
+  .order-row-timeup {
+    font-size: 0.56rem;
+    padding: 3px 5px;
   }
 
   .order-card:hover {

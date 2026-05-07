@@ -4,6 +4,20 @@
   margin-top: 8px;
 }
 
+.payment_container--busy .payment-forms {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.payment-loading-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: var(--radius-md);
+  background: rgba(5, 7, 11, 0.35);
+  pointer-events: none;
+}
+
 .payment-forms {
   width: 100%;
   max-width: 100%;

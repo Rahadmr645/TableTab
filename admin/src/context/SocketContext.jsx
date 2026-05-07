@@ -15,17 +15,43 @@ function sortOrdersNewestFirst(orders) {
   );
 }
 
+function upsertOrderNewestFirst(prev, order) {
+  if (!order || typeof order !== "object") return prev;
+  const withoutCurrent = (Array.isArray(prev) ? prev : []).filter(
+    (o) => o?._id !== order?._id,
+  );
+  return sortOrdersNewestFirst([order, ...withoutCurrent]);
+}
+
 export const SocketProvider = ({ children }) => {
 
   const [socket, setSocket] = useState(null)
   const [chefOrders, setChefOrders] = useState([]);
+  const [serverClock, setServerClock] = useState({
+    serverNowMs: Date.now(),
+    syncedAtMs: Date.now(),
+    prepWindowSeconds: 600,
+  });
   const URL = API_BASE_URL;
   const socketOrigin =
     URL || (typeof window !== "undefined" ? window.location.origin : "");
 
+  const syncServerClock = (payload) => {
+    const serverNowMs = Number(payload?.serverNow);
+    const prepWindowSeconds = Number(payload?.prepWindowSeconds);
+    setServerClock({
+      serverNowMs: Number.isFinite(serverNowMs) ? serverNowMs : Date.now(),
+      syncedAtMs: Date.now(),
+      prepWindowSeconds:
+        Number.isFinite(prepWindowSeconds) && prepWindowSeconds > 0
+          ? prepWindowSeconds
+          : 600,
+    });
+  };
+
   useEffect(() => {
     const newSocket = io(socketOrigin, {
-      transports: ["polling", "websocket"],
+      transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -33,24 +59,39 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on("connect", () => {
       console.log(" Socket connected:", newSocket.id);
+      refetchActiveOrders();
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket connect error:", err?.message || err);
     });
 
     const refetchActiveOrders = async () => {
       try {
         const res = await axios.get(`${URL}/api/order/active-orders`);
-        setChefOrders(sortOrdersNewestFirst(res.data.activeOrders || []));
+        const activeOrders = sortOrdersNewestFirst(res.data.activeOrders || []);
+        setChefOrders(activeOrders);
+        syncServerClock(res.data);
+
+        // Keep unread badge accurate even if socket payload is partial/missed:
+        // any active order not yet recorded in notification store is added once.
+        activeOrders.forEach((order) => {
+          addChefNotificationFromOrder(order);
+        });
       } catch (e) {
         console.error("active-orders refetch failed:", e);
       }
     };
 
     newSocket.on("newOrder", (order) => {
-      refetchActiveOrders();
-      playNewOrderAlert();
       if (order && typeof order === "object") {
+        // Instant UI update first, then refetch for server truth.
+        setChefOrders((prev) => upsertOrderNewestFirst(prev, order));
         showNewOrderNotification(order);
         addChefNotificationFromOrder(order);
       }
+      refetchActiveOrders();
+      playNewOrderAlert();
     });
 
     newSocket.on("disconnect", () => {
@@ -58,7 +99,16 @@ export const SocketProvider = ({ children }) => {
     });
 
 
-    newSocket.on("orderUpdated", () => {
+    newSocket.on("orderUpdated", (order) => {
+      if (order && typeof order === "object") {
+        const statusNorm = String(order.status || "").toLowerCase();
+        const isFinished = statusNorm === "finished" || statusNorm === "finised";
+        if (isFinished) {
+          setChefOrders((prev) => prev.filter((o) => o?._id !== order?._id));
+        } else {
+          setChefOrders((prev) => upsertOrderNewestFirst(prev, order));
+        }
+      }
       refetchActiveOrders();
     });
 
@@ -74,25 +124,47 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
+  // Keep countdown anchored to server time even during quiet periods.
+  useEffect(() => {
+    const syncClockOnly = async () => {
+      try {
+        const res = await axios.get(`${URL}/api/order/server-clock`);
+        syncServerClock(res.data);
+      } catch (e) {
+        console.error("server-clock sync failed:", e);
+      }
+    };
+
+    syncClockOnly();
+    const interval = setInterval(syncClockOnly, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // fetch all active order
   useEffect(() => {
     const fetchActiveOrders = async () => {
-      const res = await axios.get(`${URL}/api/order/active-orders`);
+      try {
+        const res = await axios.get(`${URL}/api/order/active-orders`);
+        if (!res) return console.log("active order not found ");
 
-
-
-      if (!res) return console.log("active order not found ");
-
-      setChefOrders(sortOrdersNewestFirst(res.data.activeOrders || []));
-
-    }
+        const activeOrders = sortOrdersNewestFirst(res.data.activeOrders || []);
+        setChefOrders(activeOrders);
+        syncServerClock(res.data);
+        activeOrders.forEach((order) => {
+          addChefNotificationFromOrder(order);
+        });
+      } catch (e) {
+        console.error("initial active-orders fetch failed:", e);
+      }
+    };
 
     fetchActiveOrders();
-  }, [])
+  }, [URL])
 
   const contextValue = {
     socket,
     chefOrders,
+    serverClock,
   }
 
   return (

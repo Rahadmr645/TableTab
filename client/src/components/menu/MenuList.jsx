@@ -1,8 +1,13 @@
 import React, { useContext, useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { api } from "../../utils/api.js";
 import { useLocation, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/CartContext";
 import { resolveAssetUrl } from "../../utils/mediaUrl.js";
+import {
+  readMenuCatalogCache,
+  writeMenuCatalogCache,
+} from "../../utils/menuCatalogCache.js";
+import SaudiRiyalSymbol from "../currency/SaudiRiyalSymbol.jsx";
 import "./MenuList.css";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { RxDividerHorizontal } from "react-icons/rx";
@@ -11,13 +16,26 @@ import { FiMessageCircle, FiShoppingBag } from "react-icons/fi";
 
 const TABLE_PREFILL_KEY = "tabletab_prefill_table";
 
+/** Legacy typo values stored before server normalization */
+const LEGACY_CATEGORY_TO_CANON = {
+  "Cold Dirinks": "Cold Drinks",
+  Othres: "Others",
+};
+
+function canonCategory(label) {
+  if (label == null || label === "") return label;
+  return LEGACY_CATEGORY_TO_CANON[label] ?? label;
+}
+
 const MenuList = () => {
   const location = useLocation();
   const { tableId: tableFromRoute } = useParams();
   const { URL, quantities, setQuantities, setCart, handleRemove } = useContext(AuthContext);
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState(
+    () => readMenuCatalogCache() ?? [],
+  );
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => readMenuCatalogCache() == null);
   const [error, setError] = useState(null);
 
   const [itemVotes, setItemVotes] = useState({});
@@ -38,13 +56,14 @@ const MenuList = () => {
       const silent = opts.silent === true;
       try {
         if (!silent) setLoading(true);
-        const res = await axios.get(`${URL}/api/menu/menuList`);
+        const res = await api.get("/api/menu/menuList");
         const data = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data.MenuList)
             ? res.data.MenuList
             : [];
         setMenuItems(data);
+        writeMenuCatalogCache(data);
         setError(null);
       } catch (err) {
         console.error("Error fetching menu:", err);
@@ -55,11 +74,11 @@ const MenuList = () => {
         if (!silent) setLoading(false);
       }
     },
-    [URL],
+    [],
   );
 
   useEffect(() => {
-    fetchMenus();
+    fetchMenus({ silent: readMenuCatalogCache() != null });
   }, [fetchMenus]);
 
   useEffect(() => {
@@ -79,13 +98,9 @@ const MenuList = () => {
     const load = async () => {
       try {
         const [pRes, vRes, pendRes] = await Promise.all([
-          axios.get(
-            `${URL}/api/menu/purchased-dishes/${encodeURIComponent(gt)}`,
-          ),
-          axios.get(`${URL}/api/menu/my-votes/${encodeURIComponent(gt)}`),
-          axios.get(
-            `${URL}/api/menu/review-pending/${encodeURIComponent(gt)}`,
-          ),
+          api.get(`/api/menu/purchased-dishes/${encodeURIComponent(gt)}`),
+          api.get(`/api/menu/my-votes/${encodeURIComponent(gt)}`),
+          api.get(`/api/menu/review-pending/${encodeURIComponent(gt)}`),
         ]);
         setPurchasedIds(new Set(pRes.data.menuItemIds || []));
         setItemVotes(vRes.data.votes || {});
@@ -97,7 +112,7 @@ const MenuList = () => {
       }
     };
     load();
-  }, [URL, location.pathname]);
+  }, [location.pathname]);
 
   const categories = [
     "All",
@@ -114,7 +129,9 @@ const MenuList = () => {
   const filteredItems =
     selectedCategory === "All"
       ? menuItems
-      : menuItems.filter((item) => item.category === selectedCategory);
+      : menuItems.filter(
+          (item) => canonCategory(item.category) === selectedCategory,
+        );
 
   const handleAdd = (item) => {
     setQuantities((prev) => ({
@@ -146,7 +163,7 @@ const MenuList = () => {
     if (voteBusy) return;
     setVoteBusy(itemId);
     try {
-      const res = await axios.post(`${URL}/api/menu/vote`, {
+      const res = await api.post("/api/menu/vote", {
         menuItemId: itemId,
         guestToken: gt,
         vote,
@@ -183,9 +200,7 @@ const MenuList = () => {
     fetchMenus({ silent: true });
     if (!commentsByItem[id]) {
       try {
-        const res = await axios.get(
-          `${URL}/api/menu/comments/${id}?limit=15`,
-        );
+        const res = await api.get(`/api/menu/comments/${id}?limit=15`);
         setCommentsByItem((prev) => ({
           ...prev,
           [id]: res.data.comments || [],
@@ -216,15 +231,15 @@ const MenuList = () => {
     }
     setCommentBusy(menuItemId);
     try {
-      await axios.post(`${URL}/api/menu/comment`, {
+      await api.post("/api/menu/comment", {
         menuItemId,
         guestToken: gt,
         customerName: name,
         text,
       });
       setCommentText("");
-      const res = await axios.get(
-        `${URL}/api/menu/comments/${menuItemId}?limit=15`,
+      const res = await api.get(
+        `/api/menu/comments/${menuItemId}?limit=15`,
       );
       setCommentsByItem((prev) => ({
         ...prev,
@@ -275,7 +290,7 @@ const MenuList = () => {
     }
     setItemReviewSubmitting(dk);
     try {
-      const res = await axios.post(`${URL}/api/menu/order-review`, {
+      const res = await api.post("/api/menu/order-review", {
         menuItemId,
         orderId,
         guestToken: gt,
@@ -376,8 +391,6 @@ const MenuList = () => {
             const dislikes = item.dislikeCount ?? 0;
             const commentsN = item.commentCount ?? 0;
             const reviewCount = item.ratingCount ?? 0;
-            const feedbackThreadCount =
-              item.feedbackThreadCount ?? commentsN + reviewCount;
             const avg = item.averageRating;
             const myVote = itemVotes[id];
             const canEngage = purchasedIds.has(String(id));
@@ -396,16 +409,34 @@ const MenuList = () => {
               pickOrderId && id ? `${pickOrderId}__${id}` : "";
             const reviewDraft = itemReviewDraft[reviewDraftKey] || {};
 
+            const qty = quantities[id] ?? 0;
+
             return (
               <div className="menu-card" key={id}>
-                <div className="menu-image-wrap">
-                  <img
-                    src={resolveAssetUrl(URL, item.image)}
-                    alt={item.name}
-                    className="menu-image"
-                  />
+                <div
+                  className={
+                    qty > 0
+                      ? "menu-image-wrap menu-image-wrap--in-order"
+                      : "menu-image-wrap"
+                  }
+                >
+                  <button
+                    type="button"
+                    className="menu-image-add"
+                    aria-label={`Add ${item.name} to order — quantity ${qty}`}
+                    onClick={() => handleAdd(item)}
+                  >
+                    <img
+                      src={resolveAssetUrl(URL, item.image)}
+                      alt=""
+                      className="menu-image"
+                      draggable={false}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
 
-                  {quantities[id] > 0 ? (
+                  {qty > 0 ? (
                     <div className="quantities-box">
                       <p
                         onClick={() => handleAdd(item)}
@@ -417,7 +448,7 @@ const MenuList = () => {
                       >
                         <IoAddCircleOutline />
                       </p>
-                      {quantities[id]}
+                      {qty}
                       <p
                         onClick={() => handleRemove(id)}
                         role="button"
@@ -449,7 +480,7 @@ const MenuList = () => {
                   <h4>{item.name}</h4>
                   <p>{item.description}</p>
 
-                  <div className="menu-stats" aria-label="Popularity and feedback">
+                  <div className="menu-stats" aria-label="Popularity and comments">
                     <span className="menu-stat" title="Times sold after orders are completed">
                       <FiShoppingBag aria-hidden />
                       <strong>{sold}</strong>
@@ -478,13 +509,21 @@ const MenuList = () => {
                       </span>
                       <strong>{reviewCount}</strong>
                     </span>
-                    <span
-                      className="menu-stat"
-                      title="Short comments left by buyers on the menu"
+                    <button
+                      type="button"
+                      className={`menu-stat menu-stat--comments-btn${expandedId === id ? " menu-stat--comments-open" : ""}`}
+                      onClick={() => toggleComments(id)}
+                      aria-expanded={expandedId === id}
+                      aria-label={
+                        expandedId === id
+                          ? `Close comments, ${commentsN} notes`
+                          : `Comments: ${commentsN}. Open list.`
+                      }
+                      title={`${commentsN} comment${commentsN === 1 ? "" : "s"}. Click to ${expandedId === id ? "hide" : "view"}.`}
                     >
                       <FiMessageCircle aria-hidden />
                       <strong>{commentsN}</strong>
-                    </span>
+                    </button>
                   </div>
 
                   {canEngage && (
@@ -595,33 +634,6 @@ const MenuList = () => {
                       </div>
                     )}
 
-                  <button
-                    type="button"
-                    className="menu-comments-toggle"
-                    onClick={() => toggleComments(id)}
-                    aria-expanded={expandedId === id}
-                    title={`${reviewCount} star reviews, ${commentsN} short notes (${feedbackThreadCount} total)`}
-                  >
-                    <FiMessageCircle
-                      aria-hidden
-                      className="menu-comments-toggle-icon"
-                    />
-                    <span className="menu-comments-toggle-inner">
-                      <span className="menu-comments-toggle-line1">
-                        {expandedId === id ? "Hide" : "Open"} feedback
-                        <strong className="menu-comments-total">
-                          {" "}
-                          ({feedbackThreadCount})
-                        </strong>
-                      </span>
-                      <span className="menu-comments-toggle-line2">
-                        {reviewCount} star rating
-                        {reviewCount === 1 ? "" : "s"} · {commentsN} note
-                        {commentsN === 1 ? "" : "s"}
-                      </span>
-                    </span>
-                  </button>
-
                   {expandedId === id && (
                     <div className="menu-comments-panel">
                       <ul className="menu-comment-list">
@@ -695,8 +707,13 @@ const MenuList = () => {
                     </div>
                   )}
 
-                  <p className="menu-price">SAR {item.price}</p>
-                  <span className="menu-category">{item.category}</span>
+                  <p className="menu-price">
+                    <span className="menu-price-num">{item.price}</span>
+                    <SaudiRiyalSymbol />
+                  </p>
+                  <span className="menu-category">
+                    {canonCategory(item.category)}
+                  </span>
                 </div>
               </div>
             );

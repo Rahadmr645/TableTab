@@ -15,9 +15,25 @@ export default defineConfig(({ mode }) => {
     root: __dirname,
     envDir: __dirname,
     plugins: [react()],
+    resolve: {
+      alias: {
+        "@shared": path.resolve(__dirname, "../shared"),
+        "html2pdf.js": path.resolve(__dirname, "node_modules/html2pdf.js"),
+        qrcode: path.resolve(__dirname, "node_modules/qrcode"),
+        react: path.resolve(__dirname, "node_modules/react"),
+        "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+        "react/jsx-runtime": path.resolve(
+          __dirname,
+          "node_modules/react/jsx-runtime.js",
+        ),
+      },
+    },
     server: {
       host: "0.0.0.0",
       port: 5173,
+      fs: {
+        allow: [path.resolve(__dirname), path.resolve(__dirname, "..")],
+      },
       proxy: {
         "/api": {
           target,

@@ -11,13 +11,13 @@ const menuSchema = new mongoose.Schema({
         type: String,
         enum: [
             "Hot Drinks",
-            "Cold Dirinks",
+            "Cold Drinks",
             "Tea",
             "Arabic Coffee",
             "Desserts",
             "Snacks",
             "Cakes",
-            "Othres"
+            "Others",
         ],
         required: true,
     },
@@ -35,6 +35,7 @@ const menuSchema = new mongoose.Schema({
     soldCount: { type: Number, default: 0, min: 0 },
     likeCount: { type: Number, default: 0, min: 0 },
     dislikeCount: { type: Number, default: 0, min: 0 },
+    commentCount: { type: Number, default: 0, min: 0 },
     ratingSum: { type: Number, default: 0, min: 0 },
     ratingCount: { type: Number, default: 0, min: 0 },
 

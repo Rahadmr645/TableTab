@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap");
 
 :root {
   --bg-deep: #07090e;
@@ -32,11 +32,17 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: "DM Sans", system-ui, sans-serif;
   color: var(--text);
   background-color: var(--bg-deep);
@@ -66,7 +72,10 @@ body::before {
 #root {
   position: relative;
   z-index: 1;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
 }
 
 h1,
@@ -102,5 +111,20 @@ button {
 
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* Phones / narrow viewports: fixed backgrounds + smooth scroll + noise overlay hurt scroll performance. */
+@media (max-width: 768px) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+
+  body::before {
+    display: none;
   }
 }

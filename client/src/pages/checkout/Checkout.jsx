@@ -1,21 +1,23 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import CartItem from "../../components/CartItem/CartItem.jsx";
 import { AuthContext } from "../../context/CartContext";
 import "./Checkout.css";
-import axios from "axios";
+import { api } from "../../utils/api.js";
 import { useNavigate } from "react-router-dom";
+import { IoChevronBack } from "react-icons/io5";
 import StripePayment from "../payment/PaymentForm.jsx";
 import {
   playOrderPlacedChime,
   requestNotificationPermissionIfNeeded,
   showOrderPlacedNotification,
 } from "../../utils/orderAlerts.js";
+import SaudiRiyalSymbol from "../../components/currency/SaudiRiyalSymbol.jsx";
+import AsyncLoadingOverlay from "../../components/common/AsyncLoadingOverlay.jsx";
 
 const TABLE_PREFILL_KEY = "tabletab_prefill_table";
 
 const Checkout = () => {
-  const { cart, setCart, setQuantities, URL, user } =
-    useContext(AuthContext);
+  const { cart, setCart, setQuantities, user } = useContext(AuthContext);
 
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -24,6 +26,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
 
   const navigator = useNavigate();
+  const namePrefillUserIdRef = useRef(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(TABLE_PREFILL_KEY)?.trim();
@@ -31,6 +34,24 @@ const Checkout = () => {
       setTableId((prev) => (prev?.trim() ? prev : stored));
     }
   }, []);
+
+  useEffect(() => {
+    const id = user?._id != null ? String(user._id) : "";
+    const fromAccount =
+      (typeof user?.username === "string" && user.username.trim()) ||
+      (typeof user?.name === "string" && user.name.trim()) ||
+      "";
+    if (!id || !fromAccount) {
+      if (!id) namePrefillUserIdRef.current = null;
+      return;
+    }
+    if (namePrefillUserIdRef.current !== id) {
+      namePrefillUserIdRef.current = id;
+      setCustomerName(fromAccount);
+      return;
+    }
+    setCustomerName((prev) => (prev.trim() ? prev : fromAccount));
+  }, [user]);
 
   const subTotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -45,7 +66,7 @@ const Checkout = () => {
 
       const existingGuestToken = localStorage.getItem("guestToken")?.trim() || "";
 
-      const res = await axios.post(`${URL}/api/order/create-order/`, {
+      const res = await api.post("/api/order/create-order/", {
         customerName,
         tableId,
         userID: user?._id || "",
@@ -104,9 +125,28 @@ const Checkout = () => {
 
   return (
     <div className="checkout-page">
+      <AsyncLoadingOverlay
+        open={loading}
+        message="Placing your order…"
+      />
       <header className="checkout-hero">
+        <button
+          type="button"
+          className="checkout-back-btn"
+          onClick={() =>
+            navigator("/menu", {
+              replace: false,
+              preventScrollReset: true,
+            })
+          }
+          aria-label="Back to menu"
+        >
+          <IoChevronBack aria-hidden />
+        </button>
         <h1>Your cart</h1>
-        <p>Review items, then confirm details and pay securely.</p>
+        <p className="checkout-hero-tagline">
+          Review items, then confirm details and pay securely.
+        </p>
       </header>
 
       <div className="checkout-inner">
@@ -142,7 +182,11 @@ const Checkout = () => {
 
         <div className="subtotal">
           <h3>
-            Subtotal: <span>{subTotal.toFixed(2)}</span> /-
+            Subtotal:{" "}
+            <span className="subtotal-amt-inline">
+              <span className="subtotal-number">{subTotal.toFixed(2)}</span>
+              <SaudiRiyalSymbol />
+            </span>
           </h3>
         </div>
 
@@ -173,7 +217,7 @@ const Checkout = () => {
 
                 <input
                   type="number"
-                  placeholder="Table number"
+                  placeholder="Look on your table for your table number (sticker or stand)"
                   value={tableId}
                   onChange={(e) => setTableId(e.target.value)}
                 />
