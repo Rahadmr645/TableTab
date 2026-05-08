@@ -1,8 +1,6 @@
 import QRCode from "qrcode";
-import dotenv from "dotenv";
 import bwipjs from "bwip-js/node";
-
-dotenv.config();
+import Table from "../models/Table.js";
 
 function menuUrlForTable(tableId) {
   const raw = process.env.CLEINT_URL || "http://localhost:5173";
@@ -14,12 +12,24 @@ function menuUrlForTable(tableId) {
 export const QRCodegen = async (req, res) => {
   try {
     const { tableId } = req.params;
-    const menuURL = menuUrlForTable(tableId);
+    const table = await Table.findOne({
+      _id: tableId,
+      tenantId: req.tenantId,
+    })
+      .select("_id label")
+      .lean();
+
+    if (!table) {
+      return res.status(404).json({ message: "Table not found for this tenant" });
+    }
+
+    const menuURL = menuUrlForTable(table._id);
     const qrImage = await QRCode.toDataURL(menuURL);
 
     res.status(200).json({
       message: "create successfull",
-      tableId,
+      tableId: String(table._id),
+      label: table.label,
       link: menuURL,
       qrImage,
     });
@@ -29,11 +39,21 @@ export const QRCodegen = async (req, res) => {
   }
 };
 
-/** Linear CODE128 barcode (PNG data URL) — encodes the same menu link as the QR endpoint. */
 export const barcodeCodegen = async (req, res) => {
   try {
     const { tableId } = req.params;
-    const menuURL = menuUrlForTable(tableId);
+    const table = await Table.findOne({
+      _id: tableId,
+      tenantId: req.tenantId,
+    })
+      .select("_id label")
+      .lean();
+
+    if (!table) {
+      return res.status(404).json({ message: "Table not found for this tenant" });
+    }
+
+    const menuURL = menuUrlForTable(table._id);
 
     const png = await bwipjs.toBuffer({
       bcid: "code128",
@@ -48,7 +68,8 @@ export const barcodeCodegen = async (req, res) => {
 
     res.status(200).json({
       message: "create successfull",
-      tableId,
+      tableId: String(table._id),
+      label: table.label,
       link: menuURL,
       barcodeImage,
     });

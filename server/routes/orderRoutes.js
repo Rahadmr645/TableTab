@@ -1,37 +1,63 @@
-import express from 'express';
+import express from "express";
 
-
-import { activeOrders, createOrder, deleteOrder, getAllOrders, getOrdersByUser, getOrdersByCustomerAccount, getServerClock, getSummaryStats, updateOrderStatus } from '../controllers/orderController.js';
-import { requireCustomerAuth } from '../middlewares/customerAuthMiddleware.js';
-
+import {
+  activeOrders,
+  createOrder,
+  deleteOrder,
+  getAllOrders,
+  getOrdersByUser,
+  getOrdersByCustomerAccount,
+  getServerClock,
+  getSummaryStats,
+  updateOrderStatus,
+} from "../controllers/orderController.js";
+import { requireCustomerAuth } from "../middlewares/customerAuthMiddleware.js";
+import { authenticate } from "../middlewares/authMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/subscriptionMiddleware.js";
+import { requireStaffAccount, requireRole } from "../middlewares/roleMiddleware.js";
+import {
+  resolvePublicTenant,
+  resolveOptionalBranch,
+  stripForbiddenTenantFields,
+} from "../middlewares/tenantMiddleware.js";
 
 const router = express.Router();
 
+const publicTenant = [
+  resolvePublicTenant,
+  resolveOptionalBranch,
+  stripForbiddenTenantFields,
+  requireActiveSubscription,
+];
 
-// 01: create order
-router.post('/create-order', createOrder);
+const staffBase = [
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  resolveOptionalBranch,
+];
 
+router.post("/create-order", ...publicTenant, createOrder);
 
-// 02: get all the orders
-router.get('/all-orders', getAllOrders);
+router.get("/all-orders", ...staffBase, getAllOrders);
+router.get("/summary-stats", ...staffBase, getSummaryStats);
+router.delete(
+  "/delete-order/:id",
+  ...staffBase,
+  requireRole(["owner", "manager"]),
+  deleteOrder,
+);
+router.put(
+  "/:id/status",
+  ...staffBase,
+  requireRole(["owner", "manager", "chef"]),
+  updateOrderStatus,
+);
+router.get("/active-orders", ...staffBase, activeOrders);
+router.get("/server-clock", getServerClock);
 
-// 02b: dashboard summary (orders + menu aggregates)
-router.get('/summary-stats', getSummaryStats);
+router.get("/my-orders-for-account", requireCustomerAuth, getOrdersByCustomerAccount);
 
-// 03 delete the order
-router.delete('/delete-order/:id', deleteOrder);
-
-// 04 updates order 
-router.put('/:id/status', updateOrderStatus)
-
-// 05: get active orders
-router.get('/active-orders', activeOrders);
-router.get('/server-clock', getServerClock);
-
-// 06a: my orders for logged-in customer (same account on any device)
-router.get('/my-orders-for-account', requireCustomerAuth, getOrdersByCustomerAccount);
-
-// 06: my orders for guest session (browser guestToken)
-router.get('/my-orders/:guestToken', getOrdersByUser);
+router.get("/my-orders/:guestToken", ...publicTenant, getOrdersByUser);
 
 export default router;

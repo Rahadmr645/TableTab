@@ -1,13 +1,12 @@
 import User from "../models/UserModel.js";
-import dotenv from "dotenv";
-dotenv.config();
+import Tenant from "../models/Tenant.js";
 import bcrypt from "bcryptjs";
-import JWT from "jsonwebtoken";
 import {
   uploadImageBuffer,
   destroyCloudinaryAsset,
   isCloudinaryConfigured,
 } from "../utils/cloudinaryUpload.js";
+import { signUserToken } from "../middlewares/authMiddleware.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY;
 
@@ -52,12 +51,26 @@ function jwtUnavailable(res) {
   });
 }
 
+function customerTokenPayload(userDoc) {
+  return {
+    userId: String(userDoc._id),
+    tenantId: String(userDoc.tenantId),
+    role: "customer",
+    email: userDoc.email,
+    username: userDoc.username,
+  };
+}
+
 /** Current customer from JWT — `requireCustomerAuth` must run first. */
 export const getMe = async (req, res) => {
   try {
     if (!SECTRATE_KEY) return jwtUnavailable(res);
 
-    const user = await User.findById(req.customerId)
+    const user = await User.findOne({
+      _id: req.customerId,
+      tenantId: req.tenantId,
+      role: "customer",
+    })
       .select("-password -savedCart")
       .lean();
     if (!user) {
@@ -69,111 +82,113 @@ export const getMe = async (req, res) => {
   }
 };
 
-// 01 :  create controller
 export const userCreate = async (req, res) => {
+  try {
+    if (!SECTRATE_KEY) return jwtUnavailable(res);
 
-    try {
+    const { username, email, password, profilePic, tenantSlug } = req.body || {};
 
-        if (!SECTRATE_KEY) return jwtUnavailable(res);
-
-        
-        const { username, email, password, profilePic } = req.body;
-
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: "please fill all the fields" });
-        }
-
-
-        const isExist = await User.findOne({ email });
-
-        if (isExist) return res.status(400).json({ message: "User aleady exist" });
-
-
-        // hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-
-
-        const newUser = new User({
-            username,
-            email,
-            password: hashedPassword,
-            profilePic,
-        });
-
-
-        await newUser.save();
-
-        const token = JWT.sign(
-          { id: newUser._id, email: newUser.email, username: newUser.username },
-          SECTRATE_KEY,
-          { expiresIn: "1d" },
-        );
-
-        const userObj = omitSavedCart(newUser.toObject());
-
-        res.status(200).json({
-          messasge: "user create susccessfully",
-          user: userObj,
-          token,
-        });
-
-
-    } catch (error) {
-        res.status(500).json({ message: "Faild to create user", error: error.message })
+    if (!username || !email || !password || !tenantSlug) {
+      return res.status(400).json({
+        message: "please fill username, email, password, tenantSlug",
+      });
     }
-}
 
+    const tenant = await Tenant.findOne({
+      slug: String(tenantSlug).toLowerCase().trim(),
+    })
+      .select("_id")
+      .lean();
 
-// 02 :  Login controller
+    if (!tenant) return res.status(404).json({ message: "Restaurant not found" });
+
+    const isExist = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      tenantId: tenant._id,
+    })
+      .select("_id")
+      .lean();
+
+    if (isExist) return res.status(400).json({ message: "User already exists for this venue" });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = await User.create({
+      username,
+      email: String(email).toLowerCase().trim(),
+      password: hashedPassword,
+      profilePic,
+      tenantId: tenant._id,
+      role: "customer",
+    });
+
+    const token = signUserToken(customerTokenPayload(newUser));
+
+    const userObj = omitSavedCart(newUser.toObject());
+
+    res.status(200).json({
+      messasge: "user create susccessfully",
+      user: userObj,
+      token,
+      tenantId: tenant._id,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Faild to create user", error: error.message });
+  }
+};
+
 export const userLogin = async (req, res) => {
+  try {
+    if (!SECTRATE_KEY) return jwtUnavailable(res);
 
-    try {
+    const { email, password, tenantSlug } = req.body || {};
 
-        if (!SECTRATE_KEY) return jwtUnavailable(res);
-
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ message: "please fill all the fields" });
-        }
-
-        const isExist = await User.findOne({ email });
-
-        if (!isExist) {
-            return res.status(400).json({ message: "User not exist" });
-        }
-
-        const comparePass = await bcrypt.compare(password, isExist.password);
-
-        if (!comparePass) {
-            return res.status(400).json({ message: "invalid credentials" });
-        }
-
-        const token = JWT.sign(
-            { id: isExist._id, email: isExist.email, username: isExist.username },
-            SECTRATE_KEY,
-            { expiresIn: "1d" },
-        );
-
-        const userObj = omitSavedCart(isExist.toObject());
-
-        res.status(200).json({
-            messasge: "user Login susccessfully",
-            user: userObj,
-            token,
-        });
-
-
-    } catch (error) {
-        res.status(500).json({ message: "Faild to Login user", error: error.message })
+    if (!email || !password || !tenantSlug) {
+      return res.status(400).json({
+        message: "please fill email, password, tenantSlug",
+      });
     }
-}
 
+    const tenant = await Tenant.findOne({
+      slug: String(tenantSlug).toLowerCase().trim(),
+    })
+      .select("_id")
+      .lean();
 
+    if (!tenant) return res.status(404).json({ message: "Restaurant not found" });
 
-// 03: update customer profile photo (Cloudinary) — authenticated user only
+    const isExist = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      tenantId: tenant._id,
+      role: "customer",
+    });
+
+    if (!isExist) {
+      return res.status(400).json({ message: "User not exist for this venue" });
+    }
+
+    const comparePass = await bcrypt.compare(password, isExist.password);
+
+    if (!comparePass) {
+      return res.status(400).json({ message: "invalid credentials" });
+    }
+
+    const token = signUserToken(customerTokenPayload(isExist));
+
+    const userObj = omitSavedCart(isExist.toObject());
+
+    res.status(200).json({
+      messasge: "user Login susccessfully",
+      user: userObj,
+      token,
+      tenantId: tenant._id,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Faild to Login user", error: error.message });
+  }
+};
+
 export const updateProfilePic = async (req, res) => {
   try {
     const userId = req.customerId;
@@ -188,7 +203,11 @@ export const updateProfilePic = async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({
+      _id: userId,
+      tenantId: req.tenantId,
+      role: "customer",
+    });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.profilePicId) {
@@ -220,7 +239,13 @@ export const updateProfilePic = async (req, res) => {
 export const getCustomerCart = async (req, res) => {
   try {
     if (!SECTRATE_KEY) return jwtUnavailable(res);
-    const user = await User.findById(req.customerId).select("savedCart").lean();
+    const user = await User.findOne({
+      _id: req.customerId,
+      tenantId: req.tenantId,
+      role: "customer",
+    })
+      .select("savedCart")
+      .lean();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -247,9 +272,10 @@ export const putCustomerCart = async (req, res) => {
   try {
     if (!SECTRATE_KEY) return jwtUnavailable(res);
     const payload = sanitizeSavedCart(req.body);
-    await User.findByIdAndUpdate(req.customerId, {
-      $set: { savedCart: payload },
-    });
+    await User.findOneAndUpdate(
+      { _id: req.customerId, tenantId: req.tenantId, role: "customer" },
+      { $set: { savedCart: payload } },
+    );
     res.status(200).json(payload);
   } catch (error) {
     res.status(500).json({

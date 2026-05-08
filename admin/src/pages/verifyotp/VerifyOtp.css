@@ -76,15 +76,78 @@
   transition: filter var(--transition), transform var(--transition);
 }
 
-.verify-btn:hover {
+.verify-btn:hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
+}
+
+.verify-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
 }
 
 .timer {
   margin: 10px 0 20px 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--accent);
+}
+
+.otp-heading {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.otp-lead {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.otp-email {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.otp-timer {
+  margin: 0;
+}
+
+.otp-expired {
+  margin: 0;
+  color: #f87171;
+}
+
+.otp-muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.otp-box--compact {
+  padding: 28px 24px;
+}
+
+.otp-back {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.otp-back:hover {
   color: var(--accent);
 }
 

@@ -1,40 +1,57 @@
 import React, { useEffect, useContext, useState } from "react";
+import { flushSync } from "react-dom";
 import "./Login.css";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
-
-import { jwtDecode } from "jwt-decode";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  TENANT_ID,
+  TENANT_SLUG,
+  otpApiHeaders,
+} from "../../utils/apiBaseUrl.js";
 
 const Login = () => {
-  const {
-    currState,
-    setCurrState,
-    setShowLogin,
-    URL,
-    setAdmin,
-    expiresAt,
-    setExpiresAt,
-  } = useContext(AuthContext);
+  const { setShowLogin, URL, setExpiresAt } = useContext(AuthContext);
 
   const [loading, setLoading] = useState(false);
-
+  const [loginMode, setLoginMode] = useState("staff");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
-    profilePic: "",
-    role: "",
   });
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = "auto";
     };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tabletab_trial_login_prefill");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      sessionStorage.removeItem("tabletab_trial_login_prefill");
+      const email = parsed.email ? String(parsed.email).trim() : "";
+      const password = parsed.password != null ? String(parsed.password) : "";
+      const tenantSlug = parsed.tenantSlug ? String(parsed.tenantSlug) : "";
+      const tenantId = parsed.tenantId ? String(parsed.tenantId) : "";
+      if (email && password) {
+        setFormData((f) => ({ ...f, email, password }));
+        setLoginMode("admin");
+        if (tenantSlug || tenantId) {
+          window.alert(
+            `Account ready. Use Owner / admin sign-in below.\n\nAdd to admin/.env (then restart dev server):\nVITE_TENANT_SLUG=${tenantSlug || "your-slug"}\nVITE_TENANT_ID=${tenantId || "your-tenant-id"}`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -42,191 +59,274 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // const submitHandler = async (e) => {
-  //   e.preventDefault();
-
-  //   const endPoint =
-  //     currState === "SignUp"
-  //       ? `${URL}/api/admin/create`
-  //       : `${URL}/api/admin/login`;
-
-  //   const bodyData =
-  //     currState === "SignUp"
-  //       ? formData
-  //       : { email: formData.email, password: formData.password };
-  //   console.log(bodyData);
-
-  //   try {
-  //     //  put here the otp verification before sending the login or signup requuest how i can do that
-
-  //     const res = await axios.post(endPoint, bodyData, {
-  //       headers: { "Content-Type": "application/json" },
-  //     });
-  //     const data = res.data;
-  //     if (res.status === 200) {
-  //       alert("Success");
-  //       console.log(data);
-  //     } else {
-  //       alert("Fail: " + data.message);
-  //     }
-
-  //     setAdmin(res.data.user);
-  //     const token = res.data.token;
-
-  //     if (token) {
-  //       localStorage.setItem("token", token);
-  //       console.log("token saved:", localStorage.getItem("token"));
-  //     } else {
-  //       console.log("no token found from backend");
-  //     }
-
-  //     // saving to the localstorage
-  //     setFormData({ username: "", email: "", password: "" });
-  //     navigate("/");
-  //     setShowLogin(false);
-
-  //     window.location.reload();
-  //   } catch (error) {
-  //     console.error(error);
-  //     alert("Something went wrong: " + error.message);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   console.log(isVerified)
-  // },[isVerified])
-
   const sendOtpHandler = async () => {
-    try {
-      setLoading(true);
+    const email = formData.email.trim();
+    if (!email) {
+      alert("Enter the email address your owner registered for you.");
+      return;
+    }
+    if (!formData.password) {
+      alert("Enter your password.");
+      return;
+    }
+    if (!TENANT_ID) {
+      alert(
+        "Missing VITE_TENANT_ID in admin/.env. Add your tenant MongoDB id and restart the dev server.",
+      );
+      return;
+    }
+    if (!TENANT_SLUG) {
+      alert(
+        "Missing VITE_TENANT_SLUG in admin/.env (must match your restaurant slug in the database). Restart Vite after saving.",
+      );
+      return;
+    }
 
-      //  save full form data before sending the otp
-      localStorage.setItem("otpFormData", JSON.stringify(formData));
-      localStorage.setItem("currState", currState);
+    try {
+      flushSync(() => setLoading(true));
+
+      localStorage.setItem(
+        "otpFormData",
+        JSON.stringify({
+          email,
+          password: formData.password,
+        }),
+      );
 
       const res = await axios.post(
         `${URL}/api/otp/send-otp`,
-        { email: formData.email },
-        { headers: { "Content-Type": "application/json" } },
+        { email },
+        { headers: otpApiHeaders() },
       );
 
       if (res.status === 200) {
         const backendExpiry = res.data.expiresAt;
-        console.log("expiry from backend:", backendExpiry);
-
         if (backendExpiry) {
-          localStorage.setItem("otpExpiresAt", backendExpiry);
+          localStorage.setItem("otpExpiresAt", String(backendExpiry));
           setExpiresAt(Number(backendExpiry));
         }
-
-        alert("OTP send to your email successfullly");
         navigate("/verify-otp");
       }
     } catch (error) {
-      alert("Failed to send OTP:");
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to send OTP";
+      alert(msg);
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
+  const adminDirectSignInHandler = async () => {
+    const email = formData.email.trim();
+    if (!email) {
+      alert("Enter your owner or manager email.");
+      return;
+    }
+    if (!formData.password) {
+      alert("Enter your password.");
+      return;
+    }
+    if (!TENANT_SLUG) {
+      alert(
+        "Missing VITE_TENANT_SLUG in admin/.env (must match your restaurant slug in the database). Restart Vite after saving.",
+      );
+      return;
+    }
+
+    try {
+      flushSync(() => setLoading(true));
+
+      const loginRes = await axios.post(
+        `${URL}/api/admin/login`,
+        {
+          email,
+          password: formData.password,
+          tenantSlug: TENANT_SLUG,
+        },
+        { headers: { "Content-Type": "application/json" } },
+      );
+
+      const token = loginRes.data.token;
+      if (token) {
+        localStorage.setItem("token", token);
+      }
+      localStorage.removeItem("otpFormData");
+      localStorage.removeItem("otpExpiresAt");
+
+      navigate("/", { replace: true });
+      window.location.reload();
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Sign in failed";
+      alert(msg);
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowLogin(false);
+    if (location.pathname === "/login") {
+      navigate("/", { replace: true });
+    }
+  };
+
   return (
     <div className="loginForm-container">
-      <form className="lgoinForm">
+      <form className="lgoinForm" onSubmit={(e) => e.preventDefault()}>
         <div className="login-header">
-          <p>{currState}</p>
-          <p
-            onClick={() => setShowLogin(false)}
-            style={{ fontSize: "20px", cursor: "pointer" }}
+          <div className="login-header-text">
+            <p className="login-title">
+              {loginMode === "staff" ? "Staff sign in" : "Owner / admin sign in"}
+            </p>
+            <p className="login-subtitle">
+              {loginMode === "staff"
+                ? "Invite-only access — your owner must add your account before you can sign in."
+                : "Sign in with the owner or manager account for this restaurant. No email code required."}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="login-close"
+            onClick={handleClose}
+            aria-label="Close"
           >
-            x
-          </p>
+            ×
+          </button>
         </div>
 
-        {currState === "SignUp" && (
-          <div className="mb-3">
-            <label htmlFor="username" className="form-label">
-              Username
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              id="username"
-              onChange={handleChange}
-              name="username"
-              value={formData.username}
-            />
+        <div className="login-mode-switch" role="tablist" aria-label="Sign-in type">
+          <button
+            type="button"
+            role="tab"
+            id="login-tab-staff"
+            aria-selected={loginMode === "staff"}
+            aria-controls="login-panel-staff"
+            className={`login-mode-button${loginMode === "staff" ? " login-mode-button--active" : ""}`}
+            onClick={() => setLoginMode("staff")}
+          >
+            Staff
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="login-tab-admin"
+            aria-selected={loginMode === "admin"}
+            aria-controls="login-panel-admin"
+            className={`login-mode-button${loginMode === "admin" ? " login-mode-button--active" : ""}`}
+            onClick={() => setLoginMode("admin")}
+          >
+            Owner / admin
+          </button>
+        </div>
+
+        {loginMode === "staff" ? (
+          <div
+            id="login-panel-staff"
+            role="tabpanel"
+            aria-labelledby="login-tab-staff"
+            className="login-help login-help--info"
+          >
+            Need access? Ask your restaurant owner or manager to create your
+            staff profile first. We&apos;ll email you a code to finish signing
+            in.
+          </div>
+        ) : (
+          <div
+            id="login-panel-admin"
+            role="tabpanel"
+            aria-labelledby="login-tab-admin"
+            className="login-help login-help--admin"
+          >
+            For restaurant owners and managers only. Use the email and password
+            for your admin account.
           </div>
         )}
 
         <div className="mb-3">
-          <label htmlFor="email" className="form-label">
-            Email address
+          <label htmlFor="login-email" className="form-label">
+            Work email
           </label>
           <input
             type="email"
             className="form-control"
-            id="email"
+            id="login-email"
+            autoComplete="email"
             onChange={handleChange}
             name="email"
             value={formData.email}
+            placeholder="you@restaurant.com"
           />
         </div>
 
         <div className="mb-3">
-          <label htmlFor="password" className="form-label">
+          <label htmlFor="login-password" className="form-label">
             Password
           </label>
           <input
             type="password"
             className="form-control"
-            id="password"
+            id="login-password"
+            autoComplete="current-password"
             onChange={handleChange}
             name="password"
             value={formData.password}
+            placeholder="••••••••"
           />
         </div>
-        {currState === "SignUp" ? (
-          <div className="rol-container">
-            <select
-              name="role"
-              required
-              value={formData.role}
-              onChange={handleChange}
+
+        {loginMode === "admin" ? (
+          <p className="login-subscribe-prompt">
+            <button
+              type="button"
+              className="login-subscribe-link"
+              onClick={() => navigate("/subscription-plans")}
             >
-              <option value="" disabled hidden>
-                Role
-              </option>
-              <option value="admin">Admin</option>
-              <option value="chef">Chef</option>
-            </select>
-          </div>
-        ) : (
-          <></>
-        )}
-
-        <button
-          type="button"
-          onClick={sendOtpHandler}
-          disabled={loading}
-          className="btn submitn-btn btn-primary submit-btn"
-        >
-          {loading ? "Sending OTP..." : "Send OTP"}
-        </button>
-
-        {currState === "SignUp" ? (
-          <p>
-            Already have an account?{" "}
-            <span className="span" onClick={() => setCurrState("Login")}>
-              Click here
-            </span>
+              Haven&apos;t subscribed yet? View plans
+            </button>
           </p>
+        ) : null}
+
+        {loginMode === "staff" ? (
+          <button
+            type="button"
+            onClick={sendOtpHandler}
+            disabled={loading}
+            aria-busy={loading}
+            className="btn submitn-btn btn-primary submit-btn"
+          >
+            {loading ? (
+              <>
+                <span className="login-btn-spinner" aria-hidden />
+                Sending code…
+              </>
+            ) : (
+              "Send verification code"
+            )}
+          </button>
         ) : (
-          <p>
-            Don't have an account?{" "}
-            <span className="span" onClick={() => setCurrState("SignUp")}>
-              Click here
-            </span>
-          </p>
+          <button
+            type="button"
+            onClick={adminDirectSignInHandler}
+            disabled={loading}
+            aria-busy={loading}
+            className="btn submitn-btn btn-primary submit-btn"
+          >
+            {loading ? (
+              <>
+                <span className="login-btn-spinner" aria-hidden />
+                Signing in…
+              </>
+            ) : (
+              "Sign in"
+            )}
+          </button>
         )}
       </form>
     </div>

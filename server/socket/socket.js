@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import mongoose from "mongoose";
 
 let io;
 
@@ -14,8 +15,15 @@ export const initSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("connected:", socket.id);
 
-    // Do not relay client-supplied "newOrder" / "updateStatus" payloads — they can lack
-    // dailyOrderNumber, invoiceSerial, etc. Broadcasts only from orderController after DB save.
+    /**
+     * Clients join `tenant:<mongoId>` so kitchen/admin apps only receive realtime events
+     * for their restaurant (see `orderController` emits).
+     */
+    socket.on("joinTenant", (tenantId) => {
+      if (tenantId && mongoose.Types.ObjectId.isValid(String(tenantId))) {
+        socket.join(`tenant:${String(tenantId)}`);
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log("disconnect : ", socket.id);

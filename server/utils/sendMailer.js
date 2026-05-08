@@ -19,4 +19,26 @@ const sendEmail = async (to, subject, text) => {
   });
 };
 
+export async function sendEmailWithPdfAttachment(
+  to,
+  subject,
+  textBody,
+  pdfBuffer,
+  pdfFilename = "tabletab-trial-slip.pdf",
+) {
+  await transporter.sendMail({
+    from: "TableTab",
+    to,
+    subject,
+    text: textBody,
+    attachments: [
+      {
+        filename: pdfFilename,
+        content: pdfBuffer,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+}
+
 export default sendEmail;

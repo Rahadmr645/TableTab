@@ -1,144 +1,172 @@
-import express from "express";
-import Admin from "../models/AdminModel.js";
-import dotenv from "dotenv";
-dotenv.config();
+import User, { STAFF_ROLES } from "../models/UserModel.js";
+import Tenant from "../models/Tenant.js";
 import bcrypt from "bcryptjs";
-import JWT from "jsonwebtoken";
 import {
   uploadImageBuffer,
   destroyCloudinaryAsset,
   isCloudinaryConfigured,
 } from "../utils/cloudinaryUpload.js";
+import { signUserToken } from "../middlewares/authMiddleware.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY;
 
-// 01 :  create controller
+/**
+ * Staff JWT matches SaaS shape: { userId, tenantId, role, branchId?, email?, username? }.
+ * Never trust tenant identifiers from JSON bodies — always `req.tenantId` from JWT on protected routes.
+ */
+function buildStaffTokenPayload(userDoc) {
+  return {
+    userId: String(userDoc._id),
+    tenantId: String(userDoc.tenantId),
+    role: userDoc.role,
+    ...(userDoc.branchId
+      ? { branchId: String(userDoc.branchId) }
+      : {}),
+    email: userDoc.email,
+    username: userDoc.username,
+  };
+}
+
+/** Owner/manager creates outlet staff accounts — forbidden from public deployment without auth */
 export const adminCreate = async (req, res) => {
   try {
-    console.log("rahad", req.body);
-    const { email, username, password, role, profilePic, profilePicId } =
-      req.body;
+    if (!SECTRATE_KEY) {
+      return res.status(503).json({ message: "Server authentication is not configured" });
+    }
+
+    const { email, username, password, role, profilePic, profilePicId, branchId } = req.body || {};
 
     if (!username || !email || !password || !role) {
       return res.status(400).json({ message: "please fill all the fields" });
     }
 
-    const isExist = await Admin.findOne({ email });
+    if (!STAFF_ROLES.includes(role) || role === "owner") {
+      return res.status(400).json({
+        message: "role must be one of manager, chef, cashier (owner is created at tenant signup)",
+      });
+    }
 
-    if (isExist) return res.status(400).json({ message: "admin aleady exist" });
+    const tenantId = req.tenantId;
+    if (!tenantId) return res.status(500).json({ message: "Tenant context missing" });
 
-    // hash password
+    const dup = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      tenantId,
+    })
+      .select("_id")
+      .lean();
+
+    if (dup) return res.status(400).json({ message: "user already exists for this restaurant" });
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newAdmin = new Admin({
+    const newUser = await User.create({
       username,
-      email,
+      email: String(email).toLowerCase().trim(),
       password: hashedPassword,
       role,
-      profilePic,
-      profilePicId,
+      profilePic: profilePic || "",
+      profilePicId: profilePicId || "",
+      tenantId,
+      branchId: branchId || null,
     });
 
-    // genarate the token
-    const token = JWT.sign(
-      {
-        id: newAdmin._id,
-        email: newAdmin.email,
-        username: newAdmin.username,
-        role: newAdmin.role,
-      },
-      SECTRATE_KEY,
-      { expiresIn: "1d" },
-    );
+    const token = signUserToken(buildStaffTokenPayload(newUser));
 
-    await newAdmin.save();
+    const safe = newUser.toObject();
+    delete safe.password;
 
     res.status(200).json({
-      messasge: "admin create susccessfully",
-      admin: newAdmin,
-      token: token,
+      messasge: "staff user created successfully",
+      admin: safe,
+      token,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Faild to create user", error: error.message });
+    res.status(500).json({ message: "Failed to create staff user", error: error.message });
   }
 };
 
-// 02 :  Login controller
 export const adminLogin = async (req, res) => {
   try {
-    console.log("hello rahad", req.body);
-    
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "please fill all the fields" });
+    if (!SECTRATE_KEY) {
+      return res.status(503).json({ message: "Server authentication is not configured" });
     }
 
-    const isExist = await Admin.findOne({ email });
+    const { email, password, tenantSlug } = req.body || {};
 
-    if (!isExist) return res.status(400).json({ message: "Admin not exist" });
+    if (!email || !password || !tenantSlug) {
+      return res.status(400).json({
+        message: "please fill all the fields (email, password, tenantSlug)",
+      });
+    }
 
-    // hash password
+    const tenant = await Tenant.findOne({ slug: String(tenantSlug).toLowerCase().trim() })
+      .select("_id subscriptionStatus")
+      .lean();
 
-    const comparePass = await bcrypt.compare(password, isExist.password);
+    if (!tenant) return res.status(400).json({ message: "Restaurant not found" });
 
-    if (!comparePass)
-      return res.status(400).json({ message: "invalid credentials" });
+    const user = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      tenantId: tenant._id,
+      role: { $in: STAFF_ROLES },
+    });
 
-    // genarate the token
-    const token = JWT.sign(
-      {
-        id: isExist._id,
-        email: isExist.email,
-        username: isExist.username,
-        role: isExist.role,
-      },
-      SECTRATE_KEY,
-      { expiresIn: "1d" },
-    );
+    if (!user) return res.status(400).json({ message: "Staff user not found for this restaurant" });
+
+    if (user.staffStatus === "suspended") {
+      return res.status(403).json({
+        message: "This account has been suspended. Contact your restaurant owner.",
+      });
+    }
+
+    const comparePass = await bcrypt.compare(password, user.password);
+
+    if (!comparePass) return res.status(400).json({ message: "invalid credentials" });
+
+    const token = signUserToken(buildStaffTokenPayload(user));
+
+    const safe = user.toObject();
+    delete safe.password;
 
     res.status(200).json({
-      messasge: "user Login susccessfully",
-      admin: isExist,
-      token: token,
+      messasge: "staff login successfully",
+      admin: safe,
+      token,
+      tenantId: tenant._id,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Faild to Login user", error: error.message });
+    res.status(500).json({ message: "Failed to login", error: error.message });
   }
 };
 
-// fetch user
 export const fetchAdmin = async (req, res) => {
   try {
     const id = req.params.id;
 
-    const isAdminExist = await Admin.findById(id);
+    const doc = await User.findOne({
+      _id: id,
+      tenantId: req.tenantId,
+      role: { $in: STAFF_ROLES },
+    });
 
-    if (!isAdminExist)
-      return res.status(404).json({ message: "Admin not find " });
+    if (!doc) return res.status(404).json({ message: "User not find " });
 
-    res
-      .status(200)
-      .json({ message: "admin fetch successfully", admin: isAdminExist });
+    const safe = doc.toObject();
+    delete safe.password;
+
+    res.status(200).json({ message: "admin fetch successfully", admin: safe });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "faild to fetch admin", error: error.message });
+    res.status(500).json({ message: "faild to fetch admin", error: error.message });
   }
 };
 
-// 03: update admin / chef profile photo (Cloudinary)
 export const updateProfilePic = async (req, res) => {
   try {
-    const { userId } = req.body;
-
+    const userId = req.user?.userId;
     if (!userId || !req.file?.buffer) {
-      return res.status(400).json({ message: "userId and image file are required" });
+      return res.status(400).json({ message: "image file is required" });
     }
 
     if (!isCloudinaryConfigured()) {
@@ -148,7 +176,11 @@ export const updateProfilePic = async (req, res) => {
       });
     }
 
-    const admin = await Admin.findById(userId);
+    const admin = await User.findOne({
+      _id: userId,
+      tenantId: req.tenantId,
+      role: { $in: STAFF_ROLES },
+    });
     if (!admin) {
       return res.status(404).json({ message: "Admin not found" });
     }
@@ -167,9 +199,12 @@ export const updateProfilePic = async (req, res) => {
     admin.profilePicId = result.public_id;
     await admin.save();
 
+    const safe = admin.toObject();
+    delete safe.password;
+
     res.status(200).json({
       message: "Profile picture updated successfully",
-      admin,
+      admin: safe,
     });
   } catch (error) {
     console.error(error);

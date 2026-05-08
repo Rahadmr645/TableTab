@@ -1,38 +1,57 @@
-import React from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  useMemo,
+} from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import {
+  TENANT_ID,
+  TENANT_SLUG,
+  otpApiHeaders,
+} from "../../utils/apiBaseUrl.js";
 import "./VerifyOtp.css";
-import { useEffect, useRef } from "react";
+
+function readStoredForm() {
+  try {
+    const raw = localStorage.getItem("otpFormData");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const VerifyOtp = () => {
   const { URL, expiresAt, setExpiresAt } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const Navigate = useNavigate();
+  const otpFormData = useMemo(() => readStoredForm(), [location.key]);
 
-  const otpFormData = JSON.parse(localStorage.getItem("otpFormData"));
-
-  if(!otpFormData) {
-    Navigate('/login')
-  }
-  const email = otpFormData?.email;
+  const email = otpFormData?.email ?? "";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(0);
-  // backend expiry
+  const [verifying, setVerifying] = useState(false);
   const inputsRef = useRef([]);
 
-  // load backend expiry from localStorage if page refreshed
+  useEffect(() => {
+    if (!email) {
+      const t = setTimeout(() => navigate("/login", { replace: true }), 0);
+      return () => clearTimeout(t);
+    }
+  }, [email, navigate]);
+
   useEffect(() => {
     const storedExpires = localStorage.getItem("otpExpiresAt");
     if (storedExpires) {
-      setExpiresAt(parseInt(storedExpires));
+      setExpiresAt(parseInt(storedExpires, 10));
     }
-  }, []);
+  }, [setExpiresAt]);
 
-  // timer countdown
   useEffect(() => {
     if (!expiresAt) return;
 
@@ -52,107 +71,119 @@ const VerifyOtp = () => {
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = "auto";
     };
   }, []);
 
-  // handle change
   const handleChange = (value, index) => {
     if (/^\d*$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
       if (value && index < otp.length - 1) {
-        inputsRef.current[index + 1].focus();
+        inputsRef.current[index + 1]?.focus();
       }
     }
   };
 
-  // handle key
   const handlekeyDown = (e, index) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputsRef.current[index - 1].focus();
+      inputsRef.current[index - 1]?.focus();
     }
   };
 
   const verifyHandler = async () => {
-    if (timeLeft <= 0) return alert("OTP expired");
-    const enteredOtp = otp.join("");
-    try {
-      const res = await axios.post(
-        `${URL}/api/otp/verify-otp`,
+    if (timeLeft <= 0) {
+      alert("Code expired. Go back and request a new one.");
+      return;
+    }
+    if (verifying) return;
+    if (!TENANT_ID || !TENANT_SLUG) {
+      alert(
+        "Missing VITE_TENANT_ID or VITE_TENANT_SLUG in admin/.env. Restart Vite after saving.",
+      );
+      return;
+    }
 
+    const enteredOtp = otp.join("");
+    if (enteredOtp.length !== 6) {
+      alert("Enter the full 6-digit code.");
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const verifyRes = await axios.post(
+        `${URL}/api/otp/verify-otp`,
         { email, otp: enteredOtp },
+        { headers: otpApiHeaders() },
+      );
+
+      if (verifyRes.status !== 200) return;
+
+      const savedFormData = readStoredForm();
+      if (!savedFormData?.email || !savedFormData?.password) {
+        alert("Session expired. Sign in again.");
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      const loginRes = await axios.post(
+        `${URL}/api/admin/login`,
+        {
+          email: savedFormData.email,
+          password: savedFormData.password,
+          tenantSlug: TENANT_SLUG,
+        },
         { headers: { "Content-Type": "application/json" } },
       );
 
-      if (res.status === 200) {
-        alert("OTP verified successfully");
+      const token = loginRes.data.token;
 
-        // remove after verified
-        localStorage.removeItem("otpExpiresAt");
-        // localStorage.removeItem("otpEmail");
-
-        // get stored data
-        const savedFormData = JSON.parse(localStorage.getItem("otpFormData"));
-        const savedState = localStorage.getItem("currState");
-
-        const endPoint =
-          savedState === "SignUp"
-            ? `${URL}/api/admin/create`
-            : `${URL}/api/admin/login`;
-
-        const bodyData =
-          savedState === "SignUp"
-            ? savedFormData
-            : {
-                email: savedFormData.email,
-                password: savedFormData.password,
-              };
-
-        console.log("Saved form data:", savedFormData);
-        console.log("Saved state:", savedState);
-        console.log("body data:", bodyData);
-
-        // now call login/SignUp api
-        const loginRes = await axios.post(endPoint, bodyData, {
-          headers: { "Content-Type": "application/json" },
-        });
-
-        const token = loginRes.data.token;
-
-        if (token) {
-          localStorage.setItem("token", token);
-          console.log("token saved:", localStorage.getItem("token"));
-        }
-
-        // cleanup
-        localStorage.removeItem("otpFormData");
-        localStorage.removeItem("currState");
-
-        Navigate("/");
-        window.location.reload();
+      if (token) {
+        localStorage.setItem("token", token);
       }
+
+      localStorage.removeItem("otpFormData");
+      localStorage.removeItem("otpExpiresAt");
+
+      navigate("/", { replace: true });
+      window.location.reload();
     } catch (error) {
-     console.log("full error", error)
-      alert(" something failed");
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Verification failed";
+      alert(msg);
+      console.error(error);
+    } finally {
+      setVerifying(false);
     }
   };
 
-  // resent otp handler
   const resendOtpHandler = async () => {
+    if (!TENANT_ID) {
+      alert("Missing VITE_TENANT_ID in admin/.env.");
+      return;
+    }
     try {
-      const res = await axios.post(`${URL}/api/otp/send-otp`, { email });
+      const res = await axios.post(
+        `${URL}/api/otp/send-otp`,
+        { email },
+        { headers: otpApiHeaders() },
+      );
       if (res.status === 200) {
         const backendExpiry = res.data.expiresAt;
         setExpiresAt(backendExpiry);
-        localStorage.setItem("otpExpiresAt", backendExpiry);
-        alert("OTP resend successfully ");
+        localStorage.setItem("otpExpiresAt", String(backendExpiry));
       }
     } catch (error) {
-      alert("Failed to resend otp");
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Could not resend code";
+      alert(msg);
     }
   };
 
@@ -162,12 +193,23 @@ const VerifyOtp = () => {
     return `${m}:${s}`;
   };
 
+  if (!email) {
+    return (
+      <div className="otp-container">
+        <div className="otp-box otp-box--compact">
+          <p className="otp-muted">Returning to sign in…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="otp-container">
       <div className="otp-box">
-        <h2>Verify your Email</h2>
-        <p>
-          OTP send to: <span style={{ color: "white" }}>{email}</span>
+        <h2 className="otp-heading">Check your email</h2>
+        <p className="otp-lead">
+          We sent a 6-digit code to{" "}
+          <span className="otp-email">{email}</span>
         </p>
 
         <div className="otp-inputs">
@@ -175,38 +217,51 @@ const VerifyOtp = () => {
             <input
               key={idx}
               type="text"
-              maxLength="1"
+              maxLength={1}
               inputMode="numeric"
+              autoComplete="one-time-code"
               value={digit}
-              placeholder="Enter otp"
               onChange={(e) => handleChange(e.target.value, idx)}
               onKeyDown={(e) => handlekeyDown(e, idx)}
-              ref={(el) => (inputsRef.current[idx] = el)}
-              disabled={timeLeft <= 0}
+              ref={(el) => {
+                inputsRef.current[idx] = el;
+              }}
+              disabled={timeLeft <= 0 || verifying}
+              aria-label={`Digit ${idx + 1}`}
             />
           ))}
         </div>
         <div className="timer">
           {timeLeft > 0 ? (
-            <p>Expires with in : {formatTime(timeLeft)}</p>
+            <p className="otp-timer">Expires in {formatTime(timeLeft)}</p>
           ) : (
-            <p style={{ color: "red" }}>OTP expired</p>
+            <p className="otp-expired">Code expired</p>
           )}
         </div>
         <button
+          type="button"
           onClick={verifyHandler}
           className="verify-btn"
-          disabled={timeLeft <= 0}
+          disabled={timeLeft <= 0 || verifying}
         >
-          Verify OTP
+          {verifying ? "Signing in…" : "Verify & sign in"}
         </button>
 
         <button
+          type="button"
           className="resend-btn"
           onClick={resendOtpHandler}
-          disabled={timeLeft > 0}
+          disabled={timeLeft > 0 || verifying}
         >
-          Resend OTP
+          Resend code
+        </button>
+
+        <button
+          type="button"
+          className="otp-back"
+          onClick={() => navigate("/login")}
+        >
+          ← Back to sign in
         </button>
       </div>
     </div>

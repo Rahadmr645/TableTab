@@ -1,34 +1,19 @@
-import JWT from "jsonwebtoken";
-
-const SECRET = process.env.SECTRATE_KEY;
+import { authenticate } from "./authMiddleware.js";
 
 /**
- * Requires `Authorization: Bearer <jwt>` from customer login/signup.
- * Sets `req.customerId` (Mongo ObjectId string) on success.
+ * Customer-only JWT guard for `/api/user/*` account routes.
+ * Sets legacy `req.customerId` for existing controllers.
  */
 export function requireCustomerAuth(req, res, next) {
-  if (!SECRET) {
-    return res.status(503).json({
-      message: "Server authentication is not configured (missing SECTRATE_KEY).",
-    });
-  }
-
-  const raw = req.headers.authorization || "";
-  const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : "";
-
-  if (!token) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
-  try {
-    const decoded = JWT.verify(token, SECRET);
-    const id = decoded?.id;
-    if (!id) {
-      return res.status(401).json({ message: "Invalid token payload" });
+  authenticate(req, res, () => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
     }
-    req.customerId = String(id);
+    if (req.user.role !== "customer") {
+      return res.status(403).json({ message: "Customer session required" });
+    }
+    req.customerId = req.user.userId;
     next();
-  } catch {
-    return res.status(401).json({ message: "Invalid or expired token" });
-  }
+  });
 }
+

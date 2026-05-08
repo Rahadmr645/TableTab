@@ -2,6 +2,18 @@ import mongoose from "mongoose";
 
 const menuCommentSchema = new mongoose.Schema(
   {
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+      index: true,
+    },
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      default: null,
+      index: true,
+    },
     menuItemId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Menu",
@@ -12,7 +24,7 @@ const menuCommentSchema = new mongoose.Schema(
     customerName: { type: String, required: true, trim: true, maxlength: 80 },
     text: { type: String, required: true, trim: true, maxlength: 500 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const MenuComment = mongoose.model("MenuComment", menuCommentSchema);

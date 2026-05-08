@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy staff collection (pre–multi-tenant). Staff users now live in `User`
+ * with roles `owner | manager | chef | cashier` and required `tenantId`.
+ * Kept only so existing MongoDB collections remain readable during migrations.
+ */
 import mongoose from "mongoose";
 const adminSchema = mongoose.Schema(
   {

@@ -1,32 +1,57 @@
 import mongoose from "mongoose";
 import Menu from "../models/Menu.js";
 
-let nameMapCache = null;
-let nameMapCacheAt = 0;
+/** Keyed cache entries: `${tenantId}:${branchHint}` -> { map, at } */
+const cacheBuckets = new Map();
 const CACHE_MS = 45_000;
 
+function cacheKey(tenantId, branchId) {
+  const b = branchId ? String(branchId) : "all";
+  return `${String(tenantId)}:${b}`;
+}
+
 /**
- * Map normalized dish name (lowercase trim) -> ObjectId for menu rows.
+ * Map normalized dish name (lowercase trim) -> ObjectId for menu rows, scoped to tenant
+ * (and optionally narrowed to an outlet + shared “all-branch” items where `branchId` is null).
  */
-export async function getMenuNameToIdMap() {
+export async function getMenuNameToIdMap(tenantId, branchId = null) {
+  const tid =
+    tenantId instanceof mongoose.Types.ObjectId
+      ? tenantId
+      : new mongoose.Types.ObjectId(String(tenantId));
+
+  const key = cacheKey(tid, branchId);
   const now = Date.now();
-  if (nameMapCache && now - nameMapCacheAt < CACHE_MS) {
-    return nameMapCache;
+  const slot = cacheBuckets.get(key);
+  if (slot && now - slot.at < CACHE_MS) {
+    return slot.map;
   }
-  const menus = await Menu.find().select("name _id").lean();
-  nameMapCache = new Map(
+
+  const q = { tenantId: tid };
+  if (branchId && mongoose.Types.ObjectId.isValid(String(branchId))) {
+    const bid = new mongoose.Types.ObjectId(String(branchId));
+    q.$or = [{ branchId: null }, { branchId: bid }];
+  }
+
+  const menus = await Menu.find(q).select("name _id").lean();
+  const map = new Map(
     menus.map((m) => [(m.name || "").trim().toLowerCase(), m._id]),
   );
-  nameMapCacheAt = now;
-  return nameMapCache;
+  cacheBuckets.set(key, { map, at: now });
+  return map;
 }
 
-export function invalidateMenuNameMapCache() {
-  nameMapCache = null;
+export function invalidateMenuNameMapCache(tenantId = null, branchId = null) {
+  if (!tenantId) {
+    cacheBuckets.clear();
+    return;
+  }
+  const key = cacheKey(tenantId, branchId);
+  cacheBuckets.delete(key);
 }
 
 /**
- * Prefer stored menuItemId; otherwise match by exact menu name.
+ * Prefer stored menuItemId; otherwise match by exact menu name within tenant-scoped map.
  */
 export function resolveLineMenuId(item, nameMap) {
   if (!item) return null;

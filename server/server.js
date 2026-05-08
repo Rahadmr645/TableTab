@@ -13,6 +13,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import connectToDB from "./config/db.js";
 import adminOtpRoutes from "./routes/adminOtpRoutes.js";
+import tenantRoutes from "./routes/tenantRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import tableRoutes from "./routes/tableRoutes.js";
+import platformRoutes from "./routes/platformRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
+import subscriptionBillingRoutes from "./routes/subscriptionBillingRoutes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -37,6 +43,9 @@ const PORT = process.env.PORT || 5000;
 // socket setup
 
 // router section
+app.use("/api/tenant", tenantRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/tables", tableRoutes);
 app.use("/api/user/", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/menu/", menuRoutes);
@@ -44,7 +53,9 @@ app.use("/api/order", orderRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/otp", adminOtpRoutes);
 app.use("/api/payment/", paymentRoutes);
-
+app.use("/api/platform", platformRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/subscription", subscriptionBillingRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello user");

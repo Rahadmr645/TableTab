@@ -13,6 +13,8 @@ import VerifyOtp from "./pages/verifyotp/VerifyOtp.jsx";
 import Summary from "./pages/summary/Summary.jsx";
 import BarcodeMenu from "./pages/barcode/BarcodeMenu.jsx";
 import Profile from "./pages/profile/Profile.jsx";
+import SubscriptionPlans from "./pages/subscriptionPlans/SubscriptionPlans.jsx";
+import TrialCreateAccount from "./pages/trialCreateAccount/TrialCreateAccount.jsx";
 
 const AppRoutes = () => {
   return (
@@ -27,6 +29,11 @@ const AppRoutes = () => {
           }
         />
         <Route path="/login" element={<Login />} />
+        <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+        <Route
+          path="/trial-create-account"
+          element={<TrialCreateAccount />}
+        />
         <Route path="/menu" element={<Menu />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/summary" element={<Summary />} />

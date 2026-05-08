@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useRef } from "react";
 import { getUserFromToken } from "../utils/decodeToken";
 import axios from "axios";
-import { API_BASE_URL } from "../utils/apiBaseUrl.js";
+import { API_BASE_URL, TENANT_ID } from "../utils/apiBaseUrl.js";
 
 export const AuthContext = createContext();
 
@@ -22,18 +22,23 @@ export const AuthContextProvider = ({ children }) => {
 
   useEffect(() => {
     const decoded = getUserFromToken();
-    console.log(decoded);
     if (decoded) setAdmin(decoded);
   }, []);
 
   useEffect(() => {
     const fetchAdmin = async () => {
-      if (!admin || !admin.id) {
-        return console.log("admin not find yet");
+      const uid = admin?.userId ?? admin?.id;
+      if (!admin || !uid) {
+        return;
       }
       try {
-        const res = await axios.get(`${URL}/api/admin/fetchAdmin/${admin.id}`, {
-          headers: { "Content-Type": "application/json" },
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${URL}/api/admin/fetchAdmin/${uid}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+          },
         });
 
         const data = res.data;
@@ -79,8 +84,6 @@ export const AuthContextProvider = ({ children }) => {
     };
   }, []);
 
-  //fetchadmin
- console.log(currState)
   const contextVelu = {
     showLogin,
     showMenuForm,
