@@ -11,6 +11,13 @@ function inferSlugFromHostname() {
     if (!host || host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
       return "";
     }
+    if (
+      host.includes(".vercel.app") ||
+      host.includes(".onrender.com") ||
+      host.includes(".netlify.app")
+    ) {
+      return "";
+    }
     const parts = host.split(".").filter(Boolean);
     if (parts.length >= 3 && parts[0] !== "www") {
       return parts[0];
