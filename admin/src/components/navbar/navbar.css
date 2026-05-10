@@ -1,4 +1,4 @@
-/* —— Admin top bar: glass, pill nav, mobile drawer —— */
+/* —— Admin top bar: glass shell + flat primary links (no inner rail box) —— */
 
 .admin-navbar {
   position: sticky;
@@ -114,17 +114,18 @@
   min-width: 0;
 }
 
+/* Plain row of links — no inner “pill box” around the rail */
 .admin-navbar__rail {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px;
+  gap: 2px 8px;
+  padding: 0;
   max-width: 100%;
-  background: rgba(0, 0, 0, 0.28);
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .admin-navbar__link {
@@ -172,6 +173,23 @@
 .admin-navbar__link--active .admin-navbar__link-icon {
   opacity: 1;
   color: var(--accent);
+}
+
+button.admin-navbar__link {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.admin-navbar__link--action {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+}
+
+.admin-navbar__link--action:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: transparent;
 }
 
 /* Right cluster: hamburger (mobile) + auth */
@@ -306,25 +324,59 @@
 }
 
 @media (max-width: 960px) {
-  .admin-navbar__nav {
-    display: flex;
-    justify-content: flex-start;
-    flex: 0 1 auto;
+  /* Two-row shell: brand + menu, then primary links full width (nothing clipped) */
+  .admin-navbar__shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 10px 12px;
   }
 
-  .admin-navbar__rail {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    max-width: 230px;
+  .admin-navbar__brand {
+    grid-column: 1;
+    grid-row: 1;
+    flex: unset;
+    min-width: 0;
   }
 
-  .admin-navbar__rail::-webkit-scrollbar {
+  .admin-navbar__end {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .admin-navbar__end:empty {
     display: none;
   }
 
-  .admin-navbar__link {
-    padding: 8px 12px;
+  .admin-navbar__nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex: unset;
+    display: flex;
+    justify-content: stretch;
+    min-width: 0;
+    padding-top: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .admin-navbar__rail {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    gap: 6px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .admin-navbar__rail > .admin-navbar__link {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 6px;
     font-size: 0.78rem;
   }
 
@@ -335,10 +387,22 @@
   .admin-navbar__drawer {
     display: block;
   }
+}
 
-  .admin-navbar__brand {
-    flex: 1;
-    min-width: 0;
+@media (min-width: 961px) {
+  .admin-navbar__shell {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .admin-navbar__nav {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .admin-navbar__drawer {
+    display: none !important;
   }
 }
 
@@ -354,11 +418,5 @@
 
   .admin-navbar__menu-label {
     display: none;
-  }
-}
-
-@media (min-width: 961px) {
-  .admin-navbar__drawer {
-    display: none !important;
   }
 }

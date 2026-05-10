@@ -50,7 +50,7 @@ router.delete(
 router.put(
   "/:id/status",
   ...staffBase,
-  requireRole(["owner", "manager", "chef"]),
+  requireRole(["owner", "manager", "chef", "barista"]),
   updateOrderStatus,
 );
 router.get("/active-orders", ...staffBase, activeOrders);

@@ -9,18 +9,18 @@ import { BrowserRouter as Router } from 'react-router-dom'
 import { ContextProvider } from './context/CartContext.jsx'
 import { SocketContextProvider } from './context/SocketContext.jsx'
 import eruda from 'eruda'
+import { bootstrapPublicTenant } from './utils/tenantContext.js'
+
 eruda.init();
-createRoot(document.getElementById('root')).render(
 
-
-  
+bootstrapPublicTenant().then(() => {
+  createRoot(document.getElementById('root')).render(
     <SocketContextProvider>
       <ContextProvider>
         <Router>
           <App />
         </Router>
       </ContextProvider>
-    </SocketContextProvider>
-
-
-)
+    </SocketContextProvider>,
+  )
+})

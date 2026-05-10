@@ -12,9 +12,18 @@ export async function requireActiveSubscription(req, res, next) {
       return res.status(500).json({ message: "Tenant context missing" });
     }
 
-    const tenant = await Tenant.findById(tenantId).select("subscriptionStatus expiresAt").lean();
+    const tenant = await Tenant.findById(tenantId)
+      .select("subscriptionStatus expiresAt accountStatus")
+      .lean();
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    if (tenant.accountStatus === "suspended") {
+      return res.status(403).json({
+        message: "Restaurant account suspended",
+        accountStatus: tenant.accountStatus,
+      });
     }
 
     const status = tenant.subscriptionStatus;

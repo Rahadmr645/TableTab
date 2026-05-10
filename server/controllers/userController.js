@@ -88,19 +88,32 @@ export const userCreate = async (req, res) => {
 
     const { username, email, password, profilePic, tenantSlug } = req.body || {};
 
-    if (!username || !email || !password || !tenantSlug) {
+    if (!username || !email || !password) {
       return res.status(400).json({
-        message: "please fill username, email, password, tenantSlug",
+        message: "please fill username, email, password",
+      });
+    }
+
+    if (!tenantSlug || !String(tenantSlug).trim()) {
+      return res.status(400).json({
+        code: "TENANT_REQUIRED",
+        message: "Select a restaurant (restaurant code / tenantSlug is required for sign-up).",
       });
     }
 
     const tenant = await Tenant.findOne({
       slug: String(tenantSlug).toLowerCase().trim(),
     })
-      .select("_id")
+      .select("_id accountStatus")
       .lean();
 
     if (!tenant) return res.status(404).json({ message: "Restaurant not found" });
+
+    if (tenant.accountStatus === "suspended") {
+      return res.status(403).json({
+        message: "This restaurant is not accepting sign-ups at the moment.",
+      });
+    }
 
     const isExist = await User.findOne({
       email: String(email).toLowerCase().trim(),
@@ -144,45 +157,68 @@ export const userLogin = async (req, res) => {
 
     const { email, password, tenantSlug } = req.body || {};
 
-    if (!email || !password || !tenantSlug) {
+    if (!email || !password) {
       return res.status(400).json({
-        message: "please fill email, password, tenantSlug",
+        message: "please fill email and password",
       });
     }
 
-    const tenant = await Tenant.findOne({
-      slug: String(tenantSlug).toLowerCase().trim(),
-    })
-      .select("_id")
-      .lean();
+    const normEmail = String(email).toLowerCase().trim();
 
-    if (!tenant) return res.status(404).json({ message: "Restaurant not found" });
-
-    const isExist = await User.findOne({
-      email: String(email).toLowerCase().trim(),
-      tenantId: tenant._id,
+    const candidates = await User.find({
+      email: normEmail,
       role: "customer",
     });
 
-    if (!isExist) {
-      return res.status(400).json({ message: "User not exist for this venue" });
+    const matches = [];
+    for (const u of candidates) {
+      const ok = await bcrypt.compare(password, u.password);
+      if (ok) matches.push(u);
     }
 
-    const comparePass = await bcrypt.compare(password, isExist.password);
-
-    if (!comparePass) {
+    if (matches.length === 0) {
       return res.status(400).json({ message: "invalid credentials" });
     }
 
-    const token = signUserToken(customerTokenPayload(isExist));
+    let user = matches[0];
 
-    const userObj = omitSavedCart(isExist.toObject());
+    if (matches.length > 1) {
+      if (!tenantSlug || !String(tenantSlug).trim()) {
+        return res.status(400).json({
+          code: "TENANT_REQUIRED",
+          message:
+            "This email exists at multiple restaurants. Add your restaurant code (slug) to sign in.",
+        });
+      }
+      const tenant = await Tenant.findOne({ slug: String(tenantSlug).toLowerCase().trim() })
+        .select("_id accountStatus")
+        .lean();
+      if (!tenant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      if (tenant.accountStatus === "suspended") {
+        return res.status(403).json({ message: "This restaurant is not available." });
+      }
+      user = matches.find((m) => String(m.tenantId) === String(tenant._id));
+      if (!user) {
+        return res.status(400).json({ message: "invalid credentials for that restaurant" });
+      }
+    } else {
+      const tenant = await Tenant.findById(user.tenantId).select("accountStatus").lean();
+      if (tenant?.accountStatus === "suspended") {
+        return res.status(403).json({ message: "This restaurant is not available." });
+      }
+    }
+
+    const token = signUserToken(customerTokenPayload(user));
+
+    const userObj = omitSavedCart(user.toObject());
 
     res.status(200).json({
       messasge: "user Login susccessfully",
       user: userObj,
       token,
-      tenantId: tenant._id,
+      tenantId: user.tenantId,
     });
   } catch (error) {
     res.status(500).json({ message: "Faild to Login user", error: error.message });

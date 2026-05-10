@@ -51,7 +51,10 @@ async function uniqueSlugFromBusinessName(businessName) {
  * @param {{ businessName: string, slug: string, owner: { username: string, email: string, password: string } }} params
  */
 export async function createTenantCore({ businessName, slug, owner }) {
-  const slugNorm = String(slug).toLowerCase().trim();
+  let slugNorm = slug ? String(slug).toLowerCase().trim() : "";
+  if (!slugNorm) {
+    slugNorm = await uniqueSlugFromBusinessName(businessName);
+  }
   const exists = await Tenant.findOne({ slug: slugNorm }).select("_id").lean();
   if (exists) {
     const err = new Error("That slug is already registered");
@@ -130,9 +133,9 @@ export async function createTenantCore({ businessName, slug, owner }) {
 export async function registerTenant(req, res) {
   try {
     const { businessName, slug, owner } = req.body || {};
-    if (!businessName || !slug || !owner?.username || !owner?.email || !owner?.password) {
+    if (!businessName || !owner?.username || !owner?.email || !owner?.password) {
       return res.status(400).json({
-        message: "businessName, slug, owner.username, owner.email, owner.password are required",
+        message: "businessName, owner.username, owner.email, owner.password are required",
       });
     }
 
@@ -246,7 +249,7 @@ export async function getTenantBySlug(req, res) {
     if (!slug) return res.status(400).json({ message: "slug required" });
 
     const tenant = await Tenant.findOne({ slug })
-      .select("businessName slug subscriptionStatus plan")
+      .select("_id businessName slug subscriptionStatus plan accountStatus")
       .lean();
 
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });

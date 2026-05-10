@@ -8,14 +8,10 @@ import React, {
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import {
-  TENANT_ID,
-  TENANT_SLUG,
-  otpApiHeaders,
-} from "../../utils/apiBaseUrl.js";
+import { otpHeadersFromTenantId } from "../../utils/apiBaseUrl.js";
 import "./VerifyOtp.css";
 
-function readStoredForm() {
+function readOtpForm() {
   try {
     const raw = localStorage.getItem("otpFormData");
     return raw ? JSON.parse(raw) : null;
@@ -29,14 +25,18 @@ const VerifyOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const otpFormData = useMemo(() => readStoredForm(), [location.key]);
+  const otpFormData = useMemo(() => readOtpForm(), [location.key]);
 
   const email = otpFormData?.email ?? "";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const inputsRef = useRef([]);
+
+  const busy = verifying || resending || leaving;
 
   useEffect(() => {
     if (!email) {
@@ -69,13 +69,6 @@ const VerifyOtp = () => {
     return () => clearInterval(interval);
   }, [expiresAt]);
 
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
-
   const handleChange = (value, index) => {
     if (/^\d*$/.test(value)) {
       const newOtp = [...otp];
@@ -93,15 +86,24 @@ const VerifyOtp = () => {
     }
   };
 
+  const handlePasteDigit = (e) => {
+    const text = e.clipboardData?.getData("text")?.replace(/\D/g, "") ?? "";
+    if (text.length !== 6) return;
+    e.preventDefault();
+    setOtp(text.split(""));
+    inputsRef.current[5]?.focus();
+  };
+
   const verifyHandler = async () => {
     if (timeLeft <= 0) {
       alert("Code expired. Go back and request a new one.");
       return;
     }
-    if (verifying) return;
-    if (!TENANT_ID || !TENANT_SLUG) {
+    if (busy) return;
+    const tenantKey = otpFormData?.tenantId;
+    if (!tenantKey) {
       alert(
-        "Missing VITE_TENANT_ID or VITE_TENANT_SLUG in admin/.env. Restart Vite after saving.",
+        "Missing tenant session for OTP. Go back and request a new code.",
       );
       return;
     }
@@ -117,12 +119,17 @@ const VerifyOtp = () => {
       const verifyRes = await axios.post(
         `${URL}/api/otp/verify-otp`,
         { email, otp: enteredOtp },
-        { headers: otpApiHeaders() },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...otpHeadersFromTenantId(tenantKey),
+          },
+        },
       );
 
       if (verifyRes.status !== 200) return;
 
-      const savedFormData = readStoredForm();
+      const savedFormData = readOtpForm();
       if (!savedFormData?.email || !savedFormData?.password) {
         alert("Session expired. Sign in again.");
         navigate("/login", { replace: true });
@@ -134,7 +141,9 @@ const VerifyOtp = () => {
         {
           email: savedFormData.email,
           password: savedFormData.password,
-          tenantSlug: TENANT_SLUG,
+          ...(savedFormData.tenantSlug
+            ? { tenantSlug: savedFormData.tenantSlug }
+            : {}),
         },
         { headers: { "Content-Type": "application/json" } },
       );
@@ -163,15 +172,23 @@ const VerifyOtp = () => {
   };
 
   const resendOtpHandler = async () => {
-    if (!TENANT_ID) {
-      alert("Missing VITE_TENANT_ID in admin/.env.");
+    if (busy) return;
+    const tenantKey = otpFormData?.tenantId;
+    if (!tenantKey) {
+      alert("Missing tenant session. Go back and request a new code.");
       return;
     }
+    setResending(true);
     try {
       const res = await axios.post(
         `${URL}/api/otp/send-otp`,
         { email },
-        { headers: otpApiHeaders() },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...otpHeadersFromTenantId(tenantKey),
+          },
+        },
       );
       if (res.status === 200) {
         const backendExpiry = res.data.expiresAt;
@@ -184,7 +201,15 @@ const VerifyOtp = () => {
         error.message ||
         "Could not resend code";
       alert(msg);
+    } finally {
+      setResending(false);
     }
+  };
+
+  const handleBackToSignIn = () => {
+    if (busy) return;
+    setLeaving(true);
+    window.setTimeout(() => navigate("/login", { replace: true }), 0);
   };
 
   const formatTime = (sec) => {
@@ -195,74 +220,129 @@ const VerifyOtp = () => {
 
   if (!email) {
     return (
-      <div className="otp-container">
-        <div className="otp-box otp-box--compact">
-          <p className="otp-muted">Returning to sign in…</p>
+      <div className="otp-page">
+        <div className="otp-page__backdrop" aria-hidden />
+        <div className="otp-card otp-card--compact admin-surface">
+          <p className="otp-page__muted">Returning to sign in…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="otp-container">
-      <div className="otp-box">
-        <h2 className="otp-heading">Check your email</h2>
-        <p className="otp-lead">
-          We sent a 6-digit code to{" "}
-          <span className="otp-email">{email}</span>
+    <div className="otp-page">
+      <div className="otp-page__backdrop" aria-hidden />
+
+      <div className="otp-page__inner">
+        <div className="otp-card admin-surface">
+          <div className="otp-card__brand" aria-hidden>
+            <span className="otp-card__brand-icon" />
+          </div>
+
+          <h1 className="otp-card__title">Check your email</h1>
+          <p className="otp-card__lead">
+            Enter the 6-digit code we sent to
+          </p>
+          <p className="otp-card__email">{email}</p>
+
+          <div
+            className={`otp-digits${timeLeft <= 0 || busy ? " otp-digits--locked" : ""}`}
+          >
+            {otp.map((digit, idx) => (
+              <input
+                key={idx}
+                type="text"
+                maxLength={1}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete={idx === 0 ? "one-time-code" : "off"}
+                value={digit}
+                onChange={(e) => handleChange(e.target.value, idx)}
+                onKeyDown={(e) => handlekeyDown(e, idx)}
+                onPaste={handlePasteDigit}
+                ref={(el) => {
+                  inputsRef.current[idx] = el;
+                }}
+                disabled={timeLeft <= 0 || busy}
+                aria-label={`Digit ${idx + 1} of 6`}
+                className="otp-digits__input"
+              />
+            ))}
+          </div>
+
+          <div className="otp-card__timer-wrap">
+            {timeLeft > 0 ? (
+              <span className="otp-card__timer">
+                <span className="otp-card__timer-dot" aria-hidden />
+                Expires in {formatTime(timeLeft)}
+              </span>
+            ) : (
+              <span className="otp-card__expired">Code expired — request a new one</span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={verifyHandler}
+            className="otp-card__btn otp-card__btn--primary"
+            disabled={timeLeft <= 0 || busy}
+            aria-busy={verifying}
+          >
+            {verifying ? (
+              <>
+                <span className="otp-card__spinner" aria-hidden />
+                Signing in…
+              </>
+            ) : (
+              "Verify & sign in"
+            )}
+          </button>
+
+          <div className="otp-card__secondary">
+            <button
+              type="button"
+              className="otp-card__btn otp-card__btn--ghost"
+              onClick={resendOtpHandler}
+              disabled={timeLeft > 0 || busy}
+              aria-busy={resending}
+            >
+              {resending ? (
+                <>
+                  <span
+                    className="otp-card__spinner otp-card__spinner--ghost"
+                    aria-hidden
+                  />
+                  Sending code…
+                </>
+              ) : (
+                "Resend code"
+              )}
+            </button>
+            <button
+              type="button"
+              className="otp-card__btn otp-card__btn--link"
+              onClick={handleBackToSignIn}
+              disabled={busy}
+              aria-busy={leaving}
+            >
+              {leaving ? (
+                <>
+                  <span
+                    className="otp-card__spinner otp-card__spinner--link"
+                    aria-hidden
+                  />
+                  Leaving…
+                </>
+              ) : (
+                "Back to sign in"
+              )}
+            </button>
+          </div>
+        </div>
+
+        <p className="otp-page__footer-hint">
+          Tip: you can paste the full code from your email.
         </p>
-
-        <div className="otp-inputs">
-          {otp.map((digit, idx) => (
-            <input
-              key={idx}
-              type="text"
-              maxLength={1}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={digit}
-              onChange={(e) => handleChange(e.target.value, idx)}
-              onKeyDown={(e) => handlekeyDown(e, idx)}
-              ref={(el) => {
-                inputsRef.current[idx] = el;
-              }}
-              disabled={timeLeft <= 0 || verifying}
-              aria-label={`Digit ${idx + 1}`}
-            />
-          ))}
-        </div>
-        <div className="timer">
-          {timeLeft > 0 ? (
-            <p className="otp-timer">Expires in {formatTime(timeLeft)}</p>
-          ) : (
-            <p className="otp-expired">Code expired</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={verifyHandler}
-          className="verify-btn"
-          disabled={timeLeft <= 0 || verifying}
-        >
-          {verifying ? "Signing in…" : "Verify & sign in"}
-        </button>
-
-        <button
-          type="button"
-          className="resend-btn"
-          onClick={resendOtpHandler}
-          disabled={timeLeft > 0 || verifying}
-        >
-          Resend code
-        </button>
-
-        <button
-          type="button"
-          className="otp-back"
-          onClick={() => navigate("/login")}
-        >
-          ← Back to sign in
-        </button>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ function canonCategory(label) {
 
 const MenuList = () => {
   const location = useLocation();
-  const { tableId: tableFromRoute } = useParams();
+  const { tenantSlug } = useParams();
   const { URL, quantities, setQuantities, setCart, handleRemove } = useContext(AuthContext);
   const [menuItems, setMenuItems] = useState(
     () => readMenuCatalogCache() ?? [],
@@ -82,10 +82,11 @@ const MenuList = () => {
   }, [fetchMenus]);
 
   useEffect(() => {
-    if (tableFromRoute != null && String(tableFromRoute).trim() !== "") {
-      localStorage.setItem(TABLE_PREFILL_KEY, String(tableFromRoute).trim());
+    const tableFromQuery = new URLSearchParams(location.search).get("table")?.trim();
+    if (tableFromQuery) {
+      localStorage.setItem(TABLE_PREFILL_KEY, String(tableFromQuery).trim());
     }
-  }, [tableFromRoute]);
+  }, [location.search]);
 
   useEffect(() => {
     const gt = localStorage.getItem("guestToken")?.trim();

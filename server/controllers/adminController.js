@@ -34,7 +34,16 @@ export const adminCreate = async (req, res) => {
       return res.status(503).json({ message: "Server authentication is not configured" });
     }
 
-    const { email, username, password, role, profilePic, profilePicId, branchId } = req.body || {};
+    const {
+      email,
+      username,
+      password,
+      role,
+      profilePic,
+      profilePicId,
+      branchId,
+      staffSinceAt: staffSinceRaw,
+    } = req.body || {};
 
     if (!username || !email || !password || !role) {
       return res.status(400).json({ message: "please fill all the fields" });
@@ -42,7 +51,8 @@ export const adminCreate = async (req, res) => {
 
     if (!STAFF_ROLES.includes(role) || role === "owner") {
       return res.status(400).json({
-        message: "role must be one of manager, chef, cashier (owner is created at tenant signup)",
+        message:
+          "role must be one of manager, chef, barista, cashier (owner is created at tenant signup)",
       });
     }
 
@@ -58,6 +68,14 @@ export const adminCreate = async (req, res) => {
 
     if (dup) return res.status(400).json({ message: "user already exists for this restaurant" });
 
+    let staffSinceAt = null;
+    if (staffSinceRaw != null && String(staffSinceRaw).trim() !== "") {
+      const parsed = new Date(staffSinceRaw);
+      if (!Number.isNaN(parsed.getTime())) {
+        staffSinceAt = parsed;
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -70,6 +88,7 @@ export const adminCreate = async (req, res) => {
       profilePicId: profilePicId || "",
       tenantId,
       branchId: branchId || null,
+      ...(staffSinceAt ? { staffSinceAt } : {}),
     });
 
     const token = signUserToken(buildStaffTokenPayload(newUser));
@@ -95,35 +114,70 @@ export const adminLogin = async (req, res) => {
 
     const { email, password, tenantSlug } = req.body || {};
 
-    if (!email || !password || !tenantSlug) {
+    if (!email || !password) {
       return res.status(400).json({
-        message: "please fill all the fields (email, password, tenantSlug)",
+        message: "please fill email and password",
       });
     }
 
-    const tenant = await Tenant.findOne({ slug: String(tenantSlug).toLowerCase().trim() })
-      .select("_id subscriptionStatus")
-      .lean();
+    const normEmail = String(email).toLowerCase().trim();
 
-    if (!tenant) return res.status(400).json({ message: "Restaurant not found" });
-
-    const user = await User.findOne({
-      email: String(email).toLowerCase().trim(),
-      tenantId: tenant._id,
+    const candidates = await User.find({
+      email: normEmail,
       role: { $in: STAFF_ROLES },
     });
 
-    if (!user) return res.status(400).json({ message: "Staff user not found for this restaurant" });
+    const matches = [];
+    for (const u of candidates) {
+      const ok = await bcrypt.compare(password, u.password);
+      if (ok) matches.push(u);
+    }
+
+    if (matches.length === 0) {
+      return res.status(400).json({ message: "invalid credentials" });
+    }
+
+    let user = matches[0];
+
+    if (matches.length > 1) {
+      if (!tenantSlug || !String(tenantSlug).trim()) {
+        return res.status(400).json({
+          code: "TENANT_REQUIRED",
+          message:
+            "This email is linked to multiple restaurants. Add your restaurant code (the same as your venue slug).",
+        });
+      }
+      const t = await Tenant.findOne({ slug: String(tenantSlug).toLowerCase().trim() })
+        .select("_id")
+        .lean();
+      if (!t) {
+        return res.status(400).json({ message: "Restaurant not found" });
+      }
+      user = matches.find((m) => String(m.tenantId) === String(t._id));
+      if (!user) {
+        return res.status(400).json({ message: "invalid credentials for that restaurant" });
+      }
+    }
+
+    const tenant = await Tenant.findById(user.tenantId)
+      .select("slug businessName plan subscriptionStatus accountStatus")
+      .lean();
+
+    if (!tenant) {
+      return res.status(400).json({ message: "Restaurant not found" });
+    }
+
+    if (tenant.accountStatus === "suspended") {
+      return res.status(403).json({
+        message: "This restaurant account is suspended. Contact support.",
+      });
+    }
 
     if (user.staffStatus === "suspended") {
       return res.status(403).json({
         message: "This account has been suspended. Contact your restaurant owner.",
       });
     }
-
-    const comparePass = await bcrypt.compare(password, user.password);
-
-    if (!comparePass) return res.status(400).json({ message: "invalid credentials" });
 
     const token = signUserToken(buildStaffTokenPayload(user));
 
@@ -134,10 +188,40 @@ export const adminLogin = async (req, res) => {
       messasge: "staff login successfully",
       admin: safe,
       token,
-      tenantId: tenant._id,
+      tenantId: user.tenantId,
+      tenant: {
+        _id: user.tenantId,
+        slug: tenant.slug,
+        name: tenant.businessName,
+        plan: tenant.plan,
+        subscriptionStatus: tenant.subscriptionStatus,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to login", error: error.message });
+  }
+};
+
+export const listStaff = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ message: "Tenant ID missing" });
+    }
+
+    const staffList = await User.find({
+      tenantId,
+      role: { $in: STAFF_ROLES, $ne: "owner" },
+    })
+      .select("-password")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: "Staff retrieved successfully",
+      staff: staffList,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch staff", error: error.message });
   }
 };
 
@@ -156,7 +240,23 @@ export const fetchAdmin = async (req, res) => {
     const safe = doc.toObject();
     delete safe.password;
 
-    res.status(200).json({ message: "admin fetch successfully", admin: safe });
+    const tenant = await Tenant.findById(doc.tenantId)
+      .select("businessName slug subscriptionStatus plan expiresAt")
+      .lean();
+
+    res.status(200).json({
+      message: "admin fetch successfully",
+      admin: safe,
+      tenant: tenant
+        ? { 
+            businessName: tenant.businessName, 
+            slug: tenant.slug,
+            subscriptionStatus: tenant.subscriptionStatus,
+            plan: tenant.plan,
+            expiresAt: tenant.expiresAt 
+          }
+        : null,
+    });
   } catch (error) {
     res.status(500).json({ message: "faild to fetch admin", error: error.message });
   }

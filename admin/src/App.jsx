@@ -2,7 +2,7 @@ import React, { useContext, useEffect } from 'react'
 
 import  './App.css'
 
-import Dashbord from './pages/deshboard/Dashbord'
+import Login from './pages/login/Login.jsx'
 import Navbar from './components/navbar/Navbar.jsx'
 import AppRoutes from './AppRoutes.jsx'
 import { AuthContext } from './context/AuthContext.jsx'
@@ -14,10 +14,12 @@ import {
 } from './utils/orderAlerts.js'
 
 const App = () => {
-  const { isGlobalLoading } = useContext(AuthContext);
+  const { isGlobalLoading, showLogin } = useContext(AuthContext);
   const { pathname } = useLocation();
   const hideNavbar =
-    pathname === "/subscription-plans" || pathname === "/trial-create-account";
+    pathname === "/subscription-plans" ||
+    pathname === "/trial-create-account" ||
+    pathname === "/verify-otp";
 
   useEffect(() => {
     const onFirstGesture = () => {
@@ -33,7 +35,11 @@ const App = () => {
       <div className="app-container">
        {!hideNavbar && <Navbar />}
        <AppRoutes/>
-       <Dashbord/>
+       {showLogin ? (
+         <div className="admin-login-host">
+           <Login />
+         </div>
+       ) : null}
        <AsyncLoadingOverlay show={isGlobalLoading} />
       </div>
      </>

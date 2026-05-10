@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
+import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import { FaBarcode } from "react-icons/fa";
 import "./BarcodeMenu.css";
 
@@ -13,17 +14,21 @@ const BarcodeMenu = () => {
 
   const generate = async () => {
     const id = tableId.trim();
-    if (!id) {
-      setError("Enter a table number or label.");
-      return;
-    }
     setLoading(true);
     setError(null);
+
+    const token = localStorage.getItem("token")?.trim();
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...getStaffTenantHeaders(),
+    };
+
     try {
-      const enc = encodeURIComponent(id);
+      const query = id ? `?table=${encodeURIComponent(id)}` : "";
       const [qrRes, bcRes] = await Promise.all([
-        axios.get(`${URL}/api/qr/generate/${enc}`),
-        axios.get(`${URL}/api/qr/barcode/${enc}`),
+        axios.get(`${URL}/api/qr/generate${query}`, { headers }),
+        axios.get(`${URL}/api/qr/barcode${query}`, { headers }),
       ]);
       const link = qrRes.data?.link || bcRes.data?.link;
       setPayload({
@@ -55,11 +60,21 @@ const BarcodeMenu = () => {
     }
   };
 
-  if (!admin || admin.role !== "admin") {
+  const downloadQrPng = () => {
+    if (!payload?.qrImage) return;
+    const link = document.createElement("a");
+    link.href = payload.qrImage;
+    link.download = `qr-${payload.tableId}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (!admin || !["admin", "owner", "manager"].includes(admin.role)) {
     return (
       <div className="barcode-page">
         <div className="barcode-container barcode-container--narrow">
-          <p className="barcode-denied">Admin access required.</p>
+          <p className="barcode-denied">Owner, manager, or admin access required.</p>
         </div>
       </div>
     );
@@ -86,14 +101,14 @@ const BarcodeMenu = () => {
 
         <div className="barcode-controls">
           <label className="barcode-label" htmlFor="barcode-table">
-            Table number or label
+            Optional table id, code, or label
           </label>
           <div className="barcode-row">
             <input
               id="barcode-table"
               type="text"
               className="barcode-input"
-              placeholder="e.g. 5 or A12"
+              placeholder="Optional: 5, A12, or table id"
               value={tableId}
               onChange={(e) => setTableId(e.target.value)}
             />
@@ -138,6 +153,13 @@ const BarcodeMenu = () => {
               <code className="barcode-link">{payload.link}</code>
               <button type="button" className="barcode-btn barcode-btn--ghost" onClick={copyLink}>
                 Copy link
+              </button>
+              <button
+                type="button"
+                className="barcode-btn barcode-btn--ghost"
+                onClick={downloadQrPng}
+              >
+                Download PNG
               </button>
             </div>
             <p className="barcode-footnote">

@@ -3,19 +3,23 @@ import "./navbar.css";
 
 import defaultProfilePic from "../../assets/icons/profileTabletab.png";
 import { AuthContext } from "../../context/AuthContext";
-import { FaCartPlus } from "react-icons/fa";
+import { FaCartPlus, FaUserPlus } from "react-icons/fa";
 import { GrCafeteria } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { PiChefHat } from "react-icons/pi";
 import { FaInfoCircle, FaBarcode } from "react-icons/fa";
 import { NavLink, useNavigate } from "react-router-dom";
 import { HiOutlineMenuAlt3, HiX } from "react-icons/hi";
+import CreateStaffModal from "../createStaff/CreateStaffModal.jsx";
 
 const Navbar = () => {
   const { admin, profileImage } = useContext(AuthContext);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [addStaffOpen, setAddStaffOpen] = useState(false);
   const navigate = useNavigate();
+
+  const canAddStaff = admin && (admin.role === "owner" || admin.role === "manager");
 
   const linkClass = ({ isActive }) =>
     `admin-navbar__link${isActive ? " admin-navbar__link--active" : ""}`;
@@ -30,16 +34,30 @@ const Navbar = () => {
         <PiChefHat className="admin-navbar__link-icon" aria-hidden />
         <span>Chefs</span>
       </NavLink>
+      {canAddStaff ? (
+        <button
+          type="button"
+          className="admin-navbar__link admin-navbar__link--action"
+          onClick={() => setAddStaffOpen(true)}
+        >
+          <FaUserPlus className="admin-navbar__link-icon" aria-hidden />
+          <span>Add staff</span>
+        </button>
+      ) : null}
     </>
   );
 
+  const canManageMenu = admin && (admin.role === "owner" || admin.role === "manager");
+
   const drawerNavItems =
-    admin && admin.role === "admin" ? (
+    canManageMenu || (admin && admin.role === "admin") ? (
       <>
-        <NavLink to="/menu" className={linkClass} onClick={() => setMobileOpen(false)}>
-          <GrCafeteria className="admin-navbar__link-icon" aria-hidden />
-          <span>Menu</span>
-        </NavLink>
+        {canManageMenu && (
+          <NavLink to="/menu" className={linkClass} onClick={() => setMobileOpen(false)}>
+            <GrCafeteria className="admin-navbar__link-icon" aria-hidden />
+            <span>Menu</span>
+          </NavLink>
+        )}
         <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
           <FaChartLine className="admin-navbar__link-icon" aria-hidden />
           <span>Summary</span>
@@ -58,12 +76,14 @@ const Navbar = () => {
   const desktopNavItems = (
     <>
       {alwaysVisibleNavItems}
-      {admin && admin.role === "admin" && (
+      {(canManageMenu || (admin && admin.role === "admin")) && (
         <>
-          <NavLink to="/menu" className={linkClass} onClick={() => setMobileOpen(false)}>
-            <GrCafeteria className="admin-navbar__link-icon" aria-hidden />
-            <span>Menu</span>
-          </NavLink>
+          {canManageMenu && (
+            <NavLink to="/menu" className={linkClass} onClick={() => setMobileOpen(false)}>
+              <GrCafeteria className="admin-navbar__link-icon" aria-hidden />
+              <span>Menu</span>
+            </NavLink>
+          )}
           <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
             <FaChartLine className="admin-navbar__link-icon" aria-hidden />
             <span>Summary</span>
@@ -145,6 +165,7 @@ const Navbar = () => {
           </div>
         ) : null}
       </header>
+      <CreateStaffModal open={addStaffOpen} onClose={() => setAddStaffOpen(false)} />
     </>
   );
 };

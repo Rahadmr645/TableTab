@@ -52,6 +52,12 @@ function DashboardSkeleton() {
   );
 }
 
+function accountBadgeClass(status) {
+  const st = String(status || "active").toLowerCase();
+  if (st === "suspended") return "text-bg-danger";
+  return "text-bg-success";
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -101,6 +107,34 @@ export default function Dashboard() {
   const logout = () => {
     localStorage.removeItem("platformToken");
     navigate("/login", { replace: true });
+  };
+
+  const patchTenantAccount = async (tenantId, accountStatus) => {
+    try {
+      const token = localStorage.getItem("platformToken");
+      await axios.patch(
+        `${API_BASE_URL}/api/platform/tenants/${tenantId}/account-status`,
+        { accountStatus },
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        },
+      );
+      setData((prev) => {
+        if (!prev?.tenants) return prev;
+        return {
+          ...prev,
+          tenants: prev.tenants.map((x) =>
+            String(x._id) === String(tenantId) ? { ...x, accountStatus } : x,
+          ),
+        };
+      });
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || err.message || "Could not update account status.";
+      alert(msg);
+    }
   };
 
   const s = data?.summary;
@@ -352,6 +386,7 @@ export default function Dashboard() {
                         <th>Plan</th>
                         <th>Subscription</th>
                         <th>Expires</th>
+                        <th>Account</th>
                         <th>Owner email</th>
                         <th className="text-end po-th-actions">Usage</th>
                       </tr>
@@ -386,6 +421,25 @@ export default function Dashboard() {
                           </td>
                           <td className="text-nowrap small">
                             {t.expiresAt ? new Date(t.expiresAt).toLocaleDateString() : "—"}
+                          </td>
+                          <td className="text-nowrap small" onClick={(e) => e.stopPropagation()}>
+                            <span
+                              className={`badge rounded-pill ${accountBadgeClass(t.accountStatus)}`}
+                            >
+                              {t.accountStatus === "suspended" ? "suspended" : "active"}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-light ms-2"
+                              onClick={() =>
+                                patchTenantAccount(
+                                  t._id,
+                                  t.accountStatus === "suspended" ? "active" : "suspended",
+                                )
+                              }
+                            >
+                              {t.accountStatus === "suspended" ? "Activate" : "Suspend"}
+                            </button>
                           </td>
                           <td className="small">{t.ownerId?.email || "—"}</td>
                           <td className="text-end" onClick={(e) => e.stopPropagation()}>

@@ -156,7 +156,7 @@ const Chefs = () => {
                       ))}
                     </div>
 
-                    {admin?.role === "chef" && (
+                    {(admin?.role === "chef" || admin?.role === "barista") && (
                       <div className="status-btn">
                         <button
                           type="button"

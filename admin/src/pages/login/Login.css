@@ -3,7 +3,10 @@
   width: 100%;
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  /* Above navbar (200), loading overlay (150), and typical dev-tool overlays */
+  z-index: 2147483000;
+  isolation: isolate;
+  pointer-events: auto;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -20,14 +23,15 @@
 }
 
 .lgoinForm {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
   width: 100%;
   max-width: 420px;
-  max-height: calc(100vh - 96px);
-  max-height: calc(100dvh - 96px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
   padding: 28px 26px 26px;
   margin-top: min(12vh, 120px);
+  margin-bottom: 24px;
   background: linear-gradient(
     165deg,
     rgba(28, 34, 46, 0.98) 0%,
@@ -208,6 +212,10 @@
 }
 
 .lgoinForm .form-control {
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
   font-family: var(--font-sans);
   font-size: 0.95rem;
   color: var(--text);

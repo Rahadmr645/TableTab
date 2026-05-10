@@ -77,6 +77,7 @@ router.post("/order-review", ...publicTenant, addOrderItemReview);
 router.get("/my-reviews/:guestToken", ...publicTenant, getMyOrderReviews);
 router.get("/review-pending/:guestToken", ...publicTenant, getPendingItemReviews);
 
+router.get("/tenant/:slug", ...publicTenant, getMenu);
 router.get("/menuList", ...publicTenant, getMenu);
 
 export default router;

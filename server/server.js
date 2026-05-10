@@ -66,9 +66,16 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ ok: true, service: "tabletab-api" });
 });
 
-// DB connection
-connectToDB();
+// Wait for MongoDB before accepting traffic — otherwise Mongoose buffers queries and
+// clients can hang indefinitely while the driver is still connecting.
+async function start() {
+  await connectToDB();
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on http://127.0.0.1:${PORT}`);
+  });
+}
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on http://0.0.0.0:${PORT}`);
+start().catch((err) => {
+  console.error("Server failed to start:", err);
+  process.exit(1);
 });

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export const STAFF_ROLES = ["owner", "manager", "chef", "cashier"];
+export const STAFF_ROLES = ["owner", "manager", "chef", "cashier", "barista"];
 export const ALL_USER_ROLES = ["customer", ...STAFF_ROLES];
 
 /**
@@ -62,6 +62,11 @@ const usersSchema = mongoose.Schema(
       enum: ["active", "suspended"],
       default: "active",
       index: true,
+    },
+    /** When they started at this venue (set by owner/manager); falls back to account createdAt in UI if omitted. */
+    staffSinceAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },

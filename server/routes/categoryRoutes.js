@@ -29,7 +29,7 @@ const staffBase = [
   resolveOptionalBranch,
 ];
 
-/** Public menu builders — requires X-Tenant-Id */
+/** Public menu builders — requires tenant via X-Tenant-Id / X-Tenant-Slug / query */
 router.get("/browse", ...publicBrowse, listCategories);
 
 /** Authenticated staff listing (same payload shape as `/browse`) */

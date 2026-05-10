@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import Tenant from "../models/Tenant.js";
 import Subscription from "../models/Subscription.js";
-import User from "../models/UserModel.js";
+import User, { STAFF_ROLES } from "../models/UserModel.js";
 import Order from "../models/OrderModel.js";
 import PlatformOwner from "../models/PlatformOwnerModel.js";
 import {
@@ -179,7 +179,7 @@ export const getPlatformDashboard = async (req, res) => {
       Tenant.countDocuments({ subscriptionStatus: "expired" }),
       Order.countDocuments(),
       User.countDocuments({
-        role: { $in: ["owner", "manager", "chef", "cashier"] },
+        role: { $in: STAFF_ROLES },
       }),
       User.countDocuments({ role: "customer" }),
     ]);
@@ -189,7 +189,7 @@ export const getPlatformDashboard = async (req, res) => {
           Order.countDocuments({ tenantId: focusTenantOid }),
           User.countDocuments({
             tenantId: focusTenantOid,
-            role: { $in: ["owner", "manager", "chef", "cashier"] },
+            role: { $in: STAFF_ROLES },
           }),
           User.countDocuments({ tenantId: focusTenantOid, role: "customer" }),
           Tenant.findById(focusTenantOid).select("businessName slug").lean(),
@@ -253,5 +253,35 @@ export const getPlatformDashboard = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "dashboard failed", error: error.message });
+  }
+};
+
+export const patchTenantAccountStatus = async (req, res) => {
+  try {
+    const { tenantId } = req.params || {};
+    const { accountStatus } = req.body || {};
+
+    if (!tenantId || !mongoose.Types.ObjectId.isValid(String(tenantId))) {
+      return res.status(400).json({ message: "invalid tenantId" });
+    }
+    if (!["active", "suspended"].includes(String(accountStatus))) {
+      return res.status(400).json({ message: "accountStatus must be active or suspended" });
+    }
+
+    const updated = await Tenant.findByIdAndUpdate(
+      tenantId,
+      { accountStatus: String(accountStatus) },
+      { new: true },
+    )
+      .select("businessName slug accountStatus")
+      .lean();
+
+    if (!updated) {
+      return res.status(404).json({ message: "tenant not found" });
+    }
+
+    res.status(200).json({ tenant: updated });
+  } catch (error) {
+    res.status(500).json({ message: "update failed", error: error.message });
   }
 };

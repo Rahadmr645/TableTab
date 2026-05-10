@@ -1,38 +1,79 @@
+import mongoose from "mongoose";
 import QRCode from "qrcode";
 import bwipjs from "bwip-js/node";
 import Table from "../models/Table.js";
+import Tenant from "../models/Tenant.js";
 
-function menuUrlForTable(tableId) {
-  const raw = process.env.CLEINT_URL || "http://localhost:5173";
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function findTableByReference(tenantId, tableRef) {
+  const value = String(tableRef || "").trim();
+  if (!value) return null;
+
+  const baseFilter = { tenantId };
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    return await Table.findOne({
+      ...baseFilter,
+      _id: new mongoose.Types.ObjectId(value),
+    })
+      .select("_id label code")
+      .lean();
+  }
+
+  const exactRegex = new RegExp(`^${escapeRegex(value)}$`, "i");
+  return await Table.findOne({
+    ...baseFilter,
+    $or: [{ code: exactRegex }, { label: exactRegex }],
+  })
+    .select("_id label code")
+    .lean();
+}
+
+function menuUrlForTable(tableCodeOrLabel, tenantSlug) {
+  const raw = process.env.CLIENT_URL || process.env.CLEINT_URL || "http://localhost:5172";
   const base = String(raw).replace(/\/+$/, "");
-  const id = encodeURIComponent(String(tableId));
-  return `${base}/menu/${id}`;
+  const slug = String(tenantSlug || "").trim();
+  const tableRef = String(tableCodeOrLabel || "").trim();
+  const path = slug
+    ? `/menu/${encodeURIComponent(slug)}`
+    : `/menu/${encodeURIComponent(tableRef)}`;
+  const query = tableRef && slug ? `?table=${encodeURIComponent(tableRef)}` : "";
+  return `${base}${path}${query}`;
 }
 
 export const QRCodegen = async (req, res) => {
   try {
-    const { tableId } = req.params;
-    const table = await Table.findOne({
-      _id: tableId,
-      tenantId: req.tenantId,
-    })
-      .select("_id label")
-      .lean();
+    const tableRef = String(req.params.tableId || req.query.table || "").trim();
+    const tmeta = await Tenant.findById(req.tenantId).select("slug").lean();
+    const tenantSlug = tmeta?.slug || "";
 
-    if (!table) {
-      return res.status(404).json({ message: "Table not found for this tenant" });
+    let tableCodeOrLabel = "";
+    if (tableRef) {
+      const table = await findTableByReference(req.tenantId, tableRef);
+      if (!table) {
+        return res.status(404).json({ message: "Table not found for this tenant" });
+      }
+      tableCodeOrLabel = table.code?.trim() || table.label || String(table._id);
     }
 
-    const menuURL = menuUrlForTable(table._id);
+    const menuURL = menuUrlForTable(tableCodeOrLabel, tenantSlug);
     const qrImage = await QRCode.toDataURL(menuURL);
 
-    res.status(200).json({
-      message: "create successfull",
-      tableId: String(table._id),
-      label: table.label,
+    const responsePayload = {
+      message: "QR code generated successfully",
+      tableRef,
       link: menuURL,
       qrImage,
-    });
+    };
+
+    if (tableRef) {
+      responsePayload.tableId = tableRef;
+      responsePayload.label = tableCodeOrLabel;
+    }
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "QR generatioin failed" });
@@ -41,19 +82,20 @@ export const QRCodegen = async (req, res) => {
 
 export const barcodeCodegen = async (req, res) => {
   try {
-    const { tableId } = req.params;
-    const table = await Table.findOne({
-      _id: tableId,
-      tenantId: req.tenantId,
-    })
-      .select("_id label")
-      .lean();
+    const tableRef = String(req.params.tableId || req.query.table || "").trim();
+    const tmeta = await Tenant.findById(req.tenantId).select("slug").lean();
+    const tenantSlug = tmeta?.slug || "";
 
-    if (!table) {
-      return res.status(404).json({ message: "Table not found for this tenant" });
+    let tableCodeOrLabel = "";
+    if (tableRef) {
+      const table = await findTableByReference(req.tenantId, tableRef);
+      if (!table) {
+        return res.status(404).json({ message: "Table not found for this tenant" });
+      }
+      tableCodeOrLabel = table.code?.trim() || table.label || String(table._id);
     }
 
-    const menuURL = menuUrlForTable(table._id);
+    const menuURL = menuUrlForTable(tableCodeOrLabel, tenantSlug);
 
     const png = await bwipjs.toBuffer({
       bcid: "code128",
@@ -66,13 +108,18 @@ export const barcodeCodegen = async (req, res) => {
 
     const barcodeImage = `data:image/png;base64,${png.toString("base64")}`;
 
-    res.status(200).json({
-      message: "create successfull",
-      tableId: String(table._id),
-      label: table.label,
+    const responsePayload = {
+      message: "Barcode generated successfully",
       link: menuURL,
       barcodeImage,
-    });
+    };
+
+    if (tableRef) {
+      responsePayload.tableId = tableRef;
+      responsePayload.label = tableCodeOrLabel;
+    }
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Barcode generation failed" });

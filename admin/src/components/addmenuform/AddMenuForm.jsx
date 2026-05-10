@@ -4,8 +4,7 @@ import axios from 'axios'
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext.jsx'
 import './addMenuForm.css'
-const AddMenuForm = () => {
-
+const AddMenuForm = ({ onSuccess }) => {
 
   const [formData, setFormData] = useState({
     name: "",
@@ -100,6 +99,7 @@ const AddMenuForm = () => {
       });
       setImageFile(null);
       setFileInputKey((k) => k + 1);
+      if (onSuccess) onSuccess();
     } catch (error) {
       setMessage(
         error.response?.data?.message ||

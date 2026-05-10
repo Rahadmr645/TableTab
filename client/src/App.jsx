@@ -20,7 +20,7 @@ const App = () => {
       <Navbar />
       <Routes location={background || location}>
         <Route path="/" element={<Navigate to="/menu" replace />} />
-        <Route path="/menu/:tableId" element={<MenuList />} />
+        <Route path="/menu/:tenantSlug" element={<MenuList />} />
         <Route path="/menu" element={<MenuList />} />
         <Route path="/chackout" element={<Checkout />} />
         <Route path="/orderboard" element={<OrderBoard />} />

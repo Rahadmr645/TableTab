@@ -3,7 +3,7 @@ import express from "express";
 import { sendOTP } from "../controllers/adminOtpController.js";
 import { verifyOTP } from "../controllers/adminotpVerify.js";
 import {
-  resolvePublicTenant,
+  resolveStaffOtpTenant,
   stripForbiddenTenantFields,
 } from "../middlewares/tenantMiddleware.js";
 import { requireActiveSubscription } from "../middlewares/subscriptionMiddleware.js";
@@ -11,7 +11,7 @@ import { requireActiveSubscription } from "../middlewares/subscriptionMiddleware
 const router = express.Router();
 
 const chain = [
-  resolvePublicTenant,
+  resolveStaffOtpTenant,
   stripForbiddenTenantFields,
   requireActiveSubscription,
 ];

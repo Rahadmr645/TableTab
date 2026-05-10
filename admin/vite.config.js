@@ -5,11 +5,18 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function normalizeProxyTarget(url) {
+  const u = (url || "").trim().replace(/\/$/, "");
+  if (!u) return "http://127.0.0.1:5000";
+  return u.replace(
+    /(^https?:\/\/)0\.0\.0\.0(?=:|\/|$)/i,
+    (_, scheme) => `${scheme}127.0.0.1`,
+  );
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
-  const target =
-    (env.VITE_API_URL || "").trim().replace(/\/$/, "") ||
-    "http://127.0.0.1:5000";
+  const target = normalizeProxyTarget(env.VITE_API_URL);
 
   return {
     root: __dirname,

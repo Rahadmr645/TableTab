@@ -4,6 +4,7 @@ import {
   adminCreate,
   adminLogin,
   fetchAdmin,
+  listStaff,
 } from "../controllers/adminController.js";
 import uploadAdmin from "../middlewares/memoryMulter.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
@@ -23,6 +24,15 @@ router.post(
   requireRole(["owner", "manager"]),
   stripForbiddenTenantFields,
   adminCreate,
+);
+
+router.get(
+  "/staff",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner", "manager"]),
+  listStaff,
 );
 
 router.get(

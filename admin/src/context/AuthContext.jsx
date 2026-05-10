@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useRef } from "react";
 import { getUserFromToken } from "../utils/decodeToken";
 import axios from "axios";
-import { API_BASE_URL, TENANT_ID } from "../utils/apiBaseUrl.js";
+import { API_BASE_URL, getStaffTenantHeaders } from "../utils/apiBaseUrl.js";
 
 export const AuthContext = createContext();
 
@@ -26,32 +26,46 @@ export const AuthContextProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    const uid = admin?.userId ?? admin?.id;
+    if (!uid) return;
+
     const fetchAdmin = async () => {
-      const uid = admin?.userId ?? admin?.id;
-      if (!admin || !uid) {
-        return;
-      }
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(`${URL}/api/admin/fetchAdmin/${uid}`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+            ...getStaffTenantHeaders(),
           },
         });
 
-        const data = res.data;
-        const profilePic = res.data.admin.profilePic;
-        setProfileImage(profilePic);
+        const a = res.data.admin;
+        const tenant = res.data.tenant;
+        const idStr = a?._id != null ? String(a._id) : String(uid);
+
+        setAdmin((prev) => ({
+          ...prev,
+          ...a,
+          userId: idStr,
+          id: idStr,
+          companyName: tenant?.businessName ?? prev?.companyName ?? "",
+          staffSince:
+            a?.staffSinceAt ?? a?.createdAt ?? prev?.staffSince,
+          subscriptionStatus: tenant?.subscriptionStatus ?? prev?.subscriptionStatus,
+          expiresAt: tenant?.expiresAt ?? prev?.expiresAt,
+        }));
+        setProfileImage(a.profilePic);
       } catch (error) {
         console.error(error.message);
       }
     };
     fetchAdmin();
-  }, [admin]);
+  }, [admin?.userId ?? admin?.id]);
 
   useEffect(() => {
+    axios.defaults.timeout = 25000;
+
     const requestInterceptor = axios.interceptors.request.use(
       (config) => {
         pendingRequestsRef.current += 1;

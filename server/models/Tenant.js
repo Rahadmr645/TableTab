@@ -31,9 +31,25 @@ const tenantSchema = new mongoose.Schema(
     plan: { type: String, default: "trial", trim: true },
     /** When the current subscription period ends (used with Subscription records). */
     expiresAt: { type: Date, default: null },
+    /** Platform operator can freeze a restaurant; blocks staff/customer API (not subscription state). */
+    accountStatus: {
+      type: String,
+      enum: ["active", "suspended"],
+      default: "active",
+      index: true,
+    },
   },
-  { timestamps: { createdAt: "createdAt", updatedAt: true } },
+  {
+    timestamps: { createdAt: "createdAt", updatedAt: true },
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
+
+/** Public name for APIs — same as `businessName` (Foodics-style `name` field). */
+tenantSchema.virtual("name").get(function getName() {
+  return this.businessName;
+});
 
 const Tenant = mongoose.model("Tenant", tenantSchema);
 export default Tenant;

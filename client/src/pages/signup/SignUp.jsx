@@ -12,6 +12,10 @@ import { IoChevronBack } from "react-icons/io5";
 import { AuthContext } from "../../context/CartContext.jsx";
 import "./SignUp.css";
 import AsyncLoadingOverlay from "../../components/common/AsyncLoadingOverlay.jsx";
+import {
+  getStoredTenantSlug,
+  inferTenantSlugFromHostname,
+} from "../../utils/tenantContext.js";
 
 const SignUp = () => {
   const { setUser } = useContext(AuthContext);
@@ -26,6 +30,10 @@ const SignUp = () => {
     username: "",
     email: "",
     password: "",
+    tenantSlug:
+      typeof sessionStorage !== "undefined"
+        ? getStoredTenantSlug() || inferTenantSlugFromHostname()
+        : "",
   });
   const dialogRef = useRef(null);
   const isLogin = authMode === "login";
@@ -160,10 +168,23 @@ const SignUp = () => {
     setSubmitting(true);
 
     try {
+      const slugHint =
+        formData.tenantSlug.trim() ||
+        getStoredTenantSlug() ||
+        inferTenantSlugFromHostname();
+
+      if (!isLogin && !slugHint) {
+        alert(
+          "Enter your restaurant code (venue slug). Use the menu link your table QR or restaurant shared.",
+        );
+        return;
+      }
+
       if (isLogin) {
         const res = await api.post("/api/user/login", {
           email: formData.email.trim(),
           password: formData.password,
+          ...(slugHint ? { tenantSlug: slugHint } : {}),
         });
         finishAuthSuccess(res);
       } else {
@@ -172,15 +193,24 @@ const SignUp = () => {
           email: formData.email.trim(),
           password: formData.password,
           profilePic: "",
+          tenantSlug: slugHint,
         });
         finishAuthSuccess(res);
       }
     } catch (err) {
+      const code = err.response?.data?.code;
+      if (code === "TENANT_REQUIRED") {
+        alert(
+          "Enter your restaurant code — this email exists at more than one venue.",
+        );
+      }
       const msg =
         err.response?.data?.message ||
         err.message ||
         (isLogin ? "Could not sign in" : "Could not create account");
-      alert(String(msg));
+      if (code !== "TENANT_REQUIRED") {
+        alert(String(msg));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -257,6 +287,22 @@ const SignUp = () => {
             required
             minLength={isLogin ? 1 : 6}
           />
+        </div>
+        <div className="signup-field">
+          <label htmlFor="signup-tenant-slug">Restaurant code</label>
+          <input
+            id="signup-tenant-slug"
+            name="tenantSlug"
+            type="text"
+            autoComplete="organization"
+            placeholder="From your QR link or venue URL"
+            value={formData.tenantSlug}
+            onChange={handleChange}
+            required={!isLogin}
+          />
+          <p className="signup-field-hint">
+            Usually filled automatically when you open your venue&apos;s menu link.
+          </p>
         </div>
         <button
           type="submit"
