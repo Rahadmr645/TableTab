@@ -19,7 +19,7 @@ const Navbar = () => {
   const [addStaffOpen, setAddStaffOpen] = useState(false);
   const navigate = useNavigate();
 
-  const canAddStaff = admin && (admin.role === "owner" || admin.role === "manager");
+  const canAddStaff = admin && admin.role === "owner";
 
   const linkClass = ({ isActive }) =>
     `admin-navbar__link${isActive ? " admin-navbar__link--active" : ""}`;
@@ -58,10 +58,12 @@ const Navbar = () => {
             <span>Menu</span>
           </NavLink>
         )}
-        <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
-          <FaChartLine className="admin-navbar__link-icon" aria-hidden />
-          <span>Summary</span>
-        </NavLink>
+        {admin?.role === "owner" && (
+          <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
+            <FaChartLine className="admin-navbar__link-icon" aria-hidden />
+            <span>Summary</span>
+          </NavLink>
+        )}
         <NavLink to="/barcode" className={linkClass} onClick={() => setMobileOpen(false)}>
           <FaBarcode className="admin-navbar__link-icon" aria-hidden />
           <span>Barcode</span>
@@ -84,10 +86,12 @@ const Navbar = () => {
               <span>Menu</span>
             </NavLink>
           )}
-          <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
-            <FaChartLine className="admin-navbar__link-icon" aria-hidden />
-            <span>Summary</span>
-          </NavLink>
+          {admin?.role === "owner" && (
+            <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
+              <FaChartLine className="admin-navbar__link-icon" aria-hidden />
+              <span>Summary</span>
+            </NavLink>
+          )}
           <NavLink to="/barcode" className={linkClass} onClick={() => setMobileOpen(false)}>
             <FaBarcode className="admin-navbar__link-icon" aria-hidden />
             <span>Barcode</span>

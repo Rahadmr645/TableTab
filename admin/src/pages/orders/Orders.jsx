@@ -3,13 +3,14 @@ import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { SocketContext } from "../../context/SocketContext";
 import axios from "axios";
+import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import "./Orders.css";
 
 function normalizeStatusKey(status) {
   const s = String(status || "").toLowerCase();
   if (/(finish|done|complete|served)/.test(s)) return "done";
   if (s.includes("ready")) return "ready";
-  if (/(cok|cook)/.test(s)) return "cooking";
+  if (/(cok|cook|progress)/.test(s)) return "cooking";
   if (/(pending|new|placed|received)/.test(s)) return "pending";
   return "default";
 }
@@ -19,11 +20,7 @@ const Orders = () => {
   const { socket } = useContext(SocketContext);
   const [allOrderList, setAllOrderList] = useState([]);
   const [tickMs, setTickMs] = useState(Date.now());
-
-  const isFinishedStatus = (status) => {
-    const s = String(status || "").toLowerCase();
-    return s === "finished" || s === "finised";
-  };
+  const [activeTab, setActiveTab] = useState("waiting"); // 'waiting', 'current', 'finished'
 
   const sortNewestFirst = (orders) =>
     [...orders].sort(
@@ -34,13 +31,17 @@ const Orders = () => {
 
   const fetchAllTimeOrder = async () => {
     try {
-      const res = await axios.get(`${URL}/api/order/active-orders`);
-      const activeOnly = (res.data.activeOrders || []).filter(
-        (order) => !isFinishedStatus(order.status),
-      );
-      setAllOrderList(sortNewestFirst(activeOnly));
+      const token = localStorage.getItem("token");
+      // Fetch all orders so we can display finished orders too
+      const res = await axios.get(`${URL}/api/order/all-orders`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getStaffTenantHeaders()
+        }
+      });
+      setAllOrderList(sortNewestFirst(res.data.orders || []));
     } catch (error) {
-      console.error("faild to fetch all order", error);
+      console.error("failed to fetch all order", error);
     }
   };
 
@@ -61,12 +62,12 @@ const Orders = () => {
 
     socket.on("newOrder", handleRefresh);
     socket.on("orderUpdated", handleRefresh);
-    socket.on("orderRemoved", handleRemoved);
+    socket.on("orderRemoved", handleRefresh); // Refresh on remove to see if it moved to Finished
 
     return () => {
       socket.off("newOrder", handleRefresh);
       socket.off("orderUpdated", handleRefresh);
-      socket.off("orderRemoved", handleRemoved);
+      socket.off("orderRemoved", handleRefresh);
     };
   }, [socket, URL]);
 
@@ -100,30 +101,76 @@ const Orders = () => {
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
 
+  // Categorize orders
+  const waitingOrders = allOrderList.filter((order) => {
+    const statusKey = normalizeStatusKey(order.status);
+    return statusKey === "pending" || statusKey === "default";
+  });
+
+  const currentOrders = allOrderList.filter((order) => {
+    const statusKey = normalizeStatusKey(order.status);
+    return statusKey === "cooking" || statusKey === "ready";
+  });
+
+  const finishedOrders = allOrderList.filter((order) => {
+    const statusKey = normalizeStatusKey(order.status);
+    return statusKey === "done";
+  });
+
+  const getVisibleOrders = () => {
+    if (activeTab === "waiting") return waitingOrders;
+    if (activeTab === "current") return currentOrders;
+    return finishedOrders;
+  };
+
+  const visibleOrders = getVisibleOrders();
+
   return (
     <div className="orders-page">
       <div className="orders-container">
         <div className="orders-header">
-          <h3 className="orders-title">All orders</h3>
-          <span className="orders-count">{allOrderList.length}</span>
+          <div className="orders-tabs">
+            <button
+              className={`orders-tab ${activeTab === "waiting" ? "orders-tab--active" : ""}`}
+              onClick={() => setActiveTab("waiting")}
+            >
+              Waiting Order
+              {waitingOrders.length > 0 && (
+                <span className="orders-tab-badge">{waitingOrders.length}</span>
+              )}
+            </button>
+            <button
+              className={`orders-tab ${activeTab === "current" ? "orders-tab--active" : ""}`}
+              onClick={() => setActiveTab("current")}
+            >
+              Current Order
+              {currentOrders.length > 0 && (
+                <span className="orders-tab-badge">{currentOrders.length}</span>
+              )}
+            </button>
+            <button
+              className={`orders-tab ${activeTab === "finished" ? "orders-tab--active" : ""}`}
+              onClick={() => setActiveTab("finished")}
+            >
+              Finished Order
+            </button>
+          </div>
         </div>
 
-        {allOrderList.length === 0 ? (
-          <p className="orders-empty">No orders yet.</p>
+        {visibleOrders.length === 0 ? (
+          <p className="orders-empty">No orders in this category.</p>
         ) : (
           <div className="orders-list">
             <p className="orders-subline">
-              Showing {allOrderList.length} order
-              {allOrderList.length !== 1 ? "s" : ""}
+              Showing {visibleOrders.length} order{visibleOrders.length !== 1 ? "s" : ""}
             </p>
 
-            {allOrderList
-              .filter((order) => !isFinishedStatus(order.status))
-              .map((order) => {
+            {visibleOrders.map((order) => {
               const statusKey = normalizeStatusKey(order.status);
               const remaining = getRemainingForOrder(order);
               const isTimeUp = remaining <= 0;
               const timerClass = getTimerClass(remaining);
+              
               return (
                 <article
                   key={order._id}
@@ -153,17 +200,19 @@ const Orders = () => {
                     </span>
                   </div>
 
-                  <div className="order-row-col">
-                    <span className="order-row-label">Timer</span>
-                    <div className="order-row-timer-wrap">
-                      <span className={`order-row-timer ${timerClass}`}>
-                        {formatTime(remaining)}
-                      </span>
-                      {isTimeUp ? (
-                        <span className="order-row-timeup">Time up</span>
-                      ) : null}
+                  {activeTab !== "finished" && (
+                    <div className="order-row-col">
+                      <span className="order-row-label">Timer</span>
+                      <div className="order-row-timer-wrap">
+                        <span className={`order-row-timer ${timerClass}`}>
+                          {formatTime(remaining)}
+                        </span>
+                        {isTimeUp ? (
+                          <span className="order-row-timeup">Time up</span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </article>
               );
             })}

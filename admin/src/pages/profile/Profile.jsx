@@ -4,6 +4,7 @@ import UpdateProfilePic from "../../components/updateProfilePic/UpdateProfilePic
 import defaultProfilePic from "../../assets/icons/profileTabletab.png";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import "./Profile.css";
 
 const Profile = () => {
@@ -21,7 +22,10 @@ const Profile = () => {
         setLoadingStaff(true);
         const token = localStorage.getItem("token");
         const res = await axios.get(`${URL}/api/admin/staff`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            ...getStaffTenantHeaders()
+          }
         });
         setStaff(res.data.staff || []);
       } catch (error) {
@@ -65,18 +69,18 @@ const Profile = () => {
     { label: "Role", value: admin?.role },
     { label: "Company name", value: admin?.companyName },
     { label: "Subscription", value: subscriptionDisplay },
-    {
+    admin?.role === "owner" ? {
       label: "Registered Staff",
       value: loadingStaff ? "Loading..." : `${staff.length} Staff Member${staff.length !== 1 ? 's' : ''}`,
       clickable: true,
       onClick: () => setShowStaffModal(true)
-    },
+    } : null,
     {
       label: "User ID",
       value: admin?.userId || admin?.id || admin?._id,
     },
     { label: "Phone", value: admin?.phone },
-  ];
+  ].filter(Boolean);
 
   const roleLabel =
     typeof admin?.role === "string"

@@ -37,7 +37,7 @@ function CreateStaffModalInner({ onClose }) {
       setMessage({ type: "error", text: "Please enter name, email, and password." });
       return;
     }
-    if (!URL) {
+    if (URL == null) {
       setMessage({
         type: "error",
         text: "API URL is not configured. Set VITE_API_URL in admin/.env.",
@@ -188,7 +188,7 @@ function CreateStaffModalInner({ onClose }) {
 
 export default function CreateStaffModal({ open, onClose }) {
   const { admin } = useContext(AuthContext);
-  const can = admin && (admin.role === "owner" || admin.role === "manager");
+  const can = admin && admin.role === "owner";
   if (!can || typeof document === "undefined" || !open) return null;
 
   return createPortal(<CreateStaffModalInner onClose={onClose} />, document.body);

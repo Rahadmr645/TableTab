@@ -12,6 +12,7 @@ import {
   MY_ORDERS_EMPTY_MSG,
 } from "../../utils/myOrdersGate.js";
 import AsyncLoadingOverlay from "../common/AsyncLoadingOverlay.jsx";
+import { api } from "../../utils/api.js";
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -24,6 +25,9 @@ const Navbar = () => {
   const [profilePicFailed, setProfilePicFailed] = useState(false);
   const [myOrdersNavBusy, setMyOrdersNavBusy] = useState(false);
   const myOrdersNavLockRef = useRef(false);
+  const [restaurantName, setRestaurantName] = useState(() => {
+    return sessionStorage.getItem("tabletab_public_tenant_name") || "";
+  });
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
@@ -34,6 +38,23 @@ const Navbar = () => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    const match = routerLocation.pathname.match(/^\/menu\/([^/]+)/);
+    const slug = match ? match[1] : null;
+    if (slug) {
+      api.get(`/api/tenant/by-slug/${encodeURIComponent(slug)}`)
+        .then(res => {
+          if (res.data?.tenant?.businessName) {
+            setRestaurantName(res.data.tenant.businessName);
+            sessionStorage.setItem("tabletab_public_tenant_name", res.data.tenant.businessName);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch tenant name for Navbar", err);
+        });
+    }
+  }, [routerLocation.pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -88,9 +109,9 @@ const Navbar = () => {
         open={myOrdersNavBusy}
         message="Loading your orders…"
       />
-      <Link to="/menu" className="left-side brand-link" aria-label="TableTab menu">
+      <Link to="/menu" className="left-side brand-link" aria-label={`${restaurantName || "TableTab"} menu`}>
         <img src={logo} alt="" />
-        <span className="brand-text">TableTab</span>
+        <span className="brand-text">{restaurantName || "TableTab"}</span>
       </Link>
 
       <nav

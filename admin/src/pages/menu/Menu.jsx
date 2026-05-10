@@ -8,6 +8,7 @@ import './Menu.css'
 const Menu = () => {
   const { showMenuForm, setShowMenuForm, URL } = useContext(AuthContext);
   const [menuItems, setMenuItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [error, setError] = useState("");
   
   // Edit State
@@ -91,6 +92,10 @@ const Menu = () => {
     }
   };
 
+  const displayedItems = selectedCategory === "All" 
+    ? menuItems 
+    : menuItems.filter(item => item.category === selectedCategory);
+
   return (
     <>
       <div className="menu-page">
@@ -100,13 +105,32 @@ const Menu = () => {
           <button className="add-menu-btn" onClick={() => setShowMenuForm(true)}>+ Add Menu Item</button>
           
           <div className="menu-list-section">
-            <h3>Current Menu ({menuItems.length})</h3>
+            <h3>Current Menu ({displayedItems.length})</h3>
+
+            <div className="menu-categories">
+              <button 
+                className={`category-pill ${selectedCategory === "All" ? "active" : ""}`}
+                onClick={() => setSelectedCategory("All")}
+              >
+                All
+              </button>
+              {categories.map(cat => (
+                <button 
+                  key={cat}
+                  className={`category-pill ${selectedCategory === cat ? "active" : ""}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
             {error && <p className="error-message">{error}</p>}
             
-            {menuItems.length > 0 ? (
+            {displayedItems.length > 0 ? (
               <div className="menu-grid">
-                {menuItems.map((item) => (
-                  <div key={item._id} className="menu-item-card">
+                {displayedItems.map((item) => (
+                  <div key={item._id} className="menu-item-card clickable-card" onClick={() => handleEditClick(item)}>
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="menu-item-image" />
                     ) : (
@@ -116,13 +140,13 @@ const Menu = () => {
                       <h4 className="menu-item-name">{item.name}</h4>
                       <p className="menu-item-price">SAR {item.price}</p>
                       <p className="menu-item-category">{item.category}</p>
-                      <button className="menu-edit-btn" onClick={() => handleEditClick(item)}>Edit</button>
                     </div>
+                    <button className="menu-edit-btn" onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}>Edit</button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="no-items-message">No menu items found.</p>
+              <p className="no-items-message">No menu items found in this category.</p>
             )}
           </div>
         </div>
@@ -139,6 +163,16 @@ const Menu = () => {
             <form className="edit-menu-form" onSubmit={handleEditSubmit}>
               {editMessage && <p className="edit-menu-message error">{editMessage}</p>}
               
+              <div className="edit-menu-large-image-wrapper">
+                {editImage ? (
+                  <img src={window.URL.createObjectURL(editImage)} alt="Preview" className="edit-menu-large-image" />
+                ) : editItem.image ? (
+                  <img src={editItem.image} alt={editItem.name} className="edit-menu-large-image" />
+                ) : (
+                  <div className="edit-menu-large-image-placeholder">No Image</div>
+                )}
+              </div>
+
               <label>Name</label>
               <input 
                 type="text" 

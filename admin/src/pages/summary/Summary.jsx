@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
+import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import {
   FaChartLine,
   FaReceipt,
@@ -31,7 +32,13 @@ const Summary = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${URL}/api/order/summary-stats`);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${URL}/api/order/summary-stats`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getStaffTenantHeaders()
+        }
+      });
       setData(res.data);
     } catch (e) {
       console.error(e);

@@ -87,7 +87,7 @@ export const adminCreate = async (req, res) => {
       profilePic: profilePic || "",
       profilePicId: profilePicId || "",
       tenantId,
-      branchId: branchId || null,
+      ...(branchId ? { branchId } : {}),
       ...(staffSinceAt ? { staffSinceAt } : {}),
     });
 
@@ -102,7 +102,8 @@ export const adminCreate = async (req, res) => {
       token,
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create staff user", error: error.message });
+    console.error("ADMIN CREATE ERROR:", error);
+    res.status(500).json({ message: `Failed to create staff user: ${error.message}` });
   }
 };
 

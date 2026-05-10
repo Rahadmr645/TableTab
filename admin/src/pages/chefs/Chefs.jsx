@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { SocketContext } from "../../context/SocketContext";
 import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
+import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import "./Chefs.css";
 import ChefNotificationBell from "../../components/chefNotifications/ChefNotificationBell.jsx";
 import { FaUser, FaWifi, FaUtensils } from "react-icons/fa6";
@@ -61,10 +62,17 @@ const Chefs = () => {
 
   const handleStatusChange = async (id, status) => {
     try {
+      const token = localStorage.getItem("token");
       await axios.put(
         `${URL}/api/order/${id}/status`,
         { status },
-        { headers: { "Content-Type": "application/json" } }
+        { 
+          headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...getStaffTenantHeaders()
+          } 
+        }
       );
       alert(`order status changed to ${status}`);
     } catch (error) {

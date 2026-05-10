@@ -21,7 +21,7 @@ router.post(
   authenticate,
   requireActiveSubscription,
   requireStaffAccount,
-  requireRole(["owner", "manager"]),
+  requireRole(["owner"]),
   stripForbiddenTenantFields,
   adminCreate,
 );

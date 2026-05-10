@@ -3,6 +3,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext.jsx'
+import { getStaffTenantHeaders } from '../../utils/apiBaseUrl.js'
 import './addMenuForm.css'
 const AddMenuForm = ({ onSuccess }) => {
 
@@ -84,8 +85,13 @@ const AddMenuForm = ({ onSuccess }) => {
       data.append("category", formData.category);
       data.append("image", imageFile);
 
+      const token = localStorage.getItem("token");
       const res = await axios.post(`${URL}/api/menu/add-menu`, data, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getStaffTenantHeaders()
+        },
       });
 
       setMessage("Menu item added successfully");

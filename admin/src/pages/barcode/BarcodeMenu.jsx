@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import axios from "axios";
+import html2pdf from "html2pdf.js";
 import { AuthContext } from "../../context/AuthContext";
 import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import { FaBarcode } from "react-icons/fa";
@@ -12,8 +13,8 @@ const BarcodeMenu = () => {
   const [error, setError] = useState(null);
   const [payload, setPayload] = useState(null);
 
-  const generate = async () => {
-    const id = tableId.trim();
+  const generate = async (overrideId) => {
+    const id = typeof overrideId === "string" ? overrideId.trim() : tableId.trim();
     setLoading(true);
     setError(null);
 
@@ -50,6 +51,10 @@ const BarcodeMenu = () => {
     }
   };
 
+  React.useEffect(() => {
+    generate("");
+  }, []);
+
   const copyLink = async () => {
     if (!payload?.link) return;
     try {
@@ -64,10 +69,43 @@ const BarcodeMenu = () => {
     if (!payload?.qrImage) return;
     const link = document.createElement("a");
     link.href = payload.qrImage;
-    link.download = `qr-${payload.tableId}.png`;
+    link.download = `qr-${payload.tableId || "restaurant"}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const downloadPdf = () => {
+    if (!payload) return;
+    const element = document.createElement("div");
+    element.innerHTML = `
+      <div style="text-align: center; font-family: sans-serif; padding: 40px;">
+        <h2 style="font-size: 24px; margin-bottom: 20px; color: #111;">
+          ${payload.tableId ? `Table: ${payload.tableId}` : "Restaurant Menu"}
+        </h2>
+        ${
+          payload.qrImage
+            ? `<img src="${payload.qrImage}" style="width: 300px; max-width: 100%;" />`
+            : ""
+        }
+        ${
+          payload.barcodeImage
+            ? `<div style="margin-top: 30px;"><img src="${payload.barcodeImage}" style="width: 300px; max-width: 100%;" /></div>`
+            : ""
+        }
+        <p style="margin-top: 30px; font-size: 14px; color: #555; word-break: break-all;">
+          ${payload.link}
+        </p>
+      </div>
+    `;
+    
+    html2pdf().set({
+      margin: 1,
+      filename: `menu-qr-${payload.tableId || "restaurant"}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).from(element).save();
   };
 
   if (!admin || !["admin", "owner", "manager"].includes(admin.role)) {
@@ -101,7 +139,7 @@ const BarcodeMenu = () => {
 
         <div className="barcode-controls">
           <label className="barcode-label" htmlFor="barcode-table">
-            Optional table id, code, or label
+            Optional table id, code, or label (leave blank for restaurant QR)
           </label>
           <div className="barcode-row">
             <input
@@ -115,8 +153,8 @@ const BarcodeMenu = () => {
             <button
               type="button"
               className="barcode-btn"
-              onClick={generate}
-              disabled={loading || !tableId.trim()}
+              onClick={() => generate()}
+              disabled={loading}
             >
               {loading ? "Generating…" : "Generate"}
             </button>
@@ -126,7 +164,9 @@ const BarcodeMenu = () => {
 
         {payload ? (
           <section className="barcode-results" aria-live="polite">
-            <p className="barcode-table-tag">Table · {payload.tableId}</p>
+            <p className="barcode-table-tag">
+              {payload.tableId ? `Table · ${payload.tableId}` : "Restaurant Menu Link"}
+            </p>
             <div className="barcode-grid">
               <figure className="barcode-card">
                 <figcaption>Barcode (CODE128)</figcaption>
@@ -160,6 +200,13 @@ const BarcodeMenu = () => {
                 onClick={downloadQrPng}
               >
                 Download PNG
+              </button>
+              <button
+                type="button"
+                className="barcode-btn barcode-btn--ghost"
+                onClick={downloadPdf}
+              >
+                Download PDF
               </button>
             </div>
             <p className="barcode-footnote">
