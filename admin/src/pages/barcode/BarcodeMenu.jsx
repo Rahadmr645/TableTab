@@ -27,16 +27,11 @@ const BarcodeMenu = () => {
 
     try {
       const query = id ? `?table=${encodeURIComponent(id)}` : "";
-      const [qrRes, bcRes] = await Promise.all([
-        axios.get(`${URL}/api/qr/generate${query}`, { headers }),
-        axios.get(`${URL}/api/qr/barcode${query}`, { headers }),
-      ]);
-      const link = qrRes.data?.link || bcRes.data?.link;
+      const qrRes = await axios.get(`${URL}/api/qr/generate${query}`, { headers });
       setPayload({
         tableId: id,
-        link,
+        link: qrRes.data?.link,
         qrImage: qrRes.data?.qrImage,
-        barcodeImage: bcRes.data?.barcodeImage,
       });
     } catch (e) {
       console.error(e);
@@ -88,11 +83,7 @@ const BarcodeMenu = () => {
             ? `<img src="${payload.qrImage}" style="width: 300px; max-width: 100%;" />`
             : ""
         }
-        ${
-          payload.barcodeImage
-            ? `<div style="margin-top: 30px;"><img src="${payload.barcodeImage}" style="width: 300px; max-width: 100%;" /></div>`
-            : ""
-        }
+
         <p style="margin-top: 30px; font-size: 14px; color: #555; word-break: break-all;">
           ${payload.link}
         </p>
@@ -125,9 +116,9 @@ const BarcodeMenu = () => {
           <div className="barcode-title-row">
             <FaBarcode className="barcode-title-icon" aria-hidden />
             <div>
-              <h1 className="barcode-title">Table barcode & QR</h1>
+              <h1 className="barcode-title">Table QR code</h1>
               <p className="barcode-lead">
-                Guests who scan either code open the{" "}
+                Guests who scan the QR code open the{" "}
                 <strong>menu</strong> for this table. Set{" "}
                 <code className="barcode-code">CLEINT_URL</code> on the server
                 to your customer app URL (e.g.{" "}
@@ -168,16 +159,7 @@ const BarcodeMenu = () => {
               {payload.tableId ? `Table · ${payload.tableId}` : "Restaurant Menu Link"}
             </p>
             <div className="barcode-grid">
-              <figure className="barcode-card">
-                <figcaption>Barcode (CODE128)</figcaption>
-                {payload.barcodeImage ? (
-                  <img
-                    src={payload.barcodeImage}
-                    alt={`Barcode linking to menu for table ${payload.tableId}`}
-                    className="barcode-img barcode-img--wide"
-                  />
-                ) : null}
-              </figure>
+
               <figure className="barcode-card">
                 <figcaption>QR code</figcaption>
                 {payload.qrImage ? (

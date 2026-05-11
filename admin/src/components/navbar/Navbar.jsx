@@ -131,6 +131,11 @@ const Navbar = () => {
                 <span className="admin-navbar__role">{admin.role}</span>
               ) : null}
             </div>
+            {admin && admin.companyName ? (
+              <span className="admin-navbar__company-mobile">
+                {admin.companyName}
+              </span>
+            ) : null}
           </div>
 
           <nav className="admin-navbar__nav" aria-label="Primary">

@@ -150,14 +150,48 @@
 
 .barcode-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  grid-template-columns: 1fr;
+  max-width: 400px;
+  margin: 0 auto 20px;
 }
 
 @media (max-width: 720px) {
   .barcode-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .barcode-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .barcode-btn {
+    width: 100%;
+  }
+  
+  .barcode-title {
+    font-size: 1.25rem;
+  }
+  
+  .barcode-card {
+    overflow-x: auto;
+    padding: 16px 12px;
+  }
+  
+  .barcode-img--wide {
+    width: auto;
+    max-width: none;
+    height: 80px;
+    margin: 0 auto;
+  }
+  
+  .barcode-link-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .barcode-link-row > .barcode-btn {
+    width: 100%;
   }
 }
 

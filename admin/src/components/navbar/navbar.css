@@ -106,6 +106,17 @@
   border-radius: 999px;
 }
 
+.admin-navbar__company-mobile {
+  display: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Center nav rail */
 .admin-navbar__nav {
   flex: 1;
@@ -411,6 +422,10 @@ button.admin-navbar__link {
     display: none;
   }
 
+  .admin-navbar__company-mobile {
+    display: block;
+  }
+
   .admin-navbar__btn {
     padding: 9px 14px;
     font-size: 0.75rem;
@@ -418,5 +433,15 @@ button.admin-navbar__link {
 
   .admin-navbar__menu-label {
     display: none;
+  }
+
+  /* Hide text labels on mobile for the navbar rail links */
+  .admin-navbar__rail > .admin-navbar__link span {
+    display: none;
+  }
+
+  /* Make icons a bit larger to compensate for removed text */
+  .admin-navbar__rail > .admin-navbar__link .admin-navbar__link-icon {
+    font-size: 1.25rem;
   }
 }

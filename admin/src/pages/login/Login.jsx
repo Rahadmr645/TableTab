@@ -89,7 +89,7 @@ const Login = () => {
         alert("Enter your password.");
         return;
       }
-      if (URL == null || URL === "") {
+      if (URL == null) {
         alert(
           "Missing VITE_API_URL in admin/.env. Set your API base URL and rebuild the admin app.",
         );

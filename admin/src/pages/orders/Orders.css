@@ -137,12 +137,41 @@
   overflow: hidden;
 }
 
+.order-row--owner {
+  grid-template-columns: minmax(80px, 0.7fr) minmax(110px, 1.2fr) minmax(90px, 0.9fr) minmax(80px, 0.7fr) auto;
+}
+
+@media (max-width: 600px) {
+  .order-row, .order-row--owner {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
 .order-row::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
   height: 2px;
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.8), rgba(250, 204, 21, 0.75));
+}
+
+.order-print-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.order-print-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .order-row-col {

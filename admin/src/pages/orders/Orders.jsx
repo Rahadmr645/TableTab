@@ -4,6 +4,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { SocketContext } from "../../context/SocketContext";
 import axios from "axios";
 import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
+import ReceiptPreviewModal from "@shared/ReceiptPreviewModal.jsx";
 import "./Orders.css";
 
 function normalizeStatusKey(status) {
@@ -16,11 +17,12 @@ function normalizeStatusKey(status) {
 }
 
 const Orders = () => {
-  const { URL } = useContext(AuthContext);
+  const { URL, admin } = useContext(AuthContext);
   const { socket } = useContext(SocketContext);
   const [allOrderList, setAllOrderList] = useState([]);
   const [tickMs, setTickMs] = useState(Date.now());
   const [activeTab, setActiveTab] = useState("waiting"); // 'waiting', 'current', 'finished'
+  const [previewOrder, setPreviewOrder] = useState(null);
 
   const sortNewestFirst = (orders) =>
     [...orders].sort(
@@ -125,6 +127,90 @@ const Orders = () => {
 
   const visibleOrders = getVisibleOrders();
 
+  const isChef = admin?.role === "chef";
+
+  const printSlip = (order) => {
+    setPreviewOrder(order);
+  };
+
+  if (!isChef) {
+    return (
+      <div className="orders-page">
+        <div className="orders-container">
+          <div className="orders-header" style={{ marginBottom: "20px" }}>
+            <h1 className="orders-title">All Orders</h1>
+          </div>
+          {allOrderList.length === 0 ? (
+            <p className="orders-empty">No orders found.</p>
+          ) : (
+            <div className="orders-list">
+              <p className="orders-subline">
+                Showing {allOrderList.length} order{allOrderList.length !== 1 ? "s" : ""}
+              </p>
+
+              {allOrderList.map((order) => {
+                const statusKey = normalizeStatusKey(order.status);
+                
+                return (
+                  <article
+                    key={order._id}
+                    className="order-row order-row--owner"
+                    data-status={statusKey}
+                  >
+                    <div className="order-row-col">
+                      <span className="order-row-label">Order #</span>
+                      <strong className="order-row-value">
+                        {order.dailyOrderNumber != null
+                          ? order.dailyOrderNumber
+                          : order._id.slice(-6).toUpperCase()}
+                      </strong>
+                    </div>
+
+                    <div className="order-row-col">
+                      <span className="order-row-label">Name</span>
+                      <strong className="order-row-value">
+                        {order.customerName || "Guest"}
+                      </strong>
+                    </div>
+
+                    <div className="order-row-col">
+                      <span className="order-row-label">Status</span>
+                      <span className={`order-status order-status--${statusKey}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    
+                    <div className="order-row-col">
+                      <span className="order-row-label">Total</span>
+                      <strong className="order-row-value" style={{ color: "#a5f3fc" }}>
+                        ${Number(order.totalPrice || 0).toFixed(2)}
+                      </strong>
+                    </div>
+
+                    <div className="order-row-col" style={{ alignItems: "flex-end", justifyContent: "center" }}>
+                      <button 
+                        className="order-print-btn" 
+                        onClick={() => printSlip(order)}
+                      >
+                        Preview Slip
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {previewOrder && (
+          <ReceiptPreviewModal
+            order={previewOrder}
+            onClose={() => setPreviewOrder(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="orders-page">
       <div className="orders-container">
@@ -219,6 +305,12 @@ const Orders = () => {
           </div>
         )}
       </div>
+      {previewOrder && (
+        <ReceiptPreviewModal
+          order={previewOrder}
+          onClose={() => setPreviewOrder(null)}
+        />
+      )}
     </div>
   );
 };
