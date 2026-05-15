@@ -78,9 +78,10 @@ export const RECEIPT_CSS = `
 /**
  * @param {Record<string, unknown>} order
  * @param {Date} [printTime]
+ * @param {{ businessName?: string, logoUrl?: string }} [opts]
  * @returns {Promise<{ wrap: HTMLElement, root: HTMLElement }>}
  */
-export async function buildReceiptRoot(order, printTime = new Date()) {
+export async function buildReceiptRoot(order, printTime = new Date(), opts = {}) {
   if (!order || typeof order !== "object") {
     throw new Error("Invalid order");
   }
@@ -99,7 +100,16 @@ export async function buildReceiptRoot(order, printTime = new Date()) {
     0,
   );
 
-  const businessName = readEnv("VITE_RECEIPT_BUSINESS_NAME", "TableTab");
+  let fallbackBizName = "TableTab";
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      const stored = sessionStorage.getItem("tabletab_public_tenant_name");
+      if (stored) fallbackBizName = stored;
+    }
+  } catch (e) {}
+
+  const businessName = opts.businessName || readEnv("VITE_RECEIPT_BUSINESS_NAME", fallbackBizName);
+  const logoUrl = opts.logoUrl || null;
   const branchLine = readEnv(
     "VITE_RECEIPT_BRANCH_LINE",
     "Branch 1 · Main location",
@@ -146,10 +156,14 @@ export async function buildReceiptRoot(order, printTime = new Date()) {
   const styleEl = document.createElement("style");
   styleEl.textContent = RECEIPT_CSS;
 
+  const bizHeader = logoUrl
+    ? `<div class="tt-r-logo" style="text-align:center; margin-bottom: 6px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(businessName)}" style="max-width: 120px; max-height: 80px; display: inline-block; filter: grayscale(100%);" /></div>`
+    : `<div class="tt-r-biz">${escapeHtml(businessName)}</div>`;
+
   const wrap = document.createElement("div");
   wrap.className = "tt-r";
   wrap.innerHTML = `
-    <div class="tt-r-biz">${escapeHtml(businessName)}</div>
+    ${bizHeader}
     <div class="tt-r-sub">${escapeHtml(branchLine)}</div>
     ${
       taxId
@@ -209,17 +223,18 @@ export async function buildReceiptRoot(order, printTime = new Date()) {
  * @param {HTMLElement | null} container
  * @param {Record<string, unknown>} order
  * @param {Date} printTime
+ * @param {{ businessName?: string, logoUrl?: string }} [opts]
  */
-export async function mountReceiptPreview(container, order, printTime) {
+export async function mountReceiptPreview(container, order, printTime, opts = {}) {
   if (!container || !order) return;
   container.innerHTML = "";
-  const { root } = await buildReceiptRoot(order, printTime);
+  const { root } = await buildReceiptRoot(order, printTime, opts);
   container.appendChild(root);
 }
 
 /**
  * @param {Record<string, unknown>} order
- * @param {{ printTime?: Date }} [opts] Use same print time as preview so PDF matches screen.
+ * @param {{ printTime?: Date, businessName?: string, logoUrl?: string }} [opts] Use same print time as preview so PDF matches screen.
  */
 export async function downloadOrderReceiptPdf(order, opts = {}) {
   if (!order || typeof order !== "object") return;
@@ -233,7 +248,7 @@ export async function downloadOrderReceiptPdf(order, opts = {}) {
   host.style.left = "-99999px";
   host.style.top = "0";
 
-  const { wrap, root } = await buildReceiptRoot(order, printTime);
+  const { wrap, root } = await buildReceiptRoot(order, printTime, opts);
   host.appendChild(root);
   document.body.appendChild(host);
 

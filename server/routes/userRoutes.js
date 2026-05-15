@@ -13,9 +13,9 @@ import { stripForbiddenTenantFields } from "../middlewares/tenantMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", stripForbiddenTenantFields, userCreate);
+router.post("/create", userCreate);
 
-router.post("/login", stripForbiddenTenantFields, userLogin);
+router.post("/login", userLogin);
 
 router.get("/me", requireCustomerAuth, getMe);
 

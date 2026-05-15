@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Menu from "../models/Menu.js";
 import Category from "../models/Category.js";
+import Order from "../models/OrderModel.js";
+import { getBusinessDayKey } from "../utils/orderNumbers.js";
 import { invalidateMenuNameMapCache } from "../utils/resolveMenuLine.js";
 import {
   uploadImageBuffer,
@@ -122,13 +124,25 @@ export const addMenu = async (req, res) => {
 export const getMenu = async (req, res) => {
   try {
     const filter = menuReadFilter(req);
-    const menuItems = await Menu.find(filter)
-      .select(
-        "name price description image category categoryId branchId options soldCount likeCount dislikeCount commentCount ratingSum ratingCount",
-      )
-      .lean();
+    
+    const [menuItems, labels, todaySalesAgg] = await Promise.all([
+      Menu.find(filter)
+        .select(
+          "name price description image category categoryId branchId options soldCount likeCount dislikeCount commentCount ratingSum ratingCount",
+        )
+        .lean(),
+      loadCategoryLabels(req.tenantId),
+      Order.aggregate([
+        { $match: { tenantId: req.tenantId, businessDay: getBusinessDayKey() } },
+        { $unwind: "$items" },
+        { $group: { _id: "$items.menuItemId", qty: { $sum: "$items.quantity" } } }
+      ])
+    ]);
 
-    const labels = await loadCategoryLabels(req.tenantId);
+    const salesMap = {};
+    for (const s of todaySalesAgg) {
+      if (s._id) salesMap[String(s._id)] = s.qty;
+    }
 
     const enriched = menuItems.map((o) => {
       const ratingCount = Number(o.ratingCount) || 0;
@@ -142,6 +156,7 @@ export const getMenu = async (req, res) => {
       return {
         ...o,
         soldCount: o.soldCount ?? 0,
+        soldToday: salesMap[String(o._id)] ?? 0,
         likeCount: o.likeCount ?? 0,
         dislikeCount: o.dislikeCount ?? 0,
         commentCount,

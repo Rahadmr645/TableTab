@@ -4,6 +4,8 @@ import { io } from "socket.io-client";
 import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 import { api } from "../utils/api.js";
 
+import { getStoredTenantId } from "../utils/tenantContext.js";
+
 export const SocketContext = createContext();
 
 /** Kitchen / guest prep countdown length (seconds); keep in sync with UI copy. */
@@ -48,6 +50,10 @@ export const SocketContextProvider = ({ children }) => {
 
     newSocket.on("connect", () => {
       console.log(" Socket connected:", newSocket.id);
+      const tid = getStoredTenantId();
+      if (tid) {
+        newSocket.emit("joinTenant", tid);
+      }
     });
 
     const refetchActiveOrders = async () => {

@@ -7,9 +7,9 @@ import "./ReceiptPreviewModal.css";
 
 /**
  * Modal: shows thermal-style receipt preview, then optional PDF download.
- * @param {{ order: Record<string, unknown> | null, onClose: () => void }} props
+ * @param {{ order: Record<string, unknown> | null, businessName?: string, logoUrl?: string, onClose: () => void }} props
  */
-export default function ReceiptPreviewModal({ order, onClose }) {
+export default function ReceiptPreviewModal({ order, businessName, logoUrl, onClose }) {
   const viewportRef = useRef(null);
   const printTimeRef = useRef(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -29,7 +29,7 @@ export default function ReceiptPreviewModal({ order, onClose }) {
       if (!host || cancelled) return;
       setPreviewBusy(true);
       try {
-        await mountReceiptPreview(host, order, stamp);
+        await mountReceiptPreview(host, order, stamp, { businessName, logoUrl });
       } catch (e) {
         console.error(e);
       } finally {
@@ -43,7 +43,7 @@ export default function ReceiptPreviewModal({ order, onClose }) {
       const el = viewportRef.current;
       if (el) el.innerHTML = "";
     };
-  }, [order]);
+  }, [order, businessName, logoUrl]);
 
   useEffect(() => {
     if (!order) return undefined;
@@ -60,6 +60,8 @@ export default function ReceiptPreviewModal({ order, onClose }) {
     try {
       await downloadOrderReceiptPdf(order, {
         printTime: printTimeRef.current || undefined,
+        businessName,
+        logoUrl,
       });
     } catch (e) {
       console.error(e);

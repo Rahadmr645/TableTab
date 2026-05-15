@@ -200,9 +200,11 @@ const SignUp = () => {
     } catch (err) {
       const code = err.response?.data?.code;
       if (code === "TENANT_REQUIRED") {
-        alert(
-          "Enter your restaurant code — this email exists at more than one venue.",
-        );
+        if (isLogin) {
+          alert("Enter your restaurant code — this email exists at more than one venue.");
+        } else {
+          alert("Enter your restaurant code to sign up.");
+        }
       }
       const msg =
         err.response?.data?.message ||

@@ -477,8 +477,50 @@ button.menu-stat {
   border: 1px solid rgba(45, 212, 191, 0.25);
 }
 
+.menu-review-trigger-btn {
+  width: 100%;
+  margin: 12px 0 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.05);
+  color: #fde047;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-review-trigger-btn:hover {
+  background: rgba(250, 204, 21, 0.12);
+  border-style: solid;
+}
+
+.menu-item-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.menu-item-review-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.menu-item-review-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .menu-item-review-title {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.02em;

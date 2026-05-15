@@ -277,9 +277,14 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    const updateData = { status };
+    if (String(status || "").toLowerCase().replace(/\s+/g, "") === "ready" && !prev.readyAt) {
+      updateData.readyAt = new Date();
+    }
+
     const updatedOrder = await Order.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
-      { status },
+      updateData,
       { new: true },
     );
     const tid = String(req.tenantId);

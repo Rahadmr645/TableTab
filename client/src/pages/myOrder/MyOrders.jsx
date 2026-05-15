@@ -283,14 +283,38 @@ const MyOrders = () => {
     return () => clearInterval(id);
   }, [myOrders]);
 
+  // Ensure we are in the correct socket room for these orders
+  useEffect(() => {
+    if (socket && myOrders && myOrders.length > 0) {
+      const tid = myOrders[0].tenantId;
+      if (tid) {
+        socket.emit("joinTenant", String(tid));
+      }
+    }
+  }, [socket, myOrders]);
+
   useEffect(() => {
     if (!socket) return;
-    const onUpdated = () => {
+    const onUpdated = (orderPayload) => {
+      if (orderPayload && orderPayload._id) {
+        setMyOrders((prev) =>
+          prev.map((o) => (o._id === orderPayload._id ? { ...o, ...orderPayload } : o))
+        );
+      }
       fetchMyOrders({ silent: true });
     };
+    
+    const onRemoved = () => {
+      fetchMyOrders({ silent: true });
+    };
+
     socket.on("orderUpdated", onUpdated);
-    return () => socket.off("orderUpdated", onUpdated);
-  }, [socket, fetchMyOrders]);
+    socket.on("orderRemoved", onRemoved);
+    return () => {
+      socket.off("orderUpdated", onUpdated);
+      socket.off("orderRemoved", onRemoved);
+    };
+  }, [socket, fetchMyOrders, setMyOrders]);
 
   useEffect(() => {
     if (!socket) return;
@@ -593,6 +617,11 @@ const MyOrders = () => {
                   <p className="order-meta-placed">
                     {new Date(order.createdAt).toLocaleString()}
                   </p>
+                  {order.readyAt && (
+                    <p className="order-meta-ready" style={{ fontSize: '0.875rem', color: '#10b981', marginTop: '2px' }}>
+                      Ready at: {new Date(order.readyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
                   <p className="my-order-pdf-row">
                     <button
                       type="button"

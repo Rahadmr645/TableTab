@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from "react"
 import { io } from "socket.io-client";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { API_BASE_URL } from "../utils/apiBaseUrl.js";
 import { playNewOrderAlert, showNewOrderNotification } from "../utils/orderAlerts.js";
 import { addChefNotificationFromOrder } from "../utils/chefNotificationStore.js";
@@ -59,6 +60,17 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on("connect", () => {
       console.log(" Socket connected:", newSocket.id);
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          if (decoded?.tenantId) {
+            newSocket.emit("joinTenant", String(decoded.tenantId));
+          }
+        } catch (e) {
+          console.error("Socket joinTenant failed:", e);
+        }
+      }
       refetchActiveOrders();
     });
 

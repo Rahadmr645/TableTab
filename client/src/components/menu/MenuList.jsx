@@ -40,6 +40,7 @@ const MenuList = () => {
 
   const [itemVotes, setItemVotes] = useState({});
   const [expandedId, setExpandedId] = useState(null);
+  const [reviewExpandedId, setReviewExpandedId] = useState(null);
   const [commentsByItem, setCommentsByItem] = useState({});
   const [commentName, setCommentName] = useState("");
   const [commentText, setCommentText] = useState("");
@@ -330,6 +331,7 @@ const MenuList = () => {
         delete next[dk];
         return next;
       });
+      setReviewExpandedId(null);
     } catch (err) {
       const msg = err.response?.data?.message || "Could not save review.";
       alert(msg);
@@ -387,10 +389,10 @@ const MenuList = () => {
           filteredItems.length > 0 ? (
           filteredItems.map((item) => {
             const id = item._id;
-            const sold = item.soldCount ?? 0;
+            const sold = item.soldToday ?? item.soldCount ?? 0;
             const likes = item.likeCount ?? 0;
             const dislikes = item.dislikeCount ?? 0;
-            const commentsN = item.commentCount ?? 0;
+            const commentsN = item.feedbackThreadCount ?? ((item.commentCount ?? 0) + (item.ratingCount ?? 0));
             const reviewCount = item.ratingCount ?? 0;
             const avg = item.averageRating;
             const myVote = itemVotes[id];
@@ -527,122 +529,13 @@ const MenuList = () => {
                     </button>
                   </div>
 
-                  {canEngage && (
-                    <div className="menu-vote-row">
-                      <button
-                        type="button"
-                        className={`menu-vote-btn ${myVote === "like" ? "is-on" : ""}`}
-                        disabled={voteBusy === id}
-                        onClick={() => handleVote(id, "like")}
-                        aria-pressed={myVote === "like"}
-                      >
-                        <FaThumbsUp aria-hidden /> Like
-                      </button>
-                      <button
-                        type="button"
-                        className={`menu-vote-btn menu-vote-btn--down ${myVote === "dislike" ? "is-on" : ""}`}
-                        disabled={voteBusy === id}
-                        onClick={() => handleVote(id, "dislike")}
-                        aria-pressed={myVote === "dislike"}
-                      >
-                        <FaThumbsDown aria-hidden /> Unlike
-                      </button>
-                    </div>
-                  )}
-
-                  {canEngage &&
-                    itemPending.length > 0 &&
-                    pickOrderId &&
-                    reviewDraftKey && (
-                      <div className="menu-item-review">
-                        <p className="menu-item-review-title">
-                          Review this dish
-                        </p>
-                        <p className="menu-item-review-sub">
-                          1–5 stars count toward the menu average. One review per
-                          order.
-                        </p>
-                        {itemPending.length > 1 && (
-                          <label className="menu-review-order-pick">
-                            <span>Order</span>
-                            <select
-                              value={pickOrderId}
-                              onChange={(e) =>
-                                setReviewOrderPick((prev) => ({
-                                  ...prev,
-                                  [id]: e.target.value,
-                                }))
-                              }
-                            >
-                              {itemPending.map((p) => (
-                                <option key={p.orderId} value={p.orderId}>
-                                  {new Date(p.createdAt).toLocaleString()}
-                                  {p.itemName ? ` · ${p.itemName}` : ""}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
-                        <div
-                          className="menu-item-review-stars"
-                          role="group"
-                          aria-label="Star rating"
-                        >
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <button
-                              key={n}
-                              type="button"
-                              className={
-                                (reviewDraft.rating || 0) >= n ? "is-on" : ""
-                              }
-                              onClick={() =>
-                                setItemReviewField(reviewDraftKey, {
-                                  rating: n,
-                                })
-                              }
-                              aria-label={`${n} stars`}
-                            >
-                              ★
-                            </button>
-                          ))}
-                        </div>
-                        <textarea
-                          className="menu-item-review-textarea"
-                          rows={2}
-                          maxLength={800}
-                          placeholder="Optional: how was it?"
-                          value={reviewDraft.comment || ""}
-                          onChange={(e) =>
-                            setItemReviewField(reviewDraftKey, {
-                              comment: e.target.value,
-                            })
-                          }
-                        />
-                        <button
-                          type="button"
-                          className="menu-item-review-submit"
-                          disabled={
-                            itemReviewSubmitting === reviewDraftKey
-                          }
-                          onClick={() =>
-                            submitItemReview(id, pickOrderId)
-                          }
-                        >
-                          {itemReviewSubmitting === reviewDraftKey
-                            ? "Saving…"
-                            : "Submit review"}
-                        </button>
-                      </div>
-                    )}
 
                   {expandedId === id && (
                     <div className="menu-comments-panel">
                       <ul className="menu-comment-list">
                         {(commentsByItem[id] || []).length === 0 ? (
                           <li className="menu-comment-empty">
-                            {canEngage
-                              ? "No comments yet—be the first."
-                              : "No comments yet."}
+                            No comments yet.
                           </li>
                         ) : (
                           (commentsByItem[id] || []).map((c) => (
@@ -667,44 +560,6 @@ const MenuList = () => {
                           ))
                         )}
                       </ul>
-                      {canEngage ? (
-                        <form
-                          className="menu-comment-form"
-                          onSubmit={(e) => submitComment(e, id)}
-                        >
-                          <p className="menu-comment-hint">
-                            Your note is visible to everyone browsing the menu
-                          </p>
-                          <input
-                            type="text"
-                            placeholder="Your name"
-                            value={commentName}
-                            onChange={(e) => setCommentName(e.target.value)}
-                            maxLength={80}
-                            className="menu-comment-input"
-                          />
-                          <textarea
-                            placeholder="Was it good? Anything others should know?"
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            maxLength={500}
-                            rows={2}
-                            className="menu-comment-textarea"
-                          />
-                          <button
-                            type="submit"
-                            className="menu-comment-submit"
-                            disabled={commentBusy === id}
-                          >
-                            Post comment
-                          </button>
-                        </form>
-                      ) : (
-                        <p className="menu-comment-locked">
-                          Comments are only for guests who ordered this dish on
-                          this device.
-                        </p>
-                      )}
                     </div>
                   )}
 

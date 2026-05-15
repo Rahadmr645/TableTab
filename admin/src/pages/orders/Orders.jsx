@@ -119,15 +119,34 @@ const Orders = () => {
     return statusKey === "done";
   });
 
-  const getVisibleOrders = () => {
-    if (activeTab === "waiting") return waitingOrders;
-    if (activeTab === "current") return currentOrders;
-    return finishedOrders;
+  const visibleOrders = 
+    activeTab === "waiting" ? waitingOrders :
+    activeTab === "current" ? currentOrders :
+    finishedOrders;
+
+  const isChef = admin?.role === "chef" || admin?.role === "barista";
+
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${URL}/api/order/${orderId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...getStaffTenantHeaders()
+          }
+        }
+      );
+      // Optional: optimistic update, but socket will refresh it anyway
+    } catch (err) {
+      console.error("Failed to update status", err);
+      alert("Failed to update status");
+    }
   };
-
-  const visibleOrders = getVisibleOrders();
-
-  const isChef = admin?.role === "chef";
 
   const printSlip = (order) => {
     setPreviewOrder(order);
@@ -164,6 +183,14 @@ const Orders = () => {
                           ? order.dailyOrderNumber
                           : order._id.slice(-6).toUpperCase()}
                       </strong>
+                      <span className="order-row-date">
+                        {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                      {order.readyAt && (
+                        <span className="order-row-date" style={{ color: '#a5f3fc', marginTop: '4px' }}>
+                          Ready at {new Date(order.readyAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      )}
                     </div>
 
                     <div className="order-row-col">
@@ -204,6 +231,7 @@ const Orders = () => {
         {previewOrder && (
           <ReceiptPreviewModal
             order={previewOrder}
+            businessName={admin?.companyName}
             onClose={() => setPreviewOrder(null)}
           />
         )}
@@ -260,42 +288,119 @@ const Orders = () => {
               return (
                 <article
                   key={order._id}
-                  className="order-row"
+                  className={`order-row ${expandedOrderId === order._id ? "order-row--expanded" : ""}`}
                   data-status={statusKey}
                 >
-                  <div className="order-row-col">
-                    <span className="order-row-label">Order #</span>
-                    <strong className="order-row-value">
-                      {order.dailyOrderNumber != null
-                        ? order.dailyOrderNumber
-                        : order._id.slice(-6).toUpperCase()}
-                    </strong>
-                  </div>
-
-                  <div className="order-row-col">
-                    <span className="order-row-label">Name</span>
-                    <strong className="order-row-value">
-                      {order.customerName || "Guest"}
-                    </strong>
-                  </div>
-
-                  <div className="order-row-col">
-                    <span className="order-row-label">Status</span>
-                    <span className={`order-status order-status--${statusKey}`}>
-                      {order.status}
-                    </span>
-                  </div>
-
-                  {activeTab !== "finished" && (
+                  <div 
+                    className="order-row-header" 
+                    onClick={() => setExpandedOrderId(prev => prev === order._id ? null : order._id)}
+                    style={{ cursor: "pointer", display: "flex", flexWrap: "wrap", width: "100%", gap: "10px 14px", alignItems: "center" }}
+                  >
                     <div className="order-row-col">
-                      <span className="order-row-label">Timer</span>
-                      <div className="order-row-timer-wrap">
-                        <span className={`order-row-timer ${timerClass}`}>
-                          {formatTime(remaining)}
+                      <span className="order-row-label">Order #</span>
+                      <strong className="order-row-value">
+                        {order.dailyOrderNumber != null
+                          ? order.dailyOrderNumber
+                          : order._id.slice(-6).toUpperCase()}
+                      </strong>
+                      <span className="order-row-date">
+                        {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                      {order.readyAt && (
+                        <span className="order-row-date" style={{ color: '#a5f3fc', marginTop: '4px' }}>
+                          Ready at {new Date(order.readyAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                         </span>
-                        {isTimeUp ? (
-                          <span className="order-row-timeup">Time up</span>
-                        ) : null}
+                      )}
+                    </div>
+
+                    <div className="order-row-col">
+                      <span className="order-row-label">Name</span>
+                      <strong className="order-row-value">
+                        {order.customerName || "Guest"}
+                      </strong>
+                    </div>
+
+                    <div className="order-row-col">
+                      <span className="order-row-label">Status</span>
+                      <span className={`order-status order-status--${statusKey}`}>
+                        {order.status}
+                      </span>
+                    </div>
+
+                    {activeTab !== "finished" && (
+                      <div className="order-row-col">
+                        <span className="order-row-label">Timer</span>
+                        <div className="order-row-timer-wrap">
+                          <span className={`order-row-timer ${timerClass}`}>
+                            {formatTime(remaining)}
+                          </span>
+                          {isTimeUp ? (
+                            <span className="order-row-timeup">Time up</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {expandedOrderId === order._id && (
+                    <div className="order-details-pane">
+                      <div className="order-details-items">
+                        <h4 className="order-details-title">Order Items</h4>
+                        <ul className="order-item-list">
+                          {(order.items || []).map((item, idx) => (
+                            <li key={idx} className="order-item">
+                              <span className="order-item-qty">{item.quantity}x</span>
+                              <div className="order-item-info">
+                                <span className="order-item-name">{item.menuItemName || item.name}</span>
+                                {item.modifiers && item.modifiers.length > 0 && (
+                                  <div className="order-item-mods">
+                                    {item.modifiers.map((m, midx) => (
+                                      <span key={midx} className="order-item-mod">{m.name}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                        {order.note && (
+                          <div className="order-details-note">
+                            <strong>Note:</strong> {order.note}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="order-details-actions">
+                        {statusKey === "pending" && (
+                          <button 
+                            className="order-action-btn btn-start-cooking"
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order._id, "Cooking"); }}
+                          >
+                            Start Cooking
+                          </button>
+                        )}
+                        {statusKey === "cooking" && (
+                          <button 
+                            className="order-action-btn btn-ready"
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order._id, "Ready"); }}
+                          >
+                            Ready to Serve
+                          </button>
+                        )}
+                        {statusKey === "ready" && (
+                          <button 
+                            className="order-action-btn btn-finish"
+                            onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order._id, "Finished"); }}
+                          >
+                            Finish Order
+                          </button>
+                        )}
+                        <button 
+                          className="order-action-btn btn-print"
+                          onClick={(e) => { e.stopPropagation(); printSlip(order); }}
+                        >
+                          Print Slip
+                        </button>
                       </div>
                     </div>
                   )}
@@ -308,6 +413,7 @@ const Orders = () => {
       {previewOrder && (
         <ReceiptPreviewModal
           order={previewOrder}
+          businessName={admin?.companyName}
           onClose={() => setPreviewOrder(null)}
         />
       )}

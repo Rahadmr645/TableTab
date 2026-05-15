@@ -61,6 +61,10 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  readyAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 /** One daily sequence # per business day within tenant + outlet (`branchKey`) */
