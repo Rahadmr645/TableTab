@@ -283,14 +283,25 @@ const MyOrders = () => {
     return () => clearInterval(id);
   }, [myOrders]);
 
-  // Ensure we are in the correct socket room for these orders
+  // Ensure we are in the correct socket room for these orders (rejoining on reconnection)
   useEffect(() => {
-    if (socket && myOrders && myOrders.length > 0) {
-      const tid = myOrders[0].tenantId;
-      if (tid) {
-        socket.emit("joinTenant", String(tid));
+    if (!socket) return;
+
+    const joinRoom = () => {
+      if (myOrders && myOrders.length > 0) {
+        const tid = myOrders[0].tenantId;
+        if (tid) {
+          socket.emit("joinTenant", String(tid));
+        }
       }
-    }
+    };
+
+    joinRoom();
+
+    socket.on("connect", joinRoom);
+    return () => {
+      socket.off("connect", joinRoom);
+    };
   }, [socket, myOrders]);
 
   useEffect(() => {

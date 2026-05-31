@@ -65,6 +65,16 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  completedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+    index: true,
+  },
+  completedAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 /** One daily sequence # per business day within tenant + outlet (`branchKey`) */

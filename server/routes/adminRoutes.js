@@ -5,6 +5,9 @@ import {
   adminLogin,
   fetchAdmin,
   listStaff,
+  getChefCompletedOrdersToday,
+  updateStaffStatus,
+  deleteStaff,
 } from "../controllers/adminController.js";
 import uploadAdmin from "../middlewares/memoryMulter.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
@@ -33,6 +36,33 @@ router.get(
   requireStaffAccount,
   requireRole(["owner", "manager"]),
   listStaff,
+);
+
+router.put(
+  "/staff/:staffId/status",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner", "manager"]),
+  updateStaffStatus,
+);
+
+router.delete(
+  "/staff/:staffId",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner", "manager"]),
+  deleteStaff,
+);
+
+router.get(
+  "/staff/:chefId/completed-today",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner", "manager"]),
+  getChefCompletedOrdersToday,
 );
 
 router.get(

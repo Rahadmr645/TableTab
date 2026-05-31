@@ -51,9 +51,14 @@ export const QRCodegen = async (req, res) => {
 
     let tableCodeOrLabel = "";
     if (tableRef) {
-      const table = await findTableByReference(req.tenantId, tableRef);
+      let table = await findTableByReference(req.tenantId, tableRef);
       if (!table) {
-        return res.status(404).json({ message: "Table not found for this tenant" });
+        // Auto-create the table so it exists for the tenant
+        table = await Table.create({
+          tenantId: req.tenantId,
+          label: tableRef,
+          code: tableRef,
+        });
       }
       tableCodeOrLabel = table.code?.trim() || table.label || String(table._id);
     }
@@ -88,9 +93,14 @@ export const barcodeCodegen = async (req, res) => {
 
     let tableCodeOrLabel = "";
     if (tableRef) {
-      const table = await findTableByReference(req.tenantId, tableRef);
+      let table = await findTableByReference(req.tenantId, tableRef);
       if (!table) {
-        return res.status(404).json({ message: "Table not found for this tenant" });
+        // Auto-create the table so it exists for the tenant
+        table = await Table.create({
+          tenantId: req.tenantId,
+          label: tableRef,
+          code: tableRef,
+        });
       }
       tableCodeOrLabel = table.code?.trim() || table.label || String(table._id);
     }

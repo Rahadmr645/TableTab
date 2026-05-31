@@ -255,3 +255,122 @@
   line-height: 1.45;
   color: var(--text-muted, #9ca3af);
 }
+
+/* Table QR Grid and Cards */
+.barcode-table-results-section {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.08);
+}
+
+.barcode-table-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.barcode-subtitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text, #e5e7eb);
+  margin: 0;
+}
+
+.barcode-btn--clear {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #fecdd3;
+  border-radius: 8px;
+}
+
+.barcode-btn--clear:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.barcode-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.barcode-table-item-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.barcode-table-item-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent, #fbbf24);
+}
+
+.barcode-table-item-header {
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.barcode-table-item-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--accent, #fbbf24);
+  font-weight: 700;
+}
+
+.barcode-table-item-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  flex: 1;
+}
+
+.barcode-table-item-img {
+  width: 140px;
+  height: 140px;
+  background: white;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.barcode-table-item-link {
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 6px 8px;
+  border-radius: 6px;
+  word-break: break-all;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.barcode-table-item-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.barcode-table-item-actions .barcode-btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 0.72rem;
+  border-radius: 6px;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+}

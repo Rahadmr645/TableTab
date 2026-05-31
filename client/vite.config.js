@@ -27,7 +27,8 @@ export default defineConfig(({ mode }) => {
         // Dev: Workbox-generated SW + Vite 7 can hit "Source phase import ... _version.js"
         // errors; production build is unaffected. Test install via `npm run build && npm run preview`.
         devOptions: {
-          enabled: false,
+          enabled: true,
+          type: "module",
         },
         manifest: {
           id: "/",
@@ -43,19 +44,19 @@ export default defineConfig(({ mode }) => {
           lang: "en",
           icons: [
             {
-              src: "pwa-192.png",
+              src: "/pwa-192.png",
               sizes: "192x192",
               type: "image/png",
               purpose: "any",
             },
             {
-              src: "pwa-512.png",
+              src: "/pwa-512.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "any",
             },
             {
-              src: "pwa-512.png",
+              src: "/pwa-512.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "maskable",
@@ -63,7 +64,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+          globPatterns: mode === "production" ? ["**/*.{js,css,html,ico,png,svg,woff2}"] : [],
           navigateFallbackDenylist: [/^\/api\//],
         },
       }),

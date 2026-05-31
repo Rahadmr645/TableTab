@@ -1,6 +1,8 @@
 import User, { STAFF_ROLES } from "../models/UserModel.js";
 import Tenant from "../models/Tenant.js";
+import Order from "../models/OrderModel.js";
 import bcrypt from "bcryptjs";
+import { getBusinessDayKey } from "../utils/orderNumbers.js";
 import {
   uploadImageBuffer,
   destroyCloudinaryAsset,
@@ -217,9 +219,24 @@ export const listStaff = async (req, res) => {
       .select("-password")
       .sort({ createdAt: -1 });
 
+    const businessDay = getBusinessDayKey();
+    const staffWithStats = await Promise.all(
+      staffList.map(async (member) => {
+        const completedToday = await Order.countDocuments({
+          tenantId,
+          completedBy: member._id,
+          businessDay,
+        });
+        return {
+          ...member.toObject(),
+          completedToday,
+        };
+      })
+    );
+
     res.status(200).json({
       message: "Staff retrieved successfully",
-      staff: staffList,
+      staff: staffWithStats,
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch staff", error: error.message });
@@ -313,5 +330,97 @@ export const updateProfilePic = async (req, res) => {
       message: "Failed to update profile picture",
       error: error.message,
     });
+  }
+};
+
+export const getChefCompletedOrdersToday = async (req, res) => {
+  try {
+    const { chefId } = req.params;
+    const tenantId = req.tenantId;
+    const businessDay = getBusinessDayKey();
+
+    const orders = await Order.find({
+      tenantId,
+      completedBy: chefId,
+      businessDay,
+    }).sort({ completedAt: -1 }).lean();
+
+    res.status(200).json({
+      message: "Completed orders retrieved successfully",
+      orders,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch completed orders", error: error.message });
+  }
+};
+
+export const updateStaffStatus = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const { status } = req.body;
+    const tenantId = req.tenantId;
+
+    if (!["active", "suspended"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const staffMember = await User.findOne({ _id: staffId, tenantId });
+    if (!staffMember) {
+      return res.status(404).json({ message: "Staff member not found" });
+    }
+
+    if (String(staffMember._id) === String(req.user.userId)) {
+      return res.status(400).json({ message: "You cannot change your own status" });
+    }
+
+    if (staffMember.role === "owner") {
+      return res.status(403).json({ message: "You cannot change status of the restaurant owner" });
+    }
+
+    if (req.user.role === "manager" && (staffMember.role === "manager" || staffMember.role === "owner")) {
+      return res.status(403).json({ message: "Managers cannot modify other managers or owners" });
+    }
+
+    staffMember.staffStatus = status;
+    await staffMember.save();
+
+    res.status(200).json({
+      message: `Staff member is now ${status}`,
+      staff: staffMember,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update staff status", error: error.message });
+  }
+};
+
+export const deleteStaff = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+    const tenantId = req.tenantId;
+
+    const staffMember = await User.findOne({ _id: staffId, tenantId });
+    if (!staffMember) {
+      return res.status(404).json({ message: "Staff member not found" });
+    }
+
+    if (String(staffMember._id) === String(req.user.userId)) {
+      return res.status(400).json({ message: "You cannot delete yourself" });
+    }
+
+    if (staffMember.role === "owner") {
+      return res.status(403).json({ message: "You cannot delete the restaurant owner" });
+    }
+
+    if (req.user.role === "manager" && (staffMember.role === "manager" || staffMember.role === "owner")) {
+      return res.status(403).json({ message: "Managers cannot delete other managers or owners" });
+    }
+
+    await User.deleteOne({ _id: staffId, tenantId });
+
+    res.status(200).json({
+      message: "Staff member deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete staff member", error: error.message });
   }
 };

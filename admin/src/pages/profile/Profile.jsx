@@ -39,6 +39,56 @@ const Profile = () => {
     }
   }, [admin, URL]);
 
+  const handleToggleStaffStatus = async (staffId, currentStatus) => {
+    const newStatus = currentStatus === "suspended" ? "active" : "suspended";
+    const confirmMessage = `Are you sure you want to ${newStatus === "suspended" ? "block" : "unblock"} this staff member?`;
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${URL}/api/admin/staff/${staffId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...getStaffTenantHeaders()
+          }
+        }
+      );
+      setStaff((prev) =>
+        prev.map((s) => (s._id === staffId ? { ...s, staffStatus: newStatus } : s))
+      );
+      alert(`Staff status updated successfully to ${newStatus}`);
+    } catch (error) {
+      console.error("Failed to update staff status", error);
+      alert(error.response?.data?.message || "Failed to update staff status");
+    }
+  };
+
+  const handleDeleteStaff = async (staffId, username) => {
+    const confirmMessage = `Are you sure you want to permanently delete staff member "${username}"? This action cannot be undone.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${URL}/api/admin/staff/${staffId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...getStaffTenantHeaders()
+          }
+        }
+      );
+      setStaff((prev) => prev.filter((s) => s._id !== staffId));
+      alert("Staff member deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete staff member", error);
+      alert(error.response?.data?.message || "Failed to delete staff member");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     setAdmin(null);
@@ -104,6 +154,8 @@ const Profile = () => {
               ) : (
                 <div className="admin-profile__staff-list">
                   {staff.map((s) => {
+                    const isSelf = String(s._id) === String(admin?.userId || admin?.id || admin?._id);
+                    const isOwner = s.role === "owner";
                     return (
                       <div key={s._id} className="admin-profile__staff-card">
                         <img 
@@ -120,6 +172,24 @@ const Profile = () => {
                           <span className={`admin-profile__staff-status ${s.staffStatus === 'suspended' ? 'suspended' : 'active'}`}>
                             {s.staffStatus}
                           </span>
+                          {!isSelf && !isOwner && (
+                            <div className="admin-profile__staff-actions">
+                              <button
+                                type="button"
+                                className={`admin-profile__action-btn ${s.staffStatus === 'suspended' ? 'unblock' : 'block'}`}
+                                onClick={() => handleToggleStaffStatus(s._id, s.staffStatus)}
+                              >
+                                {s.staffStatus === 'suspended' ? 'Unblock' : 'Block'}
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-profile__action-btn delete"
+                                onClick={() => handleDeleteStaff(s._id, s.username)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

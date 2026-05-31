@@ -278,8 +278,17 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     const updateData = { status };
-    if (String(status || "").toLowerCase().replace(/\s+/g, "") === "ready" && !prev.readyAt) {
+    const nextNorm = String(status || "").toLowerCase().replace(/\s+/g, "");
+    if (nextNorm === "ready" && !prev.readyAt) {
       updateData.readyAt = new Date();
+    }
+
+    if (nextNorm === "ready" || nextNorm === "finished" || nextNorm === "finised") {
+      updateData.completedBy = req.user?.userId || null;
+      updateData.completedAt = new Date();
+    } else if (nextNorm === "pending" || nextNorm === "inprogress" || nextNorm === "coking") {
+      updateData.completedBy = null;
+      updateData.completedAt = null;
     }
 
     const updatedOrder = await Order.findOneAndUpdate(
@@ -294,7 +303,6 @@ export const updateOrderStatus = async (req, res) => {
     );
 
     const prevNorm = String(prev.status || "").toLowerCase().replace(/\s+/g, "");
-    const nextNorm = String(status || "").toLowerCase().replace(/\s+/g, "");
     const isFin = (n) => n === "finished" || n === "finised";
     const becameFinished = isFin(nextNorm) && !isFin(prevNorm);
 
