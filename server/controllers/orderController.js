@@ -6,6 +6,7 @@ import OrderItemReview from "../models/OrderItemReview.js";
 import mongoose from "mongoose";
 
 import { getIo } from "../socket/socket.js";
+import { clearMenuCache } from "../utils/cache.js";
 
 import crypto from "crypto";
 import { getMenuNameToIdMap, resolveLineMenuId } from "../utils/resolveMenuLine.js";
@@ -213,7 +214,10 @@ export const createOrder = async (req, res) => {
     items = await normalizeOrderItems(items, req.tenantId, branchOid);
 
     const trimmedGuest = typeof guestToken === "string" ? guestToken.trim() : "";
-    let finalGuestToken = trimmedGuest || crypto.randomBytes(10).toString("hex");
+    let finalGuestToken = trimmedGuest;
+    if (!finalGuestToken || finalGuestToken === "null" || finalGuestToken === "undefined") {
+      finalGuestToken = crypto.randomBytes(10).toString("hex");
+    }
 
     let savedOrder = null;
     let saveError = null;
@@ -255,6 +259,8 @@ export const createOrder = async (req, res) => {
     if (!savedOrder) {
       throw saveError || new Error("Could not save order with unique numbers");
     }
+
+    await clearMenuCache(req.tenantId, branchOid);
 
     /** Emit only within this tenant’s Socket.IO room — prevents cross-tenant leakage */
     const tid = String(savedOrder.tenantId);
@@ -322,6 +328,7 @@ export const updateOrderStatus = async (req, res) => {
           { $inc: { soldCount: q } },
         );
       }
+      await clearMenuCache(req.tenantId, prev.branchId || null);
     }
 
     res.status(200).json({ message: "Order updated", updatedOrder });
@@ -453,15 +460,15 @@ export const getOrdersByUser = async (req, res) => {
   try {
     const { guestToken } = req.params;
 
-    if (!guestToken) {
-      return res.status(400).json({ message: "token is requried" });
+    if (!guestToken || guestToken === "null" || guestToken === "undefined" || guestToken.trim() === "") {
+      return res.status(200).json({ message: "No orders found", orders: [] });
     }
 
     const q = { tenantId: req.tenantId, guestToken };
 
     const orders = await Order.find(q).sort({ createdAt: -1 });
 
-    if (orders.length === 0) return res.status(404).json({ message: "No order found for this order" });
+    if (orders.length === 0) return res.status(404).json({ message: "No order found for this token" });
 
     const enriched = await enrichMyOrdersDocuments(
       orders,

@@ -15,6 +15,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectToDB from "./config/db.js";
+import { initRedis } from "./config/redis.js";
 import adminOtpRoutes from "./routes/adminOtpRoutes.js";
 import tenantRoutes from "./routes/tenantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -73,6 +74,7 @@ app.get("/api/health", (req, res) => {
 // clients can hang indefinitely while the driver is still connecting.
 async function start() {
   await connectToDB();
+  await initRedis();
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server listening on http://127.0.0.1:${PORT}`);
   });

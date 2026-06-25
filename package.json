@@ -1,0 +1,25 @@
+{
+  "name": "tabletab-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.0",
+  "workspaces": [
+    "server",
+    "client",
+    "admin",
+    "appowner",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:server": "turbo run dev --filter=server",
+    "dev:client": "turbo run dev --filter=client",
+    "dev:admin": "turbo run dev --filter=admin",
+    "dev:appowner": "turbo run dev --filter=appowner",
+    "build": "turbo run build",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.4"
+  }
+}

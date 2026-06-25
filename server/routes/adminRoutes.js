@@ -68,7 +68,6 @@ router.get(
 router.get(
   "/fetchAdmin/:id",
   authenticate,
-  requireActiveSubscription,
   requireStaffAccount,
   fetchAdmin,
 );

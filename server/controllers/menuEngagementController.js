@@ -5,6 +5,7 @@ import MenuComment from "../models/MenuComment.js";
 import OrderItemReview from "../models/OrderItemReview.js";
 import Order from "../models/OrderModel.js";
 import { getMenuNameToIdMap, resolveLineMenuId } from "../utils/resolveMenuLine.js";
+import { clearMenuCache } from "../utils/cache.js";
 
 function toObjectId(id) {
   if (!id) return null;
@@ -142,6 +143,7 @@ export const voteMenuItem = async (req, res) => {
     }
 
     const updated = await Menu.findOne({ _id: mid, tenantId: req.tenantId }).lean();
+    await clearMenuCache(req.tenantId, req.branchId || null);
     res.status(200).json({
       message: "Vote saved",
       vote,
@@ -195,6 +197,7 @@ export const addPublicComment = async (req, res) => {
     });
 
     await Menu.findOneAndUpdate({ _id: mid, tenantId: req.tenantId }, { $inc: { commentCount: 1 } });
+    await clearMenuCache(req.tenantId, req.branchId || null);
 
     res.status(201).json({
       message: "Comment added",
@@ -410,6 +413,7 @@ export const addOrderItemReview = async (req, res) => {
     );
 
     const menu = await Menu.findOne({ _id: mid, tenantId: req.tenantId }).lean();
+    await clearMenuCache(req.tenantId, branchOid);
     res.status(201).json({
       message: "Review saved",
       review,

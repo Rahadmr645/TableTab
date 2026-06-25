@@ -7,11 +7,12 @@ import {
   finalizePublicTrialSetup,
 } from "../controllers/subscriptionPayController.js";
 import { registerTrialEnrollment } from "../controllers/tenantController.js";
+import { optionalAuthenticate } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/subscription-payment-lead", submitSubscriptionPaymentLead);
-router.post("/subscription-pay/start", startSubscriptionPayment);
+router.post("/subscription-pay/start", optionalAuthenticate, startSubscriptionPayment);
 router.post("/subscription-pay/finalize", finalizeSubscriptionPayment);
 router.post("/trial-request/setup/start", startPublicTrialSetup);
 router.post("/trial-request/setup/finalize", finalizePublicTrialSetup);

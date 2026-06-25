@@ -1,6 +1,7 @@
 import Tenant from "../models/Tenant.js";
 import User from "../models/UserModel.js";
 import SubscriptionPaymentLead from "../models/SubscriptionPaymentLead.js";
+import Subscription from "../models/Subscription.js";
 import { getStripe } from "../utils/stripeClient.js";
 import { getGmailFieldError } from "../utils/gmailValidation.js";
 import sendEmail, { sendEmailWithPdfAttachment } from "../utils/sendMailer.js";
@@ -63,6 +64,7 @@ export async function startSubscriptionPayment(req, res) {
 
     const amount = PLAN_AMOUNTS_USD_CENTS[key];
     const email = String(receiptEmail).toLowerCase().trim();
+    const tenantId = req.user?.tenantId;
 
     const pi = await stripe.paymentIntents.create({
       amount,
@@ -73,6 +75,7 @@ export async function startSubscriptionPayment(req, res) {
         planKey: key,
         source: "admin_subscription_plans",
         receiptGmail: email,
+        ...(tenantId ? { tenantId: String(tenantId) } : {}),
       },
     });
 
@@ -113,6 +116,32 @@ export async function finalizeSubscriptionPayment(req, res) {
 
     const planKey = meta.planKey || "plan";
     const to = pi.receipt_email || meta.receiptGmail;
+
+    const tenantId = meta.tenantId;
+    if (tenantId) {
+      const tenantRecord = await Tenant.findById(tenantId).select("expiresAt");
+      let baseDate = Date.now();
+      if (tenantRecord?.expiresAt && new Date(tenantRecord.expiresAt) > new Date()) {
+        baseDate = new Date(tenantRecord.expiresAt).getTime();
+      }
+      const expiresAt = new Date(baseDate + 30 * 864e5); // 30 days extension
+
+      await Tenant.findByIdAndUpdate(tenantId, {
+        subscriptionStatus: "active",
+        plan: planKey,
+        expiresAt: expiresAt,
+      });
+
+      await Subscription.create({
+        tenantId,
+        plan: planKey,
+        price: pi.amount / 100,
+        startDate: new Date(),
+        endDate: expiresAt,
+        status: "active",
+      });
+    }
+
     if (to && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       try {
         await sendEmail(
@@ -125,7 +154,7 @@ export async function finalizeSubscriptionPayment(req, res) {
       }
     }
 
-    res.status(200).json({ ok: true, message: "Payment recorded" });
+    res.status(200).json({ ok: true, message: "Payment recorded and subscription activated" });
   } catch (e) {
     console.error(e);
     res.status(500).json({ message: e.message || "Could not finalize payment" });

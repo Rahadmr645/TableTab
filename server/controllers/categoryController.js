@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Category from "../models/Category.js";
+import { clearMenuCache } from "../utils/cache.js";
 
 function tenantFilter(req) {
   return { tenantId: req.tenantId };
@@ -43,6 +44,8 @@ export async function createCategory(req, res) {
       sortOrder: Number(sortOrder) || 0,
     });
 
+    await clearMenuCache(req.tenantId, branchOid);
+
     res.status(201).json({ message: "Category created", category: doc });
   } catch (error) {
     res.status(500).json({ message: "Create failed", error: error.message });
@@ -62,6 +65,8 @@ export async function deleteCategory(req, res) {
     });
 
     if (!deleted) return res.status(404).json({ message: "Category not found" });
+
+    await clearMenuCache(req.tenantId, deleted.branchId || null);
 
     res.status(200).json({ message: "Deleted", category: deleted });
   } catch (error) {

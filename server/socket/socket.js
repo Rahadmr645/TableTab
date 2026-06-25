@@ -1,5 +1,7 @@
 import { Server } from "socket.io";
 import mongoose from "mongoose";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { getRedisClient } from "../config/redis.js";
 
 let io;
 
@@ -11,6 +13,24 @@ export const initSocket = (server) => {
     },
     transports: ["polling", "websocket"],
   });
+
+  const redisClient = getRedisClient();
+  if (redisClient) {
+    try {
+      const pubClient = redisClient;
+      const subClient = redisClient.duplicate();
+      subClient.connect()
+        .then(() => {
+          io.adapter(createAdapter(pubClient, subClient));
+          console.log("Socket.io Redis adapter initialized successfully");
+        })
+        .catch((err) => {
+          console.warn("Failed to connect Socket.io subClient. Fallback to default in-memory adapter. Error:", err.message);
+        });
+    } catch (err) {
+      console.warn("Failed to initialize Socket.io Redis adapter. Fallback to default in-memory adapter. Error:", err.message);
+    }
+  }
 
   io.on("connection", (socket) => {
     console.log("connected:", socket.id);

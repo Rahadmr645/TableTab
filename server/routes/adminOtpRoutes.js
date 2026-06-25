@@ -6,14 +6,12 @@ import {
   resolveStaffOtpTenant,
   stripForbiddenTenantFields,
 } from "../middlewares/tenantMiddleware.js";
-import { requireActiveSubscription } from "../middlewares/subscriptionMiddleware.js";
 
 const router = express.Router();
 
 const chain = [
   resolveStaffOtpTenant,
   stripForbiddenTenantFields,
-  requireActiveSubscription,
 ];
 
 router.post("/send-otp", ...chain, sendOTP);

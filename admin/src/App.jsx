@@ -4,6 +4,7 @@ import  './App.css'
 
 import Login from './pages/login/Login.jsx'
 import Navbar from './components/navbar/Navbar.jsx'
+import SubscriptionAlert from './components/common/SubscriptionAlert.jsx'
 import AppRoutes from './AppRoutes.jsx'
 import { AuthContext } from './context/AuthContext.jsx'
 import { useLocation } from 'react-router-dom'
@@ -34,6 +35,7 @@ const App = () => {
     <>
       <div className="app-container">
        {!hideNavbar && <Navbar />}
+       {!hideNavbar && <SubscriptionAlert />}
        <AppRoutes/>
        {showLogin ? (
          <div className="admin-login-host">

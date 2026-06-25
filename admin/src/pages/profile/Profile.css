@@ -488,3 +488,17 @@
   background: #e11d48;
   color: #ffffff;
 }
+
+.admin-profile__btn--renew {
+  color: #ffffff;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 12px 32px rgba(249, 115, 22, 0.28);
+}
+
+.admin-profile__btn--renew:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+

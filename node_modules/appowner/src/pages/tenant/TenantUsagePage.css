@@ -1,0 +1,89 @@
+.po-tenant-nav {
+  margin-bottom: 1.25rem;
+}
+
+.po-tenant-back {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.po-tenant-back:hover {
+  text-decoration: underline;
+  color: #7dd3fc;
+}
+
+.po-tenant-back--btn {
+  margin-top: 1rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+  text-decoration: none;
+}
+
+.po-tenant-back--btn:hover {
+  text-decoration: none;
+  background: rgba(56, 189, 248, 0.16);
+}
+
+.po-tenant-hero {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.po-tenant-meta {
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.po-tenant-dot {
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.po-tenant-strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.po-tenant-detail {
+  max-width: 520px;
+}
+
+.po-tenant-dl {
+  margin: 0;
+  display: grid;
+  gap: 0.85rem 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.po-tenant-dl dt {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.po-tenant-dl dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.po-tenant-skeleton {
+  margin-top: 0.25rem;
+}
+
+.po-tenant-error .po-page-title {
+  margin-bottom: 0.5rem;
+}

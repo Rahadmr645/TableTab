@@ -118,7 +118,7 @@ const Profile = () => {
     { label: "Email", value: admin?.email },
     { label: "Role", value: admin?.role },
     { label: "Company name", value: admin?.companyName },
-    { label: "Subscription", value: subscriptionDisplay },
+    admin?.role === "owner" ? { label: "Subscription", value: subscriptionDisplay } : null,
     admin?.role === "owner" ? {
       label: "Registered Staff",
       value: loadingStaff ? "Loading..." : `${staff.length} Staff Member${staff.length !== 1 ? 's' : ''}`,
@@ -252,6 +252,15 @@ const Profile = () => {
           </div>
 
           <div className="admin-profile__actions">
+            {admin && (admin.subscriptionStatus === "expired" || (admin.expiresAt && new Date(admin.expiresAt) < new Date())) && (admin.role === "owner" || admin.role === "manager") && (
+              <button
+                type="button"
+                className="admin-profile__btn admin-profile__btn--renew"
+                onClick={() => navigate("/subscription-plans")}
+              >
+                Renew Subscription
+              </button>
+            )}
             <button
               type="button"
               className="admin-profile__btn admin-profile__btn--primary"

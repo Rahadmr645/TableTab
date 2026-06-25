@@ -345,7 +345,12 @@ const SubscriptionPlans = () => {
           planKey: selected.key,
           receiptEmail: paymentGmail.trim(),
         },
-        { headers: { "Content-Type": "application/json" } },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(),
+          },
+        },
       );
       setClientSecret(data.clientSecret || "");
       setAmountCents(Number(data.amountCents) || 0);

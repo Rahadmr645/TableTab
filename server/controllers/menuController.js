@@ -4,6 +4,7 @@ import Category from "../models/Category.js";
 import Order from "../models/OrderModel.js";
 import { getBusinessDayKey } from "../utils/orderNumbers.js";
 import { invalidateMenuNameMapCache } from "../utils/resolveMenuLine.js";
+import { getCache, setCache, clearMenuCache } from "../utils/cache.js";
 import {
   uploadImageBuffer,
   destroyCloudinaryAsset,
@@ -115,6 +116,7 @@ export const addMenu = async (req, res) => {
     });
     await newItem.save();
     invalidateMenuNameMapCache(req.tenantId, req.branchId || null);
+    await clearMenuCache(req.tenantId, req.branchId || null);
     res.status(200).json({ message: "New item added successfully", newMenu: newItem });
   } catch (error) {
     res.status(500).json({ message: "fiald to add new item", error: error.message });
@@ -123,6 +125,17 @@ export const addMenu = async (req, res) => {
 
 export const getMenu = async (req, res) => {
   try {
+    const cacheKey = `menu:${String(req.tenantId)}:${req.branchId ? String(req.branchId) : "default"}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        return res.status(200).json(parsed);
+      } catch (err) {
+        console.warn("Failed to parse cached menu data:", err.message);
+      }
+    }
+
     const filter = menuReadFilter(req);
     
     const [menuItems, labels, todaySalesAgg] = await Promise.all([
@@ -168,10 +181,14 @@ export const getMenu = async (req, res) => {
       };
     });
 
-    res.status(200).json({
+    const responseData = {
       mesasge: "Menu items fetched successfully",
       MenuList: enriched,
-    });
+    };
+
+    await setCache(cacheKey, JSON.stringify(responseData), 300);
+
+    res.status(200).json(responseData);
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch menu items",
@@ -227,6 +244,7 @@ export const menuUpdate = async (req, res) => {
 
     await menu.save();
     invalidateMenuNameMapCache(req.tenantId, req.branchId || null);
+    await clearMenuCache(req.tenantId, req.branchId || null);
 
     res.status(200).json({
       message: "Menu items updated successfully",
@@ -255,6 +273,7 @@ export const deleteMenu = async (req, res) => {
 
     await Menu.deleteOne({ _id: id, tenantId: req.tenantId });
     invalidateMenuNameMapCache(req.tenantId, req.branchId || null);
+    await clearMenuCache(req.tenantId, req.branchId || null);
 
     res.status(200).json({
       message: "menu item delete successfully",

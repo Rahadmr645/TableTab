@@ -347,26 +347,6 @@ const Login = () => {
           />
         </div>
 
-        <div className="mb-3">
-          <label htmlFor="login-tenant-slug" className="form-label">
-            Restaurant code <span className="text-muted">(slug)</span>
-          </label>
-          <input
-            type="text"
-            className="form-control"
-            id="login-tenant-slug"
-            autoComplete="organization"
-            onChange={handleChange}
-            name="tenantSlug"
-            value={formData.tenantSlug}
-            placeholder="e.g. my-restaurant — optional if your email is unique"
-          />
-          <p className="login-help login-help--slug-hint">
-            Shown on signup materials or in your venue URL. Required only if we
-            prompt you (same email at multiple venues), or use a subdomain like{" "}
-            <code>slug.yourdomain.com</code>.
-          </p>
-        </div>
 
         {loginMode === "admin" ? (
           <p className="login-subscribe-prompt">

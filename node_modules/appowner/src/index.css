@@ -1,0 +1,22 @@
+:root {
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --bg-base: #0d1118;
+  --bg-surface: #131a24;
+  --text: #eef2f8;
+  --text-muted: #8b98ab;
+  --accent: #38bdf8;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: var(--bg-base);
+  color: var(--text);
+}
