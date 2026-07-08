@@ -38,6 +38,9 @@ const tenantSchema = new mongoose.Schema(
       default: "active",
       index: true,
     },
+    /** Merchant Stripe keys for direct guest checkout routing */
+    stripePublishableKey: { type: String, default: "", trim: true },
+    stripeSecretKey: { type: String, default: "", trim: true },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: true },

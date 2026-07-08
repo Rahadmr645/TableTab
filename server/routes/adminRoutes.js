@@ -8,6 +8,7 @@ import {
   getChefCompletedOrdersToday,
   updateStaffStatus,
   deleteStaff,
+  updateStripeSettings,
 } from "../controllers/adminController.js";
 import uploadAdmin from "../middlewares/memoryMulter.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
@@ -79,6 +80,15 @@ router.put(
   requireStaffAccount,
   uploadAdmin.single("image"),
   updateProfilePic,
+);
+
+router.put(
+  "/stripe-settings",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner"]),
+  updateStripeSettings,
 );
 
 export default router;

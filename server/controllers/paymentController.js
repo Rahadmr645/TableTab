@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
-import { getStripe } from "../utils/stripeClient.js";
+import { getTenantStripe } from "../utils/stripeClient.js";
 
 dotenv.config();
 
 export const paymentIntent = async (req, res) => {
   try {
-    const stripe = getStripe();
+    const { stripe, publishableKey } = await getTenantStripe(req.tenantId);
     if (!stripe) {
       return res.status(503).json({ error: "Stripe is not configured" });
     }
@@ -29,6 +29,7 @@ export const paymentIntent = async (req, res) => {
 
     res.status(200).json({
       clientSecret: paymentIntentResult.client_secret,
+      publishableKey: publishableKey,
     });
   } catch (error) {
     console.error("Stripe error:", error);

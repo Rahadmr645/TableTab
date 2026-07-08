@@ -24,6 +24,8 @@ const Checkout = () => {
   const [tableId, setTableId] = useState("");
   const [payment, setPayment] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [selectedMethodConfirm, setSelectedMethodConfirm] = useState(false);
 
   const navigator = useNavigate();
   const namePrefillUserIdRef = useRef(null);
@@ -59,7 +61,7 @@ const Checkout = () => {
   );
 
   // Create order AFTER payment success
-  const createOrder = async () => {
+  const createOrder = async (method = "card", paymentIntentId = null) => {
     try {
       setLoading(true);
       await requestNotificationPermissionIfNeeded();
@@ -73,6 +75,8 @@ const Checkout = () => {
         guestToken: existingGuestToken,
         items: cart,
         totalPrice: subTotal,
+        paymentMethod: method,
+        paymentIntentId,
       });
 
       const placed = res.data?.order;
@@ -104,6 +108,7 @@ const Checkout = () => {
       setCart([]);
       setPopup(false);
       setPayment(false);
+      setSelectedMethodConfirm(false);
 
       navigator("/myOrders");
     } catch (error) {
@@ -203,9 +208,17 @@ const Checkout = () => {
       {popup && (
         <div className="popup" role="dialog" aria-modal="true" aria-labelledby="checkout-dialog-title">
           <div className="popup-content">
-            <h3 id="checkout-dialog-title">{!payment ? "Table & name" : "Secure payment"}</h3>
+            <h3 id="checkout-dialog-title">
+              {!payment 
+                ? "Table & name" 
+                : !selectedMethodConfirm 
+                  ? "Select Payment Method" 
+                  : paymentMethod === "card" 
+                    ? "Secure payment" 
+                    : "Confirm cash order"}
+            </h3>
 
-            {!payment ? (
+            {!payment && (
               <>
                 <input
                   type="text"
@@ -226,11 +239,110 @@ const Checkout = () => {
                   Continue to payment
                 </button>
               </>
-            ) : (
+            )}
+
+            {payment && !selectedMethodConfirm && (
+              <div className="payment-method-selector">
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "18px" }}>
+                  Choose how you'd like to pay for your meal:
+                </p>
+                <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("card")}
+                    style={{
+                      flex: 1,
+                      padding: "16px 12px",
+                      borderRadius: "10px",
+                      border: paymentMethod === "card" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.1)",
+                      background: paymentMethod === "card" ? "rgba(240, 180, 41, 0.1)" : "rgba(0,0,0,0.2)",
+                      color: "#fff",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontWeight: "700",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    <span style={{ fontSize: "1.4rem" }}>💳</span>
+                    Pay Online
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cash")}
+                    style={{
+                      flex: 1,
+                      padding: "16px 12px",
+                      borderRadius: "10px",
+                      border: paymentMethod === "cash" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.1)",
+                      background: paymentMethod === "cash" ? "rgba(240, 180, 41, 0.1)" : "rgba(0,0,0,0.2)",
+                      color: "#fff",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontWeight: "700",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    <span style={{ fontSize: "1.4rem" }}>💵</span>
+                    Pay at Table
+                  </button>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => setSelectedMethodConfirm(true)}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    border: "none",
+                    borderRadius: "999px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    color: "#1a1204",
+                    background: "linear-gradient(145deg, var(--accent), #c9890a)",
+                    boxShadow: "0 10px 28px rgba(240, 180, 41, 0.25)"
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+
+            {payment && selectedMethodConfirm && paymentMethod === "card" && (
               <StripePayment
                 amount={subTotal * 100}
-                onSuccess={createOrder}
+                onSuccess={(piId) => createOrder("card", piId)}
               />
+            )}
+
+            {payment && selectedMethodConfirm && paymentMethod === "cash" && (
+              <div style={{ textAlign: "center", padding: "10px 0" }}>
+                <p style={{ margin: "0 0 20px", color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: "1.5" }}>
+                  Confirm your order of <strong style={{ color: "var(--accent)" }}>SAR {subTotal.toFixed(2)}</strong>. You will pay in cash or card at the table or counter once served.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => createOrder("cash")}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    border: "none",
+                    borderRadius: "999px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    color: "#1a1204",
+                    background: "linear-gradient(145deg, var(--teal), #14b8a6)",
+                    boxShadow: "0 10px 28px rgba(45, 212, 191, 0.25)"
+                  }}
+                >
+                  Confirm & Place Order
+                </button>
+              </div>
             )}
           </div>
 
@@ -240,6 +352,7 @@ const Checkout = () => {
               onClick={() => {
                 setPopup(false);
                 setPayment(false);
+                setSelectedMethodConfirm(false);
               }}
               className="cancel-btn"
               disabled={loading}

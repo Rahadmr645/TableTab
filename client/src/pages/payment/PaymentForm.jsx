@@ -8,9 +8,6 @@ import {
 } from "@stripe/react-stripe-js";
 import { api } from "../../utils/api.js";
 import "./PaymentForm.css";
-
-const stripePromise = loadStripe(import.meta.env.VITE_API_PUBLISH_KEY);
-
 const PaymentFormInner = ({ amount, onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -39,7 +36,7 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
         setCardError(result.error.message);
       } else if (result.paymentIntent?.status === "succeeded") {
         try {
-          await Promise.resolve(onSuccess?.());
+          await Promise.resolve(onSuccess?.(result.paymentIntent.id));
         } catch (finalizeErr) {
           console.error(finalizeErr);
           setCardError(
@@ -88,6 +85,7 @@ const StripePayment = ({ amount, onSuccess }) => {
   const [clientSecret, setClientSecret] = useState("");
   const [error, setError] = useState("");
   const [initLoading, setInitLoading] = useState(true);
+  const [stripePromise, setStripePromise] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -101,6 +99,12 @@ const StripePayment = ({ amount, onSuccess }) => {
         if (active) {
           if (data.clientSecret) {
             setClientSecret(data.clientSecret);
+            const key = data.publishableKey || import.meta.env.VITE_API_PUBLISH_KEY;
+            if (key) {
+              setStripePromise(loadStripe(key));
+            } else {
+              setError("Payment gateway publishable key missing.");
+            }
           } else {
             setError("Could not initiate payment.");
           }
@@ -131,10 +135,10 @@ const StripePayment = ({ amount, onSuccess }) => {
     );
   }
 
-  if (error) {
+  if (error || !stripePromise) {
     return (
       <div className="payment-init-error">
-        <p className="error">{error}</p>
+        <p className="error">{error || "Failed to load payment gateway."}</p>
       </div>
     );
   }

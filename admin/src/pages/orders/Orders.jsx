@@ -58,10 +58,6 @@ const Orders = () => {
       fetchAllTimeOrder();
     };
 
-    const handleRemoved = (id) => {
-      setAllOrderList((prev) => prev.filter((order) => order._id !== id));
-    };
-
     socket.on("newOrder", handleRefresh);
     socket.on("orderUpdated", handleRefresh);
     socket.on("orderRemoved", handleRefresh); // Refresh on remove to see if it moved to Finished
@@ -141,10 +137,31 @@ const Orders = () => {
           }
         }
       );
-      // Optional: optimistic update, but socket will refresh it anyway
     } catch (err) {
       console.error("Failed to update status", err);
       alert("Failed to update status");
+    }
+  };
+
+  const handleMarkAsPaid = async (orderId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${URL}/api/order/${orderId}/mark-paid`,
+        {},
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...getStaffTenantHeaders()
+          }
+        }
+      );
+      setAllOrderList((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, paymentStatus: "paid" } : o))
+      );
+    } catch (err) {
+      console.error("Failed to mark order as paid", err);
+      alert("Failed to mark order as paid");
     }
   };
 
@@ -206,15 +223,35 @@ const Orders = () => {
                         {order.status}
                       </span>
                     </div>
+
+                    <div className="order-row-col">
+                      <span className="order-row-label">Payment</span>
+                      <span className={`order-status order-status--${order.paymentStatus === 'paid' ? 'done' : 'cooking'}`}>
+                        {order.paymentMethod === 'cash' ? '💵 Cash' : '💳 Card'} - {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                      </span>
+                    </div>
                     
                     <div className="order-row-col">
                       <span className="order-row-label">Total</span>
                       <strong className="order-row-value" style={{ color: "#a5f3fc" }}>
-                        ${Number(order.totalPrice || 0).toFixed(2)}
+                        SAR {Number(order.totalPrice || 0).toFixed(2)}
                       </strong>
                     </div>
 
-                    <div className="order-row-col" style={{ alignItems: "flex-end", justifyContent: "center" }}>
+                    <div className="order-row-col" style={{ alignItems: "flex-end", justifyContent: "center", gap: "6px" }}>
+                      {order.paymentStatus !== "paid" && (
+                        <button 
+                          className="order-print-btn" 
+                          onClick={() => handleMarkAsPaid(order._id)}
+                          style={{
+                            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                            color: "white",
+                            borderColor: "#059669"
+                          }}
+                        >
+                          Mark Paid
+                        </button>
+                      )}
                       <button 
                         className="order-print-btn" 
                         onClick={() => printSlip(order)}
@@ -368,9 +405,28 @@ const Orders = () => {
                             <strong>Note:</strong> {order.note}
                           </div>
                         )}
+                        <div style={{ marginTop: "12px", fontSize: "0.85rem", color: "#e2e8f0" }}>
+                           <strong>Payment: </strong>
+                           <span className={`order-status order-status--${order.paymentStatus === 'paid' ? 'done' : 'cooking'}`} style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "0.75rem", marginLeft: "6px" }}>
+                             {order.paymentMethod === 'cash' ? '💵 Cash' : '💳 Card'} - {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                           </span>
+                        </div>
                       </div>
                       
                       <div className="order-details-actions">
+                        {order.paymentStatus !== "paid" && (
+                          <button 
+                            className="order-action-btn"
+                            onClick={(e) => { e.stopPropagation(); handleMarkAsPaid(order._id); }}
+                            style={{
+                              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                              color: "white",
+                              border: "none"
+                            }}
+                          >
+                            Mark Paid
+                          </button>
+                        )}
                         {statusKey === "pending" && (
                           <button 
                             className="order-action-btn btn-start-cooking"

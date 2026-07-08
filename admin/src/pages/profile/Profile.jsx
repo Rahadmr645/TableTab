@@ -16,6 +16,48 @@ const Profile = () => {
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [loadingStaff, setLoadingStaff] = useState(false);
 
+  const [stripePub, setStripePub] = useState("");
+  const [stripeSec, setStripeSec] = useState("");
+  const [savingStripe, setSavingStripe] = useState(false);
+
+  useEffect(() => {
+    if (admin) {
+      setStripePub(admin.stripePublishableKey || "");
+      setStripeSec(admin.stripeSecretKey || "");
+    }
+  }, [admin]);
+
+  const handleSaveStripe = async () => {
+    setSavingStripe(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `${URL}/api/admin/stripe-settings`,
+        {
+          stripePublishableKey: stripePub,
+          stripeSecretKey: stripeSec,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...getStaffTenantHeaders(),
+          },
+        }
+      );
+      alert("Stripe settings updated successfully!");
+      setAdmin((prev) => ({
+        ...prev,
+        stripePublishableKey: res.data.stripePublishableKey,
+        stripeSecretKey: res.data.stripeSecretKey,
+      }));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to update Stripe settings");
+    } finally {
+      setSavingStripe(false);
+    }
+  };
+
   useEffect(() => {
     const fetchStaff = async () => {
       try {
@@ -250,6 +292,46 @@ const Profile = () => {
               </div>
             ))}
           </div>
+
+          {admin?.role === "owner" && (
+            <div className="admin-profile__stripe-settings">
+              <p className="admin-profile__section-label">Stripe Merchant Configuration</p>
+              <p className="admin-profile__stripe-desc">
+                Add your Stripe publishable and secret keys to route guest credit card payments directly to your account. Leave blank to use SaaS platform gateway defaults.
+              </p>
+              <div className="admin-profile__stripe-fields">
+                <div className="admin-profile__stripe-field">
+                  <label>Stripe Publishable Key</label>
+                  <input
+                    type="text"
+                    placeholder="pk_test_..."
+                    value={stripePub}
+                    onChange={(e) => setStripePub(e.target.value)}
+                    className="admin-profile__stripe-input"
+                  />
+                </div>
+                <div className="admin-profile__stripe-field">
+                  <label>Stripe Secret Key</label>
+                  <input
+                    type="password"
+                    placeholder="sk_test_..."
+                    value={stripeSec}
+                    onChange={(e) => setStripeSec(e.target.value)}
+                    className="admin-profile__stripe-input"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveStripe}
+                  disabled={savingStripe}
+                  className="admin-profile__btn admin-profile__btn--primary"
+                  style={{ alignSelf: "flex-start", marginTop: "8px" }}
+                >
+                  {savingStripe ? "Saving..." : "Save stripe settings"}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="admin-profile__actions">
             {admin && (admin.subscriptionStatus === "expired" || (admin.expiresAt && new Date(admin.expiresAt) < new Date())) && (admin.role === "owner" || admin.role === "manager") && (

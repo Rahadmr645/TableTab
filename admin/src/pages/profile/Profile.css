@@ -502,3 +502,55 @@
   transform: translateY(-1px);
 }
 
+.admin-profile__stripe-settings {
+  margin-top: 32px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-top: 24px;
+}
+
+.admin-profile__stripe-desc {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.admin-profile__stripe-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 500px;
+}
+
+.admin-profile__stripe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.admin-profile__stripe-field label {
+  font-size: 0.8rem;
+  color: #f0b429;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-profile__stripe-input {
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+  outline: none;
+  font-size: 0.92rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.admin-profile__stripe-input:focus {
+  border-color: rgba(240, 180, 41, 0.55);
+  box-shadow: 0 0 0 3px rgba(240, 180, 41, 0.15);
+}
+

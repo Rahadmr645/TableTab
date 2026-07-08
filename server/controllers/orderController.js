@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 
 import { getIo } from "../socket/socket.js";
 import { clearMenuCache } from "../utils/cache.js";
+import { getTenantStripe } from "../utils/stripeClient.js";
 
 import crypto from "crypto";
 import { getMenuNameToIdMap, resolveLineMenuId } from "../utils/resolveMenuLine.js";
@@ -197,7 +198,7 @@ async function normalizeOrderItems(raw, tenantId, branchHint) {
 export const createOrder = async (req, res) => {
   try {
     const io = getIo();
-    const { customerName, totalPrice, tableId, userID, guestToken } = req.body;
+    const { customerName, totalPrice, tableId, userID, guestToken, paymentMethod, paymentIntentId } = req.body;
 
     let items = req.body.items;
 
@@ -217,6 +218,36 @@ export const createOrder = async (req, res) => {
     let finalGuestToken = trimmedGuest;
     if (!finalGuestToken || finalGuestToken === "null" || finalGuestToken === "undefined") {
       finalGuestToken = crypto.randomBytes(10).toString("hex");
+    }
+
+    // Verify payment if card is selected
+    let resolvedPaymentStatus = "unpaid";
+    const finalPaymentMethod = paymentMethod === "cash" ? "cash" : "card";
+
+    if (finalPaymentMethod === "card") {
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "paymentIntentId is required for card payments" });
+      }
+
+      const { stripe } = await getTenantStripe(req.tenantId);
+      if (!stripe) {
+        return res.status(503).json({ message: "Stripe service is not configured for this restaurant" });
+      }
+
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (pi.status !== "succeeded") {
+        return res.status(400).json({ message: "Card payment has not succeeded yet" });
+      }
+
+      const piAmount = pi.amount; // in cents
+      const expectedAmountCents = Math.round(totalPrice * 100);
+      if (Math.abs(piAmount - expectedAmountCents) > 5) { // 5 cents tolerance for rounding
+        return res.status(400).json({ message: "Payment amount verification mismatch" });
+      }
+
+      resolvedPaymentStatus = "paid";
+    } else {
+      resolvedPaymentStatus = "unpaid";
     }
 
     let savedOrder = null;
@@ -240,6 +271,9 @@ export const createOrder = async (req, res) => {
         businessDay,
         dailyOrderNumber,
         invoiceSerial,
+        paymentMethod: finalPaymentMethod,
+        paymentStatus: resolvedPaymentStatus,
+        paymentIntentId: finalPaymentMethod === "card" ? paymentIntentId : null,
       });
 
       try {
@@ -583,5 +617,25 @@ export const getSummaryStats = async (req, res) => {
       message: "Failed to load summary",
       error: error.message,
     });
+  }
+};
+
+export const markOrderAsPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findOneAndUpdate(
+      { _id: id, tenantId: req.tenantId },
+      { paymentStatus: "paid" },
+      { new: true }
+    );
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    const io = getIo();
+    const tid = String(req.tenantId);
+    io.to(`tenant:${tid}`).emit("orderUpdated", order.toObject());
+    res.status(200).json({ message: "Order marked as paid", order });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update payment status", error: error.message });
   }
 };

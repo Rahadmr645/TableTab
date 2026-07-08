@@ -54,6 +54,8 @@ export const AuthContextProvider = ({ children }) => {
             a?.staffSinceAt ?? a?.createdAt ?? prev?.staffSince,
           subscriptionStatus: tenant?.subscriptionStatus ?? prev?.subscriptionStatus,
           expiresAt: tenant?.expiresAt ?? prev?.expiresAt,
+          stripePublishableKey: tenant?.stripePublishableKey ?? prev?.stripePublishableKey ?? "",
+          stripeSecretKey: tenant?.stripeSecretKey ?? prev?.stripeSecretKey ?? "",
         }));
         setProfileImage(a.profilePic);
       } catch (error) {

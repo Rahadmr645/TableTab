@@ -259,7 +259,7 @@ export const fetchAdmin = async (req, res) => {
     delete safe.password;
 
     const tenant = await Tenant.findById(doc.tenantId)
-      .select("businessName slug subscriptionStatus plan expiresAt")
+      .select("businessName slug subscriptionStatus plan expiresAt stripePublishableKey stripeSecretKey")
       .lean();
 
     res.status(200).json({
@@ -271,7 +271,9 @@ export const fetchAdmin = async (req, res) => {
             slug: tenant.slug,
             subscriptionStatus: tenant.subscriptionStatus,
             plan: tenant.plan,
-            expiresAt: tenant.expiresAt 
+            expiresAt: tenant.expiresAt,
+            stripePublishableKey: tenant.stripePublishableKey || "",
+            stripeSecretKey: tenant.stripeSecretKey ? "••••••••••••••••" : ""
           }
         : null,
     });
@@ -422,5 +424,38 @@ export const deleteStaff = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete staff member", error: error.message });
+  }
+};
+
+export const updateStripeSettings = async (req, res) => {
+  try {
+    const { stripePublishableKey, stripeSecretKey } = req.body;
+    
+    // Only owners can update this
+    if (req.user.role !== "owner") {
+      return res.status(403).json({ message: "Only the venue owner can configure payment settings" });
+    }
+
+    const updateData = {};
+    if (typeof stripePublishableKey === "string") {
+      updateData.stripePublishableKey = stripePublishableKey.trim();
+    }
+    if (typeof stripeSecretKey === "string" && stripeSecretKey.trim() !== "" && stripeSecretKey.trim() !== "••••••••••••••••") {
+      updateData.stripeSecretKey = stripeSecretKey.trim();
+    }
+
+    const tenant = await Tenant.findByIdAndUpdate(
+      req.user.tenantId,
+      updateData,
+      { new: true }
+    ).select("businessName slug stripePublishableKey stripeSecretKey");
+
+    res.status(200).json({
+      message: "Stripe settings updated successfully",
+      stripePublishableKey: tenant.stripePublishableKey || "",
+      stripeSecretKey: tenant.stripeSecretKey ? "••••••••••••••••" : "",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update Stripe settings", error: error.message });
   }
 };

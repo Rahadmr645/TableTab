@@ -10,6 +10,7 @@ import {
   getServerClock,
   getSummaryStats,
   updateOrderStatus,
+  markOrderAsPaid,
 } from "../controllers/orderController.js";
 import { requireCustomerAuth } from "../middlewares/customerAuthMiddleware.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
@@ -52,6 +53,12 @@ router.put(
   ...staffBase,
   requireRole(["owner", "manager", "chef", "barista"]),
   updateOrderStatus,
+);
+router.put(
+  "/:id/mark-paid",
+  ...staffBase,
+  requireRole(["owner", "manager", "cashier"]),
+  markOrderAsPaid,
 );
 router.get("/active-orders", ...staffBase, activeOrders);
 router.get("/server-clock", getServerClock);

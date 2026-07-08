@@ -49,6 +49,23 @@ const orderSchema = new mongoose.Schema({
     enum: ["pending", "In Progress", "Ready", "Finised", "Finished"],
     default: "pending",
   },
+  paymentMethod: {
+    type: String,
+    enum: ["card", "cash"],
+    default: "card",
+    index: true,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["paid", "unpaid"],
+    default: "unpaid",
+    index: true,
+  },
+  paymentIntentId: {
+    type: String,
+    default: null,
+    index: true,
+  },
 
   /** Calendar day YYYY-MM-DD in ORDER_BUSINESS_TZ — dailyOrderNumber resets at midnight there */
   businessDay: { type: String, trim: true },
