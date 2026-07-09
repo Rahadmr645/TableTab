@@ -156,6 +156,11 @@ const MyOrders = () => {
   /** Per order: undefined = prompt, "list" = pick dish, else menuItemId = detail */
   const [dishReviewWizard, setDishReviewWizard] = useState({});
 
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [quantitiesToCancel, setQuantitiesToCancel] = useState({});
+  const [cancelReason, setCancelReason] = useState("");
+  const [submittingCancel, setSubmittingCancel] = useState(false);
+
   const refreshMenuSnapshot = useCallback(async () => {
     try {
       const res = await api.get("/api/menu/menuList");
@@ -342,6 +347,86 @@ const MyOrders = () => {
     socket.on("newOrder", onNew);
     return () => socket.off("newOrder", onNew);
   }, [socket, fetchMyOrders]);
+
+  const handleCancelSubmit = async (e) => {
+    e.preventDefault();
+    if (!cancellingOrder) return;
+
+    const itemsToCancel = [];
+    let isPartial = false;
+    let anySelected = false;
+
+    cancellingOrder.items.forEach((item, index) => {
+      const qty = Number(quantitiesToCancel[index]) || 0;
+      if (qty > 0) {
+        anySelected = true;
+        itemsToCancel.push({
+          menuItemId: item.menuItemId,
+          name: item.name,
+          quantityToCancel: qty,
+        });
+      }
+      if (qty < item.quantity) {
+        isPartial = true;
+      }
+    });
+
+    let confirmMsg = "Are you sure you want to request cancellation for this entire order?";
+    if (anySelected && isPartial) {
+      confirmMsg = "Are you sure you want to request cancellation for the selected items?";
+    } else if (anySelected && !isPartial) {
+      confirmMsg = "Are you sure you want to request cancellation for all items (full order)?";
+    }
+
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    setSubmittingCancel(true);
+    try {
+      const guestToken = localStorage.getItem("guestToken")?.trim();
+      const payload = {
+        itemsToCancel: anySelected ? itemsToCancel : [],
+        cancelReason: cancelReason || "Customer self-cancelled",
+        guestToken,
+      };
+
+      const res = await api.post(`/api/order/${cancellingOrder._id}/request-cancel`, payload);
+      alert(res.data.message || "Cancellation request submitted!");
+      setCancellingOrder(null);
+      setQuantitiesToCancel({});
+      setCancelReason("");
+      fetchMyOrders();
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+      alert(`Failed to submit cancellation request: ${msg}`);
+    } finally {
+      setSubmittingCancel(false);
+    }
+  };
+
+  const handleResolveRequest = async (orderId, requestId, action) => {
+    const confirmMsg = action === "accept" 
+      ? "Are you sure you want to ACCEPT this cancellation request? This will modify your order and process any refunds."
+      : "Are you sure you want to REJECT this cancellation request?";
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const guestToken = localStorage.getItem("guestToken")?.trim();
+      const res = await api.post(`/api/order/${orderId}/resolve-cancel-request/${requestId}`, {
+        action,
+        guestToken
+      });
+      alert(res.data.message || `Request ${action}ed!`);
+      fetchMyOrders();
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+      alert(`Failed to resolve request: ${msg}`);
+    }
+  };
 
   const guestTokenStored = Boolean(localStorage.getItem("guestToken")?.trim());
   const customerJwtStored = Boolean(localStorage.getItem("token")?.trim());
@@ -657,24 +742,102 @@ const MyOrders = () => {
 
               <div className="order-items">
                 <strong>Items</strong>
-                {order.items.map((item, i) => (
-                  <div className="order-item-block" key={i}>
-                    <div className="order-item">
-                      <span>{item.name}</span>
-                      <span>×{item.quantity}</span>
-                      <span className="order-price-sar">
-                        {item.price}
-                        <SaudiRiyalSymbol />
-                      </span>
+                {order.items.map((item, i) => {
+                  const isFullyCancelled = item.quantity === 0;
+                  return (
+                    <div className="order-item-block" key={i}>
+                      <div className={`order-item ${isFullyCancelled ? 'order-item--fully-cancelled' : ''}`}>
+                        <span style={isFullyCancelled ? { textDecoration: 'line-through', opacity: 0.5 } : {}}>{item.name}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={isFullyCancelled ? { opacity: 0.5 } : {}}>×{item.quantity}</span>
+                          {item.cancelledQuantity > 0 && (
+                            <span className="cancelled-qty-label" style={{ color: "#ef4444", fontSize: "0.78rem", fontWeight: "700" }}>
+                              ({item.cancelledQuantity} Cancelled)
+                            </span>
+                          )}
+                        </div>
+                        <span className="order-price-sar" style={isFullyCancelled ? { textDecoration: 'line-through', opacity: 0.5 } : {}}>
+                          {item.price}
+                          <SaudiRiyalSymbol />
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="total">
                   <strong className="order-total-sar">
                     Total: {order.totalPrice}
                     <SaudiRiyalSymbol />
                   </strong>
                 </div>
+
+                {(() => {
+                  const customerPendingRequest = (order.cancellationRequests || []).find(r => r.status === "pending" && r.requestedBy === "customer");
+                  const staffPendingRequest = (order.cancellationRequests || []).find(r => r.status === "pending" && r.requestedBy === "staff");
+
+                  return (
+                    <>
+                      {staffPendingRequest && (
+                        <div className="pending-cancellation-request pending-cancellation-request--incoming">
+                          <strong>⚠️ Staff Requested Cancellation:</strong>
+                          <p className="request-reason">Reason: {staffPendingRequest.cancelReason}</p>
+                          <ul className="request-items-list" role="list">
+                            {staffPendingRequest.items.map((it, idx) => (
+                              <li key={idx}>{it.name} (Qty to cancel: {it.quantityToCancel})</li>
+                            ))}
+                          </ul>
+                          <div className="request-actions">
+                            <button 
+                              type="button" 
+                              className="request-btn request-btn--accept"
+                              onClick={() => handleResolveRequest(order._id, staffPendingRequest._id, "accept")}
+                            >
+                              Accept Cancellation
+                            </button>
+                            <button 
+                              type="button" 
+                              className="request-btn request-btn--reject"
+                              onClick={() => handleResolveRequest(order._id, staffPendingRequest._id, "reject")}
+                            >
+                              Reject Request
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {customerPendingRequest && (
+                        <div className="pending-cancellation-request pending-cancellation-request--outgoing">
+                          <strong>⌛ Awaiting Staff Approval:</strong>
+                          <p>You requested cancellation for:</p>
+                          <ul className="request-items-list" role="list">
+                            {customerPendingRequest.items.map((it, idx) => (
+                              <li key={idx}>{it.name} (Qty to cancel: {it.quantityToCancel})</li>
+                            ))}
+                          </ul>
+                          <p className="request-status-text">We'll update you as soon as staff accepts or rejects your request.</p>
+                        </div>
+                      )}
+
+                      {order.status === "pending" && !customerPendingRequest && !staffPendingRequest && (
+                        <div className="my-order-cancel-row" style={{ marginTop: "14px", display: "flex", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            className="my-order-cancel-btn"
+                            onClick={() => setCancellingOrder(order)}
+                          >
+                            Cancel Order / Items
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+                
+                {order.refundedAmount > 0 && (
+                  <div className="order-refund-summary-row" style={{ marginTop: "8px", textAlign: "right", color: "#10b981", fontSize: "0.85rem", fontWeight: "600" }}>
+                    Refunded: {order.refundedAmount} <SaudiRiyalSymbol />
+                  </div>
+                )}
 
                 {reviewWindowOpen && reviewLinesAggregated.length > 0 ? (
                   <div className="order-dish-review-wizard">
@@ -1088,6 +1251,136 @@ const MyOrders = () => {
           </p>
         )}
       </div>
+      {cancellingOrder && (
+        <div className="cancel-modal-overlay">
+          <div className="cancel-modal-content">
+            <header className="cancel-modal-header">
+              <h2>Cancel Order / Items</h2>
+              <button 
+                type="button" 
+                className="cancel-modal-close" 
+                onClick={() => {
+                  setCancellingOrder(null);
+                  setQuantitiesToCancel({});
+                  setCancelReason("");
+                }}
+              >
+                &times;
+              </button>
+            </header>
+
+            <form onSubmit={handleCancelSubmit}>
+              <p className="cancel-modal-desc">
+                Select how many units of each item to cancel. Leave all at 0 to cancel the entire order.
+              </p>
+
+              <div className="cancel-modal-items">
+                {cancellingOrder.items.map((item, index) => {
+                  const currentSelected = quantitiesToCancel[index] || 0;
+                  return (
+                    <div className="cancel-modal-item-row" key={index}>
+                      <div className="cancel-modal-item-info">
+                        <span className="cancel-modal-item-name">{item.name}</span>
+                        <span className="cancel-modal-item-price">
+                          {item.price} <SaudiRiyalSymbol />
+                        </span>
+                      </div>
+                      <div className="cancel-modal-item-controls">
+                        <span className="cancel-modal-item-avail">Max: {item.quantity}</span>
+                        <div className="cancel-qty-stepper">
+                          <button
+                            type="button"
+                            disabled={currentSelected <= 0}
+                            onClick={() => setQuantitiesToCancel(prev => ({
+                              ...prev,
+                              [index]: Math.max(0, currentSelected - 1)
+                            }))}
+                          >
+                            -
+                          </button>
+                          <span className="cancel-qty-value">{currentSelected}</span>
+                          <button
+                            type="button"
+                            disabled={currentSelected >= item.quantity}
+                            onClick={() => setQuantitiesToCancel(prev => ({
+                              ...prev,
+                              [index]: Math.min(item.quantity, currentSelected + 1)
+                            }))}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="cancel-modal-reason">
+                <label htmlFor="customer-cancel-reason">Reason for cancellation (optional):</label>
+                <textarea
+                  id="customer-cancel-reason"
+                  rows={2}
+                  maxLength={200}
+                  placeholder="e.g., Decided to change my order, ordered too many..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+              </div>
+
+              {cancellingOrder.paymentMethod === "card" && cancellingOrder.paymentStatus === "paid" && (
+                <div className="cancel-modal-refund-notice">
+                  <strong>💳 Card Refund Notice:</strong>
+                  <p>
+                    An automatic refund of{" "}
+                    <strong>
+                      {(() => {
+                        let totalRefund = 0;
+                        let anySelected = false;
+                        cancellingOrder.items.forEach((item, index) => {
+                          const qty = quantitiesToCancel[index] || 0;
+                          if (qty > 0) {
+                            anySelected = true;
+                            totalRefund += item.price * qty;
+                          }
+                        });
+                        if (!anySelected) {
+                          // Full refund if nothing selected
+                          return cancellingOrder.totalPrice;
+                        }
+                        return totalRefund.toFixed(2);
+                      })()}{" "}
+                      <SaudiRiyalSymbol />
+                    </strong>{" "}
+                    will be processed back to your card.
+                  </p>
+                </div>
+              )}
+
+              <div className="cancel-modal-actions">
+                <button
+                  type="button"
+                  className="cancel-modal-btn-secondary"
+                  onClick={() => {
+                    setCancellingOrder(null);
+                    setQuantitiesToCancel({});
+                    setCancelReason("");
+                  }}
+                >
+                  Keep My Order
+                </button>
+                <button
+                  type="submit"
+                  className="cancel-modal-btn-primary"
+                  disabled={submittingCancel}
+                >
+                  {submittingCancel ? "Processing..." : "Confirm Cancellation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {previewPack ? (
         <ReceiptPreviewModal
           key={previewPack.k}

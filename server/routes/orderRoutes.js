@@ -11,9 +11,11 @@ import {
   getSummaryStats,
   updateOrderStatus,
   markOrderAsPaid,
+  requestCancellation,
+  resolveCancellationRequest,
 } from "../controllers/orderController.js";
 import { requireCustomerAuth } from "../middlewares/customerAuthMiddleware.js";
-import { authenticate } from "../middlewares/authMiddleware.js";
+import { authenticate, optionalAuthenticate } from "../middlewares/authMiddleware.js";
 import { requireActiveSubscription } from "../middlewares/subscriptionMiddleware.js";
 import { requireStaffAccount, requireRole } from "../middlewares/roleMiddleware.js";
 import {
@@ -59,6 +61,18 @@ router.put(
   ...staffBase,
   requireRole(["owner", "manager", "cashier"]),
   markOrderAsPaid,
+);
+router.post(
+  "/:id/request-cancel",
+  optionalAuthenticate,
+  ...publicTenant,
+  requestCancellation,
+);
+router.post(
+  "/:id/resolve-cancel-request/:requestId",
+  optionalAuthenticate,
+  ...publicTenant,
+  resolveCancellationRequest,
 );
 router.get("/active-orders", ...staffBase, activeOrders);
 router.get("/server-clock", getServerClock);

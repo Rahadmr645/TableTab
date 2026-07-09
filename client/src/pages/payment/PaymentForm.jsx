@@ -8,7 +8,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { api } from "../../utils/api.js";
 import "./PaymentForm.css";
-const PaymentFormInner = ({ amount, onSuccess }) => {
+const PaymentFormInner = ({ amount, onSuccess, onLoadingChange, onlineSubMethod, isTestMode }) => {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -22,6 +22,7 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
     if (!stripe || !elements) return;
 
     setLoading(true);
+    onLoadingChange?.(true);
 
     try {
       const result = await stripe.confirmPayment({
@@ -34,6 +35,8 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
 
       if (result.error) {
         setCardError(result.error.message);
+        setLoading(false);
+        onLoadingChange?.(false);
       } else if (result.paymentIntent?.status === "succeeded") {
         try {
           await Promise.resolve(onSuccess?.(result.paymentIntent.id));
@@ -43,13 +46,18 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
             finalizeErr?.response?.data?.message ||
               "Payment succeeded, but we could not complete your order. Please notify staff.",
           );
+          setLoading(false);
+          onLoadingChange?.(false);
         }
+      } else {
+        setLoading(false);
+        onLoadingChange?.(false);
       }
     } catch (err) {
       console.error(err);
       setCardError("An error occurred while processing your payment.");
-    } finally {
       setLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -65,6 +73,76 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
       <form onSubmit={handleSubmit} className="payment-forms">
         <h3>Secure Checkout</h3>
         
+        {onlineSubMethod === "apple_pay" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            🍏 Apple Pay is supported on Safari/iOS. If the Apple Pay option does not appear in the form below, you can complete payment by entering your card details.
+          </p>
+        )}
+        {onlineSubMethod === "samsung_pay" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            📱 Samsung Pay is supported. Please enter your Samsung Pay digital card details directly in the fields below.
+          </p>
+        )}
+        {onlineSubMethod === "google_pay" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            🤖 Google Pay is supported on Chrome/Android. If the Google Pay option does not appear in the form below, you can pay by entering your card details.
+          </p>
+        )}
+        {onlineSubMethod === "stc_pay" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            🇸🇦 STC Pay will redirect you to secure payment verification.
+          </p>
+        )}
+        {onlineSubMethod === "mada" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            🇸🇦 Pay securely using your local Mada debit card.
+          </p>
+        )}
+        {onlineSubMethod === "card" && (
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+            💳 Pay securely using your Credit/Debit Card (Visa, Mastercard).
+          </p>
+        )}
+
+        {isTestMode && (
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              onLoadingChange?.(true);
+              try {
+                const mockPiId = `pi_mock_${onlineSubMethod}_${Math.random().toString(36).substr(2, 9)}`;
+                await Promise.resolve(onSuccess?.(mockPiId));
+              } catch (err) {
+                setCardError("Demo payment failed");
+              } finally {
+                setLoading(false);
+                onLoadingChange?.(false);
+              }
+            }}
+            style={{
+              margin: "4px 0 14px",
+              width: "100%",
+              padding: "14px",
+              border: "1px dashed var(--accent)",
+              borderRadius: "999px",
+              fontSize: "0.95rem",
+              fontWeight: "700",
+              cursor: "pointer",
+              color: "#fff",
+              background: "rgba(240, 180, 41, 0.15)",
+              boxShadow: "0 4px 12px rgba(240, 180, 41, 0.1)",
+              transition: "all 0.25s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}
+          >
+            <span>✨</span> Simulate {onlineSubMethod.replace("_", " ").toUpperCase()} (Test Mode)
+          </button>
+        )}
+
         <PaymentElement />
 
         {cardError && <p className="error">{cardError}</p>}
@@ -81,11 +159,12 @@ const PaymentFormInner = ({ amount, onSuccess }) => {
   );
 };
 
-const StripePayment = ({ amount, onSuccess }) => {
+const StripePayment = ({ amount, onSuccess, onLoadingChange, onlineSubMethod }) => {
   const [clientSecret, setClientSecret] = useState("");
   const [error, setError] = useState("");
   const [initLoading, setInitLoading] = useState(true);
   const [stripePromise, setStripePromise] = useState(null);
+  const [isTestMode, setIsTestMode] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -102,6 +181,7 @@ const StripePayment = ({ amount, onSuccess }) => {
             const key = data.publishableKey || import.meta.env.VITE_API_PUBLISH_KEY;
             if (key) {
               setStripePromise(loadStripe(key));
+              setIsTestMode(String(key).startsWith("pk_test"));
             } else {
               setError("Payment gateway publishable key missing.");
             }
@@ -156,11 +236,18 @@ const StripePayment = ({ amount, onSuccess }) => {
         borderRadius: "10px",
       },
     },
+    paymentMethodOrder: onlineSubMethod === "stc_pay" ? ["stc_pay", "card"] : ["card", "stc_pay"]
   };
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <PaymentFormInner amount={amount} onSuccess={onSuccess} />
+      <PaymentFormInner
+        amount={amount}
+        onSuccess={onSuccess}
+        onLoadingChange={onLoadingChange}
+        onlineSubMethod={onlineSubMethod}
+        isTestMode={isTestMode}
+      />
     </Elements>
   );
 };

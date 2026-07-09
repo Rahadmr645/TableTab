@@ -20,12 +20,26 @@ export const paymentIntent = async (req, res) => {
       ...(req.tenantId ? { tenantId: String(req.tenantId) } : {}),
     };
 
-    const paymentIntentResult = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: "sar",
-      automatic_payment_methods: { enabled: true },
-      metadata: meta,
-    });
+    let paymentIntentResult;
+    try {
+      paymentIntentResult = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "sar",
+        payment_method_types: ["card", "stc_pay"],
+        metadata: meta,
+      });
+    } catch (stripeErr) {
+      console.warn(
+        "Could not create PaymentIntent with explicit payment_method_types, falling back to automatic_payment_methods:",
+        stripeErr.message
+      );
+      paymentIntentResult = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "sar",
+        automatic_payment_methods: { enabled: true },
+        metadata: meta,
+      });
+    }
 
     res.status(200).json({
       clientSecret: paymentIntentResult.client_secret,

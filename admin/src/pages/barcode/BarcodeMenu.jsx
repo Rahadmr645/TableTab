@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 import axios from "axios";
-import html2pdf from "html2pdf.js";
+import html2pdf from "html2pdf.js/dist/html2pdf.bundle.min.js";
 import { AuthContext } from "../../context/AuthContext";
 import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import { FaBarcode } from "react-icons/fa";

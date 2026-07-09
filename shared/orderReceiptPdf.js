@@ -1,4 +1,4 @@
-import html2pdf from "html2pdf.js";
+import html2pdf from "html2pdf.js/dist/html2pdf.bundle.min.js";
 import QRCode from "qrcode";
 
 function escapeHtml(raw) {

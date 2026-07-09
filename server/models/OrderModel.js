@@ -40,13 +40,21 @@ const orderSchema = new mongoose.Schema({
       name: String,
       price: Number,
       quantity: Number,
+      cancelledQuantity: {
+        type: Number,
+        default: 0,
+      },
+      cancelReason: {
+        type: String,
+        default: null,
+      },
     },
   ],
 
   totalPrice: { type: Number, required: true },
   status: {
     type: String,
-    enum: ["pending", "In Progress", "Ready", "Finised", "Finished"],
+    enum: ["pending", "In Progress", "Ready", "Finised", "Finished", "Cancelled"],
     default: "pending",
   },
   paymentMethod: {
@@ -66,6 +74,63 @@ const orderSchema = new mongoose.Schema({
     default: null,
     index: true,
   },
+  cancelledAt: {
+    type: Date,
+    default: null,
+  },
+  cancelledBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+    index: true,
+  },
+  cancelReason: {
+    type: String,
+    default: null,
+  },
+  refundStatus: {
+    type: String,
+    enum: ["none", "pending", "succeeded", "failed"],
+    default: "none",
+  },
+  refundedAmount: {
+    type: Number,
+    default: 0,
+  },
+  cancellationRequests: [
+    {
+      requestedBy: {
+        type: String,
+        enum: ["customer", "staff"],
+        required: true,
+      },
+      requestedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      items: [
+        {
+          menuItemId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Menu",
+          },
+          name: String,
+          quantityToCancel: {
+            type: Number,
+            required: true,
+          },
+        },
+      ],
+      cancelReason: String,
+      status: {
+        type: String,
+        enum: ["pending", "accepted", "rejected"],
+        default: "pending",
+      },
+      resolvedAt: Date,
+      resolvedBy: mongoose.Schema.Types.ObjectId,
+    },
+  ],
 
   /** Calendar day YYYY-MM-DD in ORDER_BUSINESS_TZ — dailyOrderNumber resets at midnight there */
   businessDay: { type: String, trim: true },

@@ -407,7 +407,7 @@ export const activeOrders = async (req, res) => {
     const serverNow = Date.now();
     const q = {
       tenantId: req.tenantId,
-      status: { $nin: ["Finished", "Finised"] },
+      status: { $nin: ["Finished", "Finised", "Cancelled"] },
     };
     if (req.branchId) q.branchId = req.branchId;
 
@@ -556,7 +556,7 @@ export const getSummaryStats = async (req, res) => {
             activeOrders: [
               {
                 $match: {
-                  status: { $nin: ["Finished", "Finised"] },
+                  status: { $nin: ["Finished", "Finised", "Cancelled"] },
                 },
               },
               { $count: "count" },
@@ -637,5 +637,276 @@ export const markOrderAsPaid = async (req, res) => {
     res.status(200).json({ message: "Order marked as paid", order });
   } catch (error) {
     res.status(500).json({ message: "Failed to update payment status", error: error.message });
+  }
+};
+
+export const requestCancellation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itemsToCancel, cancelReason, guestToken } = req.body;
+
+    const order = await Order.findOne({ _id: id, tenantId: req.tenantId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (!order.cancellationRequests) {
+      order.cancellationRequests = [];
+    }
+
+    // Determine requester
+    const isStaff = req.user && ["owner", "manager", "chef", "barista", "cashier"].includes(req.user.role);
+    let requestedBy = "staff";
+
+    if (!isStaff) {
+      // Must be customer/guest
+      requestedBy = "customer";
+      let hasAccess = false;
+      const reqCustomerId = req.user?.userId;
+      if (reqCustomerId && String(order.userID) === String(reqCustomerId)) {
+        hasAccess = true;
+      } else if (guestToken && order.guestToken === guestToken) {
+        hasAccess = true;
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({ message: "You do not have permission to cancel this order" });
+      }
+
+      // Customers can only request cancellation on pending orders
+      const normalizedStatus = String(order.status || "").toLowerCase().replace(/\s+/g, "");
+      if (normalizedStatus !== "pending") {
+        return res.status(400).json({
+          message: "Order has already been prepared or served and cannot be cancelled.",
+        });
+      }
+    }
+
+    // Check if there's already a pending request from the same side
+    const pendingReq = order.cancellationRequests.find(
+      (r) => r.status === "pending" && r.requestedBy === requestedBy
+    );
+    if (pendingReq) {
+      return res.status(400).json({
+        message: "You already have a pending cancellation request for this order.",
+      });
+    }
+
+    // Prepare requested items
+    let reqItems = [];
+    if (!itemsToCancel || itemsToCancel.length === 0) {
+      // Full cancel: add all remaining active items to request
+      reqItems = order.items
+        .filter((it) => it.quantity > 0)
+        .map((it) => ({
+          menuItemId: it.menuItemId || null,
+          name: it.name,
+          quantityToCancel: it.quantity,
+        }));
+    } else {
+      // Partial cancel
+      for (const reqItem of itemsToCancel) {
+        const item = order.items.find(
+          (it) => {
+            const idMatch = it.menuItemId && reqItem.menuItemId && String(it.menuItemId) === String(reqItem.menuItemId);
+            const nameMatch = it.name === reqItem.name;
+            return idMatch || nameMatch;
+          }
+        );
+        if (item) {
+          const qty = Math.min(item.quantity, Number(reqItem.quantityToCancel) || 0);
+          if (qty > 0) {
+            reqItems.push({
+              menuItemId: item.menuItemId || null,
+              name: item.name,
+              quantityToCancel: qty,
+            });
+          }
+        }
+      }
+    }
+
+    if (reqItems.length === 0) {
+      return res.status(400).json({ message: "No active items selected for cancellation request." });
+    }
+
+    // Add request
+    order.cancellationRequests.push({
+      requestedBy,
+      requestedAt: new Date(),
+      items: reqItems,
+      cancelReason: cancelReason || `Cancellation requested by ${requestedBy}`,
+      status: "pending",
+    });
+
+    order.markModified("cancellationRequests");
+    const savedOrder = await order.save();
+
+    // Broadcast socket update
+    const io = getIo();
+    const tid = String(req.tenantId);
+    io.to(`tenant:${tid}`).emit("orderUpdated", savedOrder.toObject());
+
+    res.status(200).json({
+      message: "Cancellation request submitted successfully.",
+      order: savedOrder,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to request cancellation", error: error.message });
+  }
+};
+
+export const resolveCancellationRequest = async (req, res) => {
+  try {
+    const { id, requestId } = req.params;
+    const { action, guestToken } = req.body; // action: "accept" or "reject"
+
+    const order = await Order.findOne({ _id: id, tenantId: req.tenantId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (!order.cancellationRequests) {
+      order.cancellationRequests = [];
+    }
+
+    const request = order.cancellationRequests.id 
+      ? order.cancellationRequests.id(requestId)
+      : order.cancellationRequests.find((r) => String(r._id) === String(requestId));
+
+    if (!request) {
+      return res.status(404).json({ message: "Cancellation request not found" });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({ message: "This request has already been resolved." });
+    }
+
+    // Authorization checks
+    const isStaff = req.user && ["owner", "manager", "chef", "barista", "cashier"].includes(req.user.role);
+
+    if (request.requestedBy === "customer") {
+      if (!isStaff) {
+        return res.status(403).json({ message: "Only staff can resolve customer cancellation requests." });
+      }
+    } else {
+      // requested by staff, must be customer to resolve
+      let isCustomerOwner = false;
+      const reqCustomerId = req.user?.userId;
+      if (reqCustomerId && String(order.userID) === String(reqCustomerId)) {
+        isCustomerOwner = true;
+      } else if (guestToken && order.guestToken === guestToken) {
+        isCustomerOwner = true;
+      }
+
+      if (!isCustomerOwner) {
+        return res.status(403).json({ message: "Only the customer can resolve staff cancellation requests." });
+      }
+    }
+
+    // Resolve the request
+    request.status = action === "accept" ? "accepted" : "rejected";
+    request.resolvedAt = new Date();
+    if (isStaff) {
+      request.resolvedBy = req.user.userId;
+    }
+
+    let refundResult = { status: "none", message: "No refund required" };
+
+    if (action === "accept") {
+      const prevTotalPrice = order.totalPrice;
+
+      // Apply the cancellation to items
+      for (const reqItem of request.items) {
+        const item = order.items.find(
+          (it) => {
+            const idMatch = it.menuItemId && reqItem.menuItemId && String(it.menuItemId) === String(reqItem.menuItemId);
+            const nameMatch = it.name === reqItem.name;
+            return idMatch || nameMatch;
+          }
+        );
+        if (item) {
+          const qtyToCancel = Math.min(item.quantity, reqItem.quantityToCancel);
+          if (qtyToCancel > 0) {
+            item.quantity -= qtyToCancel;
+            item.cancelledQuantity = (item.cancelledQuantity || 0) + qtyToCancel;
+            item.cancelReason = request.cancelReason || "Accepted cancellation request";
+          }
+        }
+      }
+
+      // Recalculate totalPrice
+      order.totalPrice = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // If all active items are now 0, mark full order status as Cancelled
+      const activeItemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+      if (activeItemCount === 0) {
+        order.status = "Cancelled";
+      }
+
+      // Trigger Stripe refund if payment was card + paid
+      const refundAmount = prevTotalPrice - order.totalPrice;
+      if (
+        refundAmount > 0 &&
+        order.paymentStatus === "paid" &&
+        order.paymentMethod === "card" &&
+        order.paymentIntentId
+      ) {
+        try {
+          order.refundStatus = "pending";
+          const { stripe } = await getTenantStripe(req.tenantId);
+          if (stripe) {
+            const refund = await stripe.refunds.create({
+              payment_intent: order.paymentIntentId,
+              amount: Math.round(refundAmount * 100),
+            });
+            if (refund.status === "succeeded" || refund.status === "pending") {
+              order.refundStatus = "succeeded";
+              order.refundedAmount = (order.refundedAmount || 0) + refundAmount;
+              refundResult = { status: "succeeded", refundId: refund.id };
+            } else {
+              order.refundStatus = "failed";
+              refundResult = { status: "failed", message: `Stripe status: ${refund.status}` };
+            }
+          } else {
+            order.refundStatus = "failed";
+            refundResult = { status: "failed", message: "Stripe client not configured" };
+          }
+        } catch (stripeErr) {
+          console.error("Stripe refund error:", stripeErr);
+          order.refundStatus = "failed";
+          refundResult = { status: "failed", error: stripeErr.message };
+        }
+      }
+
+      // Set cancellation logs on the main order if it becomes fully Cancelled
+      if (order.status === "Cancelled") {
+        order.cancelledAt = new Date();
+        order.cancelledBy = isStaff ? req.user.userId : null;
+        order.cancelReason = request.cancelReason || "Fully cancelled via request";
+      }
+    }
+
+    order.markModified("items");
+    order.markModified("cancellationRequests");
+    const savedOrder = await order.save();
+
+    await clearMenuCache(req.tenantId, order.branchId || null);
+
+    // Emit Socket.io notifications
+    const io = getIo();
+    const tid = String(req.tenantId);
+    io.to(`tenant:${tid}`).emit("orderUpdated", savedOrder.toObject());
+    if (savedOrder.status === "Cancelled") {
+      io.to(`tenant:${tid}`).emit("orderRemoved", id);
+    }
+
+    res.status(200).json({
+      message: `Cancellation request ${action === "accept" ? "accepted" : "rejected"} successfully.`,
+      order: savedOrder,
+      refundResult,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to resolve cancellation request", error: error.message });
   }
 };
