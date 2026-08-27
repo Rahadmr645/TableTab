@@ -74,32 +74,32 @@ const PaymentFormInner = ({ amount, onSuccess, onLoadingChange, onlineSubMethod,
         <h3>Secure Checkout</h3>
         
         {onlineSubMethod === "apple_pay" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             🍏 Apple Pay is supported on Safari/iOS. If the Apple Pay option does not appear in the form below, you can complete payment by entering your card details.
           </p>
         )}
         {onlineSubMethod === "samsung_pay" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             📱 Samsung Pay is supported. Please enter your Samsung Pay digital card details directly in the fields below.
           </p>
         )}
         {onlineSubMethod === "google_pay" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             🤖 Google Pay is supported on Chrome/Android. If the Google Pay option does not appear in the form below, you can pay by entering your card details.
           </p>
         )}
         {onlineSubMethod === "stc_pay" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             🇸🇦 STC Pay will redirect you to secure payment verification.
           </p>
         )}
         {onlineSubMethod === "mada" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             🇸🇦 Pay securely using your local Mada debit card.
           </p>
         )}
         {onlineSubMethod === "card" && (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center", margin: "0 0 10px", lineHeight: "1.4" }}>
+          <p className="payment-method-desc">
             💳 Pay securely using your Credit/Debit Card (Visa, Mastercard).
           </p>
         )}
@@ -120,24 +120,7 @@ const PaymentFormInner = ({ amount, onSuccess, onLoadingChange, onlineSubMethod,
                 onLoadingChange?.(false);
               }
             }}
-            style={{
-              margin: "4px 0 14px",
-              width: "100%",
-              padding: "14px",
-              border: "1px dashed var(--accent)",
-              borderRadius: "999px",
-              fontSize: "0.95rem",
-              fontWeight: "700",
-              cursor: "pointer",
-              color: "#fff",
-              background: "rgba(240, 180, 41, 0.15)",
-              boxShadow: "0 4px 12px rgba(240, 180, 41, 0.1)",
-              transition: "all 0.25s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px"
-            }}
+            className="payment-simulate-btn"
           >
             <span>✨</span> Simulate {onlineSubMethod.replace("_", " ").toUpperCase()} (Test Mode)
           </button>

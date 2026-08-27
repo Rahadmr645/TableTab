@@ -4,7 +4,7 @@ import { AuthContext } from "../../context/CartContext";
 import "./Checkout.css";
 import { api } from "../../utils/api.js";
 import { useNavigate } from "react-router-dom";
-import { IoChevronBack } from "react-icons/io5";
+import { IoChevronBack, IoPersonOutline, IoRestaurantOutline } from "react-icons/io5";
 import StripePayment from "../payment/PaymentForm.jsx";
 import {
   playOrderPlacedChime,
@@ -28,6 +28,15 @@ const Checkout = () => {
   const [onlineSubMethod, setOnlineSubMethod] = useState("card");
   const [selectedMethodConfirm, setSelectedMethodConfirm] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [focusedFields, setFocusedFields] = useState({});
+
+  const handleFocus = (name) => {
+    setFocusedFields((prev) => ({ ...prev, [name]: true }));
+  };
+
+  const handleBlur = (name) => {
+    setFocusedFields((prev) => ({ ...prev, [name]: false }));
+  };
 
   const navigator = useNavigate();
   const namePrefillUserIdRef = useRef(null);
@@ -280,209 +289,125 @@ const Checkout = () => {
             </h3>
 
             {!payment && (
-              <>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  autoComplete="name"
-                />
+              <div className="checkout-details-form">
+                <div className="checkout-field-group">
+                  <div className={`checkout-input-wrapper ${focusedFields["customerName"] ? "checkout-input-wrapper--focused" : ""} ${customerName ? "checkout-input-wrapper--has-value" : ""}`}>
+                    <span className="checkout-input-icon">
+                      <IoPersonOutline />
+                    </span>
+                    <input
+                      type="text"
+                      id="customerNameInput"
+                      className="checkout-input"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      onFocus={() => handleFocus("customerName")}
+                      onBlur={() => handleBlur("customerName")}
+                      autoComplete="name"
+                      required
+                    />
+                    <label htmlFor="customerNameInput" className="checkout-label">
+                      Your name
+                    </label>
+                  </div>
+                </div>
 
-                <input
-                  type="number"
-                  placeholder="Look on your table for your table number (sticker or stand)"
-                  value={tableId}
-                  onChange={(e) => setTableId(e.target.value)}
-                />
+                <div className="checkout-field-group">
+                  <div className={`checkout-input-wrapper ${focusedFields["tableId"] ? "checkout-input-wrapper--focused" : ""} ${tableId ? "checkout-input-wrapper--has-value" : ""}`}>
+                    <span className="checkout-input-icon">
+                      <IoRestaurantOutline />
+                    </span>
+                    <input
+                      type="number"
+                      id="tableIdInput"
+                      className="checkout-input"
+                      value={tableId}
+                      onChange={(e) => setTableId(e.target.value)}
+                      onFocus={() => handleFocus("tableId")}
+                      onBlur={() => handleBlur("tableId")}
+                      required
+                    />
+                    <label htmlFor="tableIdInput" className="checkout-label">
+                      Table number (on table sticker/stand)
+                    </label>
+                  </div>
+                </div>
 
-                <button type="button" onClick={handleConfirmOrder}>
+                <button type="button" className="checkout-primary-btn" onClick={handleConfirmOrder}>
                   Continue to payment
                 </button>
-              </>
+              </div>
             )}
 
             {payment && !selectedMethodConfirm && (
               <div className="payment-method-selector">
-                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "18px" }}>
+                <p className="payment-selector-intro">
                   Choose how you'd like to pay for your meal:
                 </p>
-                <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+                <div className="payment-main-options">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod("card")}
-                    style={{
-                      flex: 1,
-                      padding: "16px 12px",
-                      borderRadius: "10px",
-                      border: paymentMethod === "card" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.1)",
-                      background: paymentMethod === "card" ? "rgba(240, 180, 41, 0.1)" : "rgba(0,0,0,0.2)",
-                      color: "#fff",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontWeight: "700",
-                      transition: "all 0.2s ease"
-                    }}
+                    className={`payment-main-btn ${paymentMethod === "card" ? "active" : ""}`}
                   >
-                    <span style={{ fontSize: "1.4rem" }}>💳</span>
-                    Pay Online
+                    <span className="payment-main-icon">💳</span>
+                    <span className="payment-main-text">Pay Online</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentMethod("cash")}
-                    style={{
-                      flex: 1,
-                      padding: "16px 12px",
-                      borderRadius: "10px",
-                      border: paymentMethod === "cash" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.1)",
-                      background: paymentMethod === "cash" ? "rgba(240, 180, 41, 0.1)" : "rgba(0,0,0,0.2)",
-                      color: "#fff",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontWeight: "700",
-                      transition: "all 0.2s ease"
-                    }}
+                    className={`payment-main-btn ${paymentMethod === "cash" ? "active" : ""}`}
                   >
-                    <span style={{ fontSize: "1.4rem" }}>💵</span>
-                    Pay at Table
+                    <span className="payment-main-icon">💵</span>
+                    <span className="payment-main-text">Pay at Table</span>
                   </button>
                 </div>
 
                 {paymentMethod === "card" && (
-                  <div style={{ marginBottom: "24px", animation: "overlayIn 0.3s ease" }}>
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "10px", textAlign: "left" }}>
+                  <div className="online-payment-options-container">
+                    <p className="online-payment-subtitle">
                       Select online payment option:
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+                    <div className="online-payment-grid">
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("card")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "card" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "card" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "card" ? "active" : ""}`}
                       >
                         <span>💳</span> Card
                       </button>
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("mada")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "mada" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "mada" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "mada" ? "active" : ""}`}
                       >
                         <span>🇸🇦</span> Mada
                       </button>
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("apple_pay")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "apple_pay" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "apple_pay" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "apple_pay" ? "active" : ""}`}
                       >
                         <span>🍏</span> Apple Pay
                       </button>
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("samsung_pay")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "samsung_pay" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "samsung_pay" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "samsung_pay" ? "active" : ""}`}
                       >
                         <span>📱</span> Samsung Pay
                       </button>
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("google_pay")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "google_pay" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "google_pay" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "google_pay" ? "active" : ""}`}
                       >
                         <span>🤖</span> Google Pay
                       </button>
                       <button
                         type="button"
                         onClick={() => setOnlineSubMethod("stc_pay")}
-                        style={{
-                          padding: "12px 8px",
-                          borderRadius: "8px",
-                          border: onlineSubMethod === "stc_pay" ? "2px solid var(--accent)" : "1px solid rgba(255,255,255,0.08)",
-                          background: onlineSubMethod === "stc_pay" ? "rgba(240, 180, 41, 0.1)" : "rgba(255,255,255,0.03)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          transition: "all 0.2s ease"
-                        }}
+                        className={`online-sub-btn ${onlineSubMethod === "stc_pay" ? "active" : ""}`}
                       >
                         <span>🇸🇦</span> STC Pay
                       </button>
@@ -493,17 +418,7 @@ const Checkout = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedMethodConfirm(true)}
-                  style={{
-                    width: "100%",
-                    padding: "14px",
-                    border: "none",
-                    borderRadius: "999px",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                    color: "#1a1204",
-                    background: "linear-gradient(145deg, var(--accent), #c9890a)",
-                    boxShadow: "0 10px 28px rgba(240, 180, 41, 0.25)"
-                  }}
+                  className="checkout-primary-btn accent"
                 >
                   Continue
                 </button>
@@ -520,45 +435,34 @@ const Checkout = () => {
             )}
 
             {payment && selectedMethodConfirm && paymentMethod === "cash" && (
-              <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <p style={{ margin: "0 0 20px", color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: "1.5" }}>
-                  Confirm your order of <strong style={{ color: "var(--accent)" }}>SAR {subTotal.toFixed(2)}</strong>. You will pay in cash or card at the table or counter once served.
+              <div className="cash-confirm-container">
+                <p className="cash-confirm-text">
+                  Confirm your order of <strong className="cash-accent-price">SAR {subTotal.toFixed(2)}</strong>. You will pay in cash or card at the table or counter once served.
                 </p>
                 <button
                   type="button"
                   onClick={() => createOrder("cash")}
-                  style={{
-                    width: "100%",
-                    padding: "14px",
-                    border: "none",
-                    borderRadius: "999px",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                    color: "#1a1204",
-                    background: "linear-gradient(145deg, var(--teal), #14b8a6)",
-                    boxShadow: "0 10px 28px rgba(45, 212, 191, 0.25)"
-                  }}
+                  className="checkout-primary-btn teal"
                 >
                   Confirm & Place Order
                 </button>
               </div>
             )}
-          </div>
-
-          <div className="popup-buttons">
-            <button
-              type="button"
-              onClick={() => {
-                setPopup(false);
-                setPayment(false);
-                setSelectedMethodConfirm(false);
-                setPaymentProcessing(false);
-              }}
-              className="cancel-btn"
-              disabled={loading || paymentProcessing}
-            >
-              Cancel
-            </button>
+            <div className="popup-buttons">
+              <button
+                type="button"
+                onClick={() => {
+                  setPopup(false);
+                  setPayment(false);
+                  setSelectedMethodConfirm(false);
+                  setPaymentProcessing(false);
+                }}
+                className="cancel-btn"
+                disabled={loading || paymentProcessing}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
