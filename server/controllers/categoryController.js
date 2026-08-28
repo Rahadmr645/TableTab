@@ -73,3 +73,36 @@ export async function deleteCategory(req, res) {
     res.status(500).json({ message: "Delete failed", error: error.message });
   }
 }
+
+export async function updateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, sortOrder } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(String(id))) {
+      return res.status(400).json({ message: "Invalid id" });
+    }
+
+    const doc = await Category.findOne({
+      _id: id,
+      tenantId: req.tenantId,
+    });
+
+    if (!doc) return res.status(404).json({ message: "Category not found" });
+
+    if (name !== undefined) {
+      doc.name = String(name).trim();
+      doc.slug = String(name).toLowerCase().replace(/\s+/g, "-");
+    }
+    if (sortOrder !== undefined) {
+      doc.sortOrder = Number(sortOrder) || 0;
+    }
+
+    await doc.save();
+    await clearMenuCache(req.tenantId, doc.branchId || null);
+
+    res.status(200).json({ message: "Category updated", category: doc });
+  } catch (error) {
+    res.status(500).json({ message: "Update failed", error: error.message });
+  }
+}
+

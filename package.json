@@ -8,7 +8,8 @@
     "client",
     "admin",
     "appowner",
-    "shared"
+    "shared",
+    "cashier"
   ],
   "scripts": {
     "dev": "turbo run dev",
@@ -16,6 +17,7 @@
     "dev:client": "turbo run dev --filter=client",
     "dev:admin": "turbo run dev --filter=admin",
     "dev:appowner": "turbo run dev --filter=appowner",
+    "dev:cashier": "turbo run dev --filter=cashier",
     "build": "turbo run build",
     "lint": "turbo run lint"
   },

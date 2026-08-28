@@ -11,6 +11,7 @@ import {
   listCategories,
   createCategory,
   deleteCategory,
+  updateCategory,
 } from "../controllers/categoryController.js";
 
 const router = express.Router();
@@ -43,6 +44,14 @@ router.post(
   createCategory,
 );
 
+router.put(
+  "/:id",
+  ...staffBase,
+  requireRole(["owner", "manager"]),
+  stripForbiddenTenantFields,
+  updateCategory,
+);
+
 router.delete(
   "/:id",
   ...staffBase,
@@ -50,5 +59,6 @@ router.delete(
   stripForbiddenTenantFields,
   deleteCategory,
 );
+
 
 export default router;
