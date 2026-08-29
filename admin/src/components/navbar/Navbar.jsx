@@ -3,11 +3,10 @@ import "./navbar.css";
 
 import defaultProfilePic from "../../assets/icons/profileTabletab.png";
 import { AuthContext } from "../../context/AuthContext";
-import { FaCartPlus, FaUserPlus } from "react-icons/fa";
+import { FaCartPlus, FaUserPlus, FaInfoCircle, FaBarcode, FaBell, FaCashRegister } from "react-icons/fa";
 import { GrCafeteria } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { PiChefHat } from "react-icons/pi";
-import { FaInfoCircle, FaBarcode, FaBell } from "react-icons/fa";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { HiOutlineMenuAlt3, HiX } from "react-icons/hi";
 import CreateStaffModal from "../createStaff/CreateStaffModal.jsx";
@@ -75,6 +74,10 @@ const Navbar = () => {
       <NavLink to="/chef" className={linkClass} onClick={() => setMobileOpen(false)}>
         <PiChefHat className="admin-navbar__link-icon" aria-hidden />
         <span>Chefs</span>
+      </NavLink>
+      <NavLink to="/cashiers" className={linkClass} onClick={() => setMobileOpen(false)}>
+        <FaCashRegister className="admin-navbar__link-icon" aria-hidden />
+        <span>Cashier</span>
       </NavLink>
       {canAddStaff ? (
         <button

@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+// import basicSsl from "@vitejs/plugin-basic-ssl";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     envDir: __dirname,
     plugins: [
       react(),
-      basicSsl(),
+      // basicSsl(),
       VitePWA({
         registerType: "autoUpdate",
         includeAssets: ["pwa-192.png", "pwa-512.png"],

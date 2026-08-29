@@ -50,6 +50,8 @@ export const AuthContextProvider = ({ children }) => {
           userId: idStr,
           id: idStr,
           companyName: tenant?.businessName ?? prev?.companyName ?? "",
+          businessName: tenant?.businessName ?? prev?.businessName ?? tenant?.businessName ?? "",
+          tenantSlug: tenant?.slug ?? prev?.tenantSlug ?? "",
           staffSince:
             a?.staffSinceAt ?? a?.createdAt ?? prev?.staffSince,
           subscriptionStatus: tenant?.subscriptionStatus ?? prev?.subscriptionStatus,

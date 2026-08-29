@@ -9,6 +9,7 @@ import {
   updateStaffStatus,
   deleteStaff,
   updateStripeSettings,
+  updatePosPin,
 } from "../controllers/adminController.js";
 import uploadAdmin from "../middlewares/memoryMulter.js";
 import { authenticate } from "../middlewares/authMiddleware.js";
@@ -89,6 +90,13 @@ router.put(
   requireStaffAccount,
   requireRole(["owner"]),
   updateStripeSettings,
+);
+
+router.put(
+  "/pos-pin",
+  authenticate,
+  requireStaffAccount,
+  updatePosPin,
 );
 
 export default router;

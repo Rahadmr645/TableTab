@@ -59,10 +59,12 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ["card", "cash"],
+    enum: ["card", "cash", "split"],
     default: "card",
     index: true,
   },
+  cashAmount: { type: Number, default: 0 },
+  cardAmount: { type: Number, default: 0 },
   paymentStatus: {
     type: String,
     enum: ["paid", "unpaid"],

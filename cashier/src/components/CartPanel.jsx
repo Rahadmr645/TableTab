@@ -5,63 +5,123 @@ export default function CartPanel() {
   const {
     cart,
     selectedTable,
+    customerName,
+    setCustomerName,
+    setShowCustModal,
+    setShowTableModal,
+    setShowCustomDishModal,
     lang,
     t,
     taxAmount,
     grandTotal,
-    setShowTableModal,
     handleUpdateQuantity,
-    handleSubmitOrder,
-    setMobileView
+    setMobileView,
+    activeTab,
+    setActiveTab,
+    activeEditingOrderId,
+    handleNewOrder,
+    placedOrders,
+    setShowPrintModal
   } = useCashier();
+
+  const editingOrder = placedOrders.find(ord => ord._id === activeEditingOrderId);
+  const isOrderPaid = editingOrder && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
 
   return (
     <div className="cart-panel">
       <div className="cart-header">
-        <button className="cart-back-to-menu-btn" onClick={() => setMobileView("catalog")}>
+        <button className="cart-back-to-menu-btn" onClick={() => { setActiveTab("home"); setMobileView("catalog"); }}>
           {lang === "ar" ? "→ العودة للمنيو" : "← Back to Menu"}
         </button>
-        <div className="cart-header-top">
-          <button className="order-type-btn">
+
+        {activeEditingOrderId && (
+          <div className={`active-editing-order-banner ${isOrderPaid ? "paid-banner" : ""}`}>
+            <span>{isOrderPaid ? "✅ " : "📝 "}{lang === "ar" ? `طلب #${editingOrder?.dailyOrderNumber || ""}${isOrderPaid ? " (مدفوع)" : " (قيد التعديل)"}` : `Order #${editingOrder?.dailyOrderNumber || ""}${isOrderPaid ? " (PAID)" : " (Editing)"}`}</span>
+            <button className="new-order-chip-btn" onClick={handleNewOrder}>
+              + {lang === "ar" ? "طلب جديد" : "New Order"}
+            </button>
+          </div>
+        )}
+        
+        {/* Header Top Controls as shown in the screenshot */}
+        <div className="cart-header-top-controls">
+          <span className="status-pill active-status">
+            {isOrderPaid ? (lang === "ar" ? "مدفوع" : "PAID") : (t.active || "نشط")}
+          </span>
+          <span className="order-num-box" onClick={() => !isOrderPaid && setShowTableModal(true)}>
+            {selectedTable || 25}
+          </span>
+          <button className="order-type-btn-pill" onClick={() => !isOrderPaid && setShowTableModal(true)}>
             {t.dineIn}
           </button>
-          <div 
-            className="table-indicator" 
-            style={{ cursor: "pointer" }} 
-            onClick={() => setShowTableModal(true)}
-          >
-            {t.table} #{selectedTable}
-          </div>
+          <button className="manual-mode-btn">
+            {lang === "ar" ? "يدوي" : "Manual"}
+          </button>
+        </div>
+
+        {/* Customer section */}
+        <div className="customer-selection-area">
+          {customerName ? (
+            <div className="selected-customer-badge">
+              <span>👤 {customerName}</span>
+              {!isOrderPaid && (
+                <button className="clear-customer-btn" onClick={() => setCustomerName("")}>✕</button>
+              )}
+            </div>
+          ) : (
+            <button className="add-customer-dashed-btn" onClick={() => setShowCustModal(true)}>
+              + {t.addCustomer}
+            </button>
+          )}
         </div>
       </div>
 
       <div className="cart-items">
-        {cart.length === 0 ? null : (
+        {cart.length === 0 ? (
+          <div className="empty-cart-message">
+            <span>🛒 {lang === "ar" ? "السلة فارغة" : "Cart is empty"}</span>
+          </div>
+        ) : (
           cart.map((item, idx) => (
-            <div className="cart-item" key={idx}>
+            <div className={`cart-item ${activeTab === "payment" ? "checkout-item" : ""}`} key={idx}>
               <div className="cart-item-row">
                 <div className="cart-item-title">
-                  <span>{lang === "ar" ? item.product.nameAr : item.product.nameEn}</span>
-                  <span className="cart-item-subtitle">{item.product.price.toFixed(2)} ر.س</span>
+                  <span className="cart-item-name">{lang === "ar" ? item.product.nameAr : item.product.nameEn}</span>
+                  {/* Table Tag under the item name */}
+                  <span className="item-table-tag" onClick={() => !isOrderPaid && setShowTableModal(true)}>
+                    {t.table} {selectedTable}
+                  </span>
                 </div>
-                <div className="cart-item-qty-price">
-                  {(item.product.price * item.quantity).toFixed(2)} ر.س
-                </div>
-              </div>
-              <div className="cart-item-note-row">
-                <button className="item-action-btn">
-                  💬 {t.notes}
-                </button>
-                <div className="qty-counter">
-                  <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, -1)}>-</button>
-                  <span className="qty-val">{item.quantity}</span>
-                  <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, 1)}>+</button>
+                <div className="cart-item-price-qty-section">
+                  <div className="cart-item-price-val">
+                    {(item.product.price * item.quantity).toFixed(2)} ر.س
+                  </div>
+                  <span className="cart-item-unit-price">{item.quantity} x {item.product.price.toFixed(2)}</span>
                 </div>
               </div>
+              {!isOrderPaid && activeTab !== "payment" && (
+                <div className="cart-item-note-row">
+                  <button className="item-action-btn-note">
+                    💬 {t.notes}
+                  </button>
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, -1)}>-</button>
+                    <span className="qty-val">{item.quantity}</span>
+                    <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, 1)}>+</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}
       </div>
+
+      {/* Add Custom Dish Button inside the cart list area, at the bottom of the list */}
+      {!isOrderPaid && (
+        <button className="add-dish-btn" onClick={() => setShowCustomDishModal(true)}>
+          + {t.addDish}
+        </button>
+      )}
 
       <div className="cart-footer">
         <div className="bill-row">
@@ -72,13 +132,36 @@ export default function CartPanel() {
           <span>{t.total}</span>
           <span>{grandTotal.toFixed(2)} ر.س</span>
         </div>
-        <button 
-          className="pay-action-btn" 
-          disabled={cart.length === 0} 
-          onClick={() => handleSubmitOrder("cash")}
-        >
-          {t.pay}
-        </button>
+        
+        {isOrderPaid ? (
+          <div className="paid-order-action-container">
+            <button 
+              className="print-paid-order-btn"
+              onClick={() => setShowPrintModal(editingOrder)}
+            >
+              🖨️ {lang === "ar" ? "طباعة الفاتورة (مدفوع)" : "Print Receipt (PAID)"}
+            </button>
+            <button 
+              className="start-new-from-paid-btn"
+              onClick={handleNewOrder}
+            >
+              + {lang === "ar" ? "طلب جديد" : "New Order"}
+            </button>
+          </div>
+        ) : (
+          activeTab !== "payment" && (
+            <button 
+              className="pay-action-btn" 
+              disabled={cart.length === 0} 
+              onClick={() => {
+                setActiveTab("payment");
+                setMobileView("catalog");
+              }}
+            >
+              {t.pay}
+            </button>
+          )
+        )}
       </div>
     </div>
   );

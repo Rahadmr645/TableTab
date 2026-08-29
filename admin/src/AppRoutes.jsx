@@ -16,6 +16,8 @@ import Profile from "./pages/profile/Profile.jsx";
 import SubscriptionPlans from "./pages/subscriptionPlans/SubscriptionPlans.jsx";
 import TrialCreateAccount from "./pages/trialCreateAccount/TrialCreateAccount.jsx";
 
+import Cashiers from "./pages/cashiers/Cashiers.jsx";
+
 const AppRoutes = () => {
   return (
     <>
@@ -46,6 +48,22 @@ const AppRoutes = () => {
           }
         />
         <Route path="/chef" element={<Chefs />} />
+        <Route
+          path="/cashiers"
+          element={
+            <ProtectRoutes>
+              <Cashiers />
+            </ProtectRoutes>
+          }
+        />
+        <Route
+          path="/cashier"
+          element={
+            <ProtectRoutes>
+              <Cashiers />
+            </ProtectRoutes>
+          }
+        />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile-pic" element={<UpdateProfilePic />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />

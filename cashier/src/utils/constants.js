@@ -67,7 +67,23 @@ export const VOCAB = {
     uncompletedOrders: "Active Orders",
     complete: "Complete",
     completed: "Completed",
-    active: "Active"
+    active: "Active",
+    paymentMethods: "Payment Methods",
+    paymentDevice: "Payment Device",
+    disconnected: "Disconnected",
+    cash: "Cash",
+    network: "Network / Card",
+    remainingToPay: "Remaining to Pay",
+    customer: "Customer",
+    currency: "Currency",
+    manual: "Manual",
+    payText: "Pay",
+    exactAmount: "Exact Amount",
+    customAmount: "Custom Amount",
+    amountToPay: "Amount to Pay",
+    fullyCovered: "Fully Covered",
+    paidAmount: "Paid",
+    pleaseCoverRemaining: "Please cover the remaining amount with Cash or Card before paying."
   },
   ar: {
     addCustomer: "إضافة عميل",
@@ -100,6 +116,22 @@ export const VOCAB = {
     uncompletedOrders: "الطلبات النشطة",
     complete: "إكمال",
     completed: "مكتمل",
-    active: "نشط"
+    active: "نشط",
+    paymentMethods: "طرق الدفع",
+    paymentDevice: "جهاز الدفع",
+    disconnected: "غير متصل",
+    cash: "Cash",
+    network: "شبكة",
+    remainingToPay: "المتبقي للدفع",
+    customer: "العميل",
+    currency: "العملة",
+    manual: "يدوي",
+    payText: "دفع",
+    exactAmount: "المبلغ المتبقي بالضبط",
+    customAmount: "مبلغ مخصص",
+    amountToPay: "المبلغ المراد دفعه",
+    fullyCovered: "تم تغطية كامل المبلغ",
+    paidAmount: "مدفوع",
+    pleaseCoverRemaining: "يرجى تغطية المبلغ المتبقي بالكاش أو الشبكة قبل إتمام الدفع."
   }
 };

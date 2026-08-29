@@ -86,7 +86,19 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     throw new Error("Invalid order");
   }
 
-  const methodLabel = order.paymentMethod === "cash" ? "Cash" : "Card (Stripe)";
+  const cashAmt = Number(order.cashAmount) || 0;
+  const cardAmt = Number(order.cardAmount) || 0;
+  const isSplit = order.paymentMethod === "split" || (cashAmt > 0 && cardAmt > 0);
+
+  let methodLabel = "Cash";
+  if (isSplit) {
+    methodLabel = `Split (Cash: ${fmtMoney(cashAmt)} · Card: ${fmtMoney(cardAmt)})`;
+  } else if (order.paymentMethod === "card" || cardAmt > 0) {
+    methodLabel = "Card / Network";
+  } else {
+    methodLabel = "Cash";
+  }
+
   const statusLabel = order.paymentStatus === "paid" ? "PAID" : "UNPAID (Collect Cash)";
 
   const linesTotal = (order.items || []).reduce((acc, it) => {
@@ -200,7 +212,16 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     <div class="tt-r-totrow"><span>Subtotal (excl. VAT)</span><span>${fmtMoney(net)}</span></div>
     <div class="tt-r-totrow"><span>VAT 15%</span><span>${fmtMoney(vat)}</span></div>
     <div class="tt-r-totrow tt-r-grand"><span>Total</span><span>${fmtMoney(total)}</span></div>
-    <div class="tt-r-totrow"><span>Payment (${escapeHtml(methodLabel)})</span><span>${escapeHtml(statusLabel)}</span></div>
+    ${
+      isSplit
+        ? `
+          <div class="tt-r-totrow" style="font-weight: 600;"><span>💵 Paid Cash</span><span>${fmtMoney(cashAmt)}</span></div>
+          <div class="tt-r-totrow" style="font-weight: 600;"><span>💳 Paid Card / Network</span><span>${fmtMoney(cardAmt)}</span></div>
+        `
+        : `
+          <div class="tt-r-totrow"><span>Payment (${escapeHtml(methodLabel)})</span><span>${escapeHtml(statusLabel)}</span></div>
+        `
+    }
     <div class="tt-r-kv">Total units (qty sum): ${qtyTotal}</div>
     ${
       addressLine

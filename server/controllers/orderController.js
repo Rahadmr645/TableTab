@@ -198,7 +198,7 @@ async function normalizeOrderItems(raw, tenantId, branchHint) {
 export const createOrder = async (req, res) => {
   try {
     const io = getIo();
-    const { customerName, totalPrice, tableId, userID, guestToken, paymentMethod, paymentIntentId } = req.body;
+    const { customerName, totalPrice, tableId, userID, guestToken, paymentMethod, paymentIntentId, cashAmount, cardAmount } = req.body;
 
     let items = req.body.items;
 
@@ -222,33 +222,32 @@ export const createOrder = async (req, res) => {
 
     // Verify payment if card is selected
     let resolvedPaymentStatus = "unpaid";
-    const finalPaymentMethod = paymentMethod === "cash" ? "cash" : "card";
+    const finalPaymentMethod = paymentMethod === "split" ? "split" : (paymentMethod === "cash" ? "cash" : "card");
 
     if (finalPaymentMethod === "card") {
-      if (!paymentIntentId) {
-        return res.status(400).json({ message: "paymentIntentId is required for card payments" });
+      if (paymentIntentId) {
+        const { stripe } = await getTenantStripe(req.tenantId);
+        if (stripe) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+            if (pi.status === "succeeded") {
+              resolvedPaymentStatus = "paid";
+            }
+          } catch (e) {
+            console.error("Stripe verify error", e);
+          }
+        }
+      } else {
+        // POS terminal / staff marked card payment as paid at counter
+        resolvedPaymentStatus = req.body.paymentStatus === "unpaid" ? "unpaid" : "paid";
       }
-
-      const { stripe } = await getTenantStripe(req.tenantId);
-      if (!stripe) {
-        return res.status(503).json({ message: "Stripe service is not configured for this restaurant" });
-      }
-
-      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-      if (pi.status !== "succeeded") {
-        return res.status(400).json({ message: "Card payment has not succeeded yet" });
-      }
-
-      const piAmount = pi.amount; // in cents
-      const expectedAmountCents = Math.round(totalPrice * 100);
-      if (Math.abs(piAmount - expectedAmountCents) > 5) { // 5 cents tolerance for rounding
-        return res.status(400).json({ message: "Payment amount verification mismatch" });
-      }
-
-      resolvedPaymentStatus = "paid";
+    } else if (finalPaymentMethod === "split") {
+      resolvedPaymentStatus = req.body.paymentStatus === "unpaid" ? "unpaid" : "paid";
     } else {
-      resolvedPaymentStatus = "unpaid";
+      resolvedPaymentStatus = req.body.paymentStatus === "paid" ? "paid" : "unpaid";
     }
+
+    const initialStatus = req.body.status || (resolvedPaymentStatus === "paid" && (finalPaymentMethod === "cash" || finalPaymentMethod === "split") ? "Finished" : "pending");
 
     let savedOrder = null;
     let saveError = null;
@@ -271,7 +270,10 @@ export const createOrder = async (req, res) => {
         businessDay,
         dailyOrderNumber,
         invoiceSerial,
+        status: initialStatus,
         paymentMethod: finalPaymentMethod,
+        cashAmount: Number(cashAmount) || 0,
+        cardAmount: Number(cardAmount) || 0,
         paymentStatus: resolvedPaymentStatus,
         paymentIntentId: finalPaymentMethod === "card" ? paymentIntentId : null,
       });
@@ -303,6 +305,73 @@ export const createOrder = async (req, res) => {
     res.status(200).json({ message: " Order Created successfully", order: savedOrder });
   } catch (error) {
     res.status(500).json({ message: "Faild to create order", error: error.message });
+  }
+};
+
+export const updateOrder = async (req, res) => {
+  try {
+    const io = getIo();
+    const { id } = req.params;
+    const {
+      customerName,
+      totalPrice,
+      tableId,
+      items: rawItems,
+      paymentMethod,
+      cashAmount,
+      cardAmount,
+      paymentStatus,
+      status,
+    } = req.body;
+
+    const existingOrder = await Order.findOne({ _id: id, tenantId: req.tenantId });
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const branchOid = existingOrder.branchId || null;
+    let items = existingOrder.items;
+    if (rawItems) {
+      let parsed = typeof rawItems === "string" ? JSON.parse(rawItems) : rawItems;
+      items = await normalizeOrderItems(parsed, req.tenantId, branchOid);
+    }
+
+    const updateFields = {};
+    if (customerName !== undefined) updateFields.customerName = customerName;
+    if (totalPrice !== undefined) updateFields.totalPrice = Number(totalPrice);
+    if (tableId !== undefined) updateFields.tableId = tableId;
+    if (items) updateFields.items = items;
+    if (paymentMethod !== undefined) updateFields.paymentMethod = paymentMethod;
+    if (cashAmount !== undefined) updateFields.cashAmount = Number(cashAmount);
+    if (cardAmount !== undefined) updateFields.cardAmount = Number(cardAmount);
+    if (paymentStatus !== undefined) updateFields.paymentStatus = paymentStatus;
+    if (status !== undefined) {
+      updateFields.status = status;
+      const nextNorm = String(status).toLowerCase().replace(/\s+/g, "");
+      if (nextNorm === "ready" && !existingOrder.readyAt) {
+        updateFields.readyAt = new Date();
+      }
+      if (nextNorm === "ready" || nextNorm === "finished" || nextNorm === "finised") {
+        updateFields.completedBy = req.user?.userId || null;
+        updateFields.completedAt = new Date();
+      }
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: id, tenantId: req.tenantId },
+      updateFields,
+      { new: true },
+    );
+
+    const tid = String(req.tenantId);
+    io.to(`tenant:${tid}`).emit(
+      "orderUpdated",
+      updatedOrder?.toObject ? updatedOrder.toObject() : updatedOrder,
+    );
+
+    res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update order", error: error.message });
   }
 };
 

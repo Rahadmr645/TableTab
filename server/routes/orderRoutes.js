@@ -3,6 +3,7 @@ import express from "express";
 import {
   activeOrders,
   createOrder,
+  updateOrder,
   deleteOrder,
   getAllOrders,
   getOrdersByUser,
@@ -40,10 +41,16 @@ const staffBase = [
   resolveOptionalBranch,
 ];
 
-router.post("/create-order", ...publicTenant, createOrder);
+router.post("/create-order", optionalAuthenticate, ...publicTenant, createOrder);
 
 router.get("/all-orders", ...staffBase, getAllOrders);
 router.get("/summary-stats", ...staffBase, getSummaryStats);
+router.put(
+  "/:id",
+  ...staffBase,
+  requireRole(["owner", "manager", "cashier"]),
+  updateOrder,
+);
 router.delete(
   "/delete-order/:id",
   ...staffBase,
@@ -53,7 +60,7 @@ router.delete(
 router.put(
   "/:id/status",
   ...staffBase,
-  requireRole(["owner", "manager", "chef", "barista"]),
+  requireRole(["owner", "manager", "chef", "barista", "cashier"]),
   updateOrderStatus,
 );
 router.put(

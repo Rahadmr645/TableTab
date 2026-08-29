@@ -28,6 +28,12 @@ const connectToDB = async () => {
     await mongoose.connect(process.env.MONGO_URL);
     console.log("DB connected successfully");
     await migrateLegacyMenuCategoriesOnce();
+    try {
+      await mongoose.connection.collection("users").dropIndex("email_1_tenantId_1");
+      console.log("Synced user collection indexes (dropped legacy email_1_tenantId_1)");
+    } catch (e) {
+      // index already dropped or not present
+    }
   } catch (error) {
     console.log("Failed to connect DB:", error.message);
     process.exit(1);

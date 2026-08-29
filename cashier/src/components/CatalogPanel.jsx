@@ -10,6 +10,7 @@ export default function CatalogPanel() {
     placedOrders,
     occupiedTables,
     selectedTable,
+    tables,
     cart,
     lang,
     t,
@@ -30,7 +31,17 @@ export default function CatalogPanel() {
     setShowMoreModal,
     handleUpdateOrderStatus,
     setMobileView,
-    grandTotal
+    grandTotal,
+    activeEditingOrderId,
+    handleOpenOrder,
+    handleNewOrder,
+    handleSendToKitchen,
+    currentTenant,
+    currentUser,
+    socketConnected,
+    setShowAuthModal,
+    handleLockScreen,
+    setShowLockPinModal
   } = useCashier();
 
   const [activeHoldId, setActiveHoldId] = useState(null);
@@ -54,7 +65,7 @@ export default function CatalogPanel() {
         isLongPressRef.current = true;
         setActiveHoldId(prev => prev === id ? null : id);
       }
-    }, 1500); // 1.5 seconds hold is much more user friendly than 4s
+    }, 1500); // 1.5 seconds hold
   };
 
   const handlePressMove = (e) => {
@@ -101,56 +112,152 @@ export default function CatalogPanel() {
 
   return (
     <div className="catalog-panel">
-      
-      {/* Top action row */}
-      <div className="action-row">
-        <button className="action-btn" onClick={() => { if (cart.length) setShowPrintModal(true); }}>
-          <span className="action-btn-icon">🖨️</span>
-          <span className="action-btn-label">{t.print}</span>
-        </button>
-        <button className="action-btn" onClick={() => handleClearCart(false) /* Chef hat trigger order send */}>
-          <span className="action-btn-icon">👨‍🍳</span>
-          <span className="action-btn-label">{t.kitchen}</span>
-        </button>
-        <button className="action-btn" onClick={() => handleClearCart(true)}>
-          <span className="action-btn-icon">🚫</span>
-          <span className="action-btn-label">{t.disable}</span>
-        </button>
-        <button className="action-btn">
-          <span className="action-btn-icon">🕒</span>
-          <span className="action-btn-label">{t.activity}</span>
-        </button>
-        <button className="action-btn" onClick={() => setShowDiscountModal(true)}>
-          <span className="action-btn-icon">🏷️</span>
-          <span className="action-btn-label">{t.discount}</span>
-        </button>
-        <button className="action-btn">
-          <span className="action-btn-icon">📝</span>
-          <span className="action-btn-label">{t.notes}</span>
-        </button>
-        <button className="action-btn" onClick={() => setShowMoreModal(true)}>
-          <span className="action-btn-icon">⋯</span>
-          <span className="action-btn-label">{t.more}</span>
-        </button>
+      {/* Multi-Tenant Restaurant Brand & Status Header */}
+      <div className="pos-brand-header-bar" style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 14px",
+        background: "var(--bg-secondary, #1a202c)",
+        borderBottom: "1px solid var(--border-color, #2d3748)",
+        fontSize: "13px"
+      }}>
+        <div
+          onClick={() => setShowAuthModal(true)}
+          style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
+        >
+          <span style={{ fontSize: "16px" }}>🏢</span>
+          <span style={{ fontWeight: "700", color: "var(--text-primary, #ffffff)" }}>
+            {currentTenant?.businessName || (lang === "ar" ? "اختر المتجر / تسجيل الدخول" : "Select Venue / Login")}
+          </span>
+          {currentTenant?.slug && (
+            <span style={{
+              fontSize: "11px",
+              padding: "1px 6px",
+              borderRadius: "6px",
+              background: "rgba(59, 130, 246, 0.2)",
+              color: "#60a5fa"
+            }}>
+              @{currentTenant.slug}
+            </span>
+          )}
+        </div>
 
-      </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span
+            onClick={() => setShowAuthModal(true)}
+            style={{
+              fontSize: "11px",
+              padding: "3px 8px",
+              borderRadius: "10px",
+              background: socketConnected ? "rgba(34, 197, 94, 0.15)" : "rgba(234, 179, 8, 0.15)",
+              color: socketConnected ? "#22c55e" : "#eab308",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }}
+          >
+            ● {socketConnected ? (lang === "ar" ? "متصل مباشر" : "Live Socket") : (lang === "ar" ? "جاري الاتصال" : "Offline")}
+          </span>
 
-      {/* Product Search Bar */}
-      <div className="search-wrapper">
-        <div className="search-container">
-          <span className="search-icon">🔍</span>
-          <input 
-            type="text" 
-            className="search-input" 
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <button
+            type="button"
+            onClick={() => setShowAuthModal(true)}
+            style={{
+              border: "1px solid var(--border-color, #374151)",
+              background: "var(--bg-card, #2d3748)",
+              color: "var(--text-primary, #ffffff)",
+              padding: "4px 10px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px"
+            }}
+          >
+            👤 {currentUser ? (currentUser.username || currentUser.email) : (lang === "ar" ? "دخول الكاشير" : "Staff Login")}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLockScreen}
+            title={lang === "ar" ? "قفل الشاشة برمز PIN السريع" : "Lock Terminal with PIN"}
+            style={{
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              background: "rgba(239, 68, 68, 0.12)",
+              color: "#f87171",
+              padding: "4px 10px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontWeight: "600"
+            }}
+          >
+            🔒 {lang === "ar" ? "قفل" : "Lock"}
+          </button>
         </div>
       </div>
+      
+      {/* Top action row */}
+      {activeTab !== "payment" && (
+        <div className="action-row">
+          <button className="action-btn" onClick={() => { if (cart.length) setShowPrintModal(true); }}>
+            <span className="action-btn-icon">🖨️</span>
+            <span className="action-btn-label">{t.print}</span>
+          </button>
+          <button className="action-btn" onClick={handleSendToKitchen} title={lang === "ar" ? "إرسال الطلب للمطبخ (طلب مفتوح)" : "Send to kitchen (Open Order)"}>
+            <span className="action-btn-icon">👨‍🍳</span>
+            <span className="action-btn-label">{t.kitchen}</span>
+          </button>
+          <button className="action-btn" onClick={() => handleClearCart(true)}>
+            <span className="action-btn-icon">🚫</span>
+            <span className="action-btn-label">{t.disable}</span>
+          </button>
+          <button className="action-btn">
+            <span className="action-btn-icon">🕒</span>
+            <span className="action-btn-label">{t.activity}</span>
+          </button>
+          <button className="action-btn" onClick={() => setShowDiscountModal(true)}>
+            <span className="action-btn-icon">🏷️</span>
+            <span className="action-btn-label">{t.discount}</span>
+          </button>
+          <button className="action-btn">
+            <span className="action-btn-icon">📝</span>
+            <span className="action-btn-label">{t.notes}</span>
+          </button>
+          <button className="action-btn" onClick={() => setShowMoreModal(true)}>
+            <span className="action-btn-icon">⋯</span>
+            <span className="action-btn-label">{t.more}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Product Search Bar */}
+      {activeTab !== "payment" && (
+        <div className="search-wrapper">
+          <div className="search-container">
+            <span className="search-icon">🔍</span>
+            <input 
+              type="text" 
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            {searchQuery && (
+              <button className="search-clear-btn" onClick={() => setSearchQuery("")}>✕</button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Back navigation trace if category selected */}
-      {selectedCategory && (
+      {activeTab !== "payment" && selectedCategory && (
         <div className="breadcrumb-row">
           <button className="back-btn" onClick={() => setSelectedCategory(null)}>
             ← {t.back}
@@ -236,24 +343,25 @@ export default function CatalogPanel() {
           </div>
         )}
 
-
         {activeTab === "orders" && (() => {
-          const getStatusEn = (status) => {
-            const s = String(status || "pending").toLowerCase().replace(/\s+/g, "");
-            if (s === "finished" || s === "finised") return "Completed";
-            if (s === "cancelled") return "Cancelled";
-            if (s === "ready") return "Ready";
-            if (s === "inprogress") return "In Progress";
-            return "Pending";
+          const getStatusAr = (status) => {
+            switch (status) {
+              case "In Progress": return "قيد التحضير";
+              case "Ready": return "جاهز";
+              case "Finished": case "Finised": return "مكتمل";
+              case "Cancelled": return "ملغي";
+              default: return "نشط";
+            }
           };
 
-          const getStatusAr = (status) => {
-            const s = String(status || "pending").toLowerCase().replace(/\s+/g, "");
-            if (s === "finished" || s === "finised") return "مكتمل";
-            if (s === "cancelled") return "ملغي";
-            if (s === "ready") return "جاهز";
-            if (s === "inprogress") return "قيد التحضير";
-            return "قيد الانتظار";
+          const getStatusEn = (status) => {
+            switch (status) {
+              case "In Progress": return "IN PROGRESS";
+              case "Ready": return "READY";
+              case "Finished": case "Finised": return "COMPLETED";
+              case "Cancelled": return "CANCELLED";
+              default: return "PENDING";
+            }
           };
 
           const isOrderUncompleted = (ord) => {
@@ -291,23 +399,48 @@ export default function CatalogPanel() {
                 </div>
               ) : (
                 filteredOrders.map((ord, idx) => (
-                  <div className="pos-order-card" key={ord._id || idx}>
+                  <div 
+                    className={`pos-order-card ${activeEditingOrderId === ord._id ? "active-editing-card" : ""}`} 
+                    key={ord._id || idx}
+                    onClick={() => handleOpenOrder(ord)}
+                    title={lang === "ar" ? "انقر لفتح الطلب في الكاشير والتعديل عليه أو دفعه" : "Click to open order in register to edit or pay"}
+                    style={{ cursor: "pointer" }}
+                  >
                     <div className="pos-order-info">
                       <div className="pos-order-title">
                         #{ord.dailyOrderNumber} - {ord.customerName}
+                        {activeEditingOrderId === ord._id && (
+                          <span className="editing-tag-badge">
+                            {lang === "ar" ? "قيد التعديل" : "Editing"}
+                          </span>
+                        )}
                       </div>
                       <div className="pos-order-meta">
                         {t.table} {ord.tableId} · {ord.items.length} {lang === "ar" ? "أصناف" : "items"} · {new Date(ord.createdAt).toLocaleTimeString()}
                       </div>
                     </div>
-                    <div className="pos-order-actions">
-                      <span className={`status-badge ${String(ord.status || "pending").toLowerCase().replace(/\s+/g, "")}`} style={{ margin: "0 8px" }}>
+                    <div className="pos-order-actions" onClick={(e) => e.stopPropagation()}>
+                      <span className={`status-badge ${String(ord.status || "pending").toLowerCase().replace(/\s+/g, "")}`} style={{ margin: "0 4px" }}>
                         {lang === "ar" ? getStatusAr(ord.status) : getStatusEn(ord.status)}
                       </span>
 
-                      <span style={{ fontWeight: "700", color: "var(--accent)", margin: "0 12px" }}>
-                        {ord.totalPrice.toFixed(2)} ر.س
+                      <span className={`payment-pill-tag ${ord.paymentStatus === "paid" ? "paid" : "unpaid"}`} style={{ margin: "0 4px" }}>
+                        {ord.paymentStatus === "paid" 
+                          ? (lang === "ar" ? "مدفوع" : "PAID") 
+                          : (lang === "ar" ? "غير مدفوع" : "UNPAID")}
                       </span>
+
+                      <span style={{ fontWeight: "700", color: "var(--accent)", margin: "0 10px" }}>
+                        {ord.totalPrice.toFixed(2)} {lang === "ar" ? "ر.س" : "SAR"}
+                      </span>
+
+                      <button 
+                        className="item-action-btn open-btn" 
+                        onClick={() => handleOpenOrder(ord)}
+                        style={{ margin: "0 4px", backgroundColor: "#7065db", color: "#ffffff", border: "none" }}
+                      >
+                        📂 {lang === "ar" ? "فتح الطلب" : "Open"}
+                      </button>
 
                       {isOrderUncompleted(ord) && (
                         <button 
@@ -321,9 +454,7 @@ export default function CatalogPanel() {
 
                       <button 
                         className="item-action-btn" 
-                        onClick={() => {
-                          setShowPrintModal(ord);
-                        }}
+                        onClick={() => setShowPrintModal(ord)}
                         style={{ margin: "0 4px" }}
                       >
                         🖨️ {t.print}
@@ -336,26 +467,58 @@ export default function CatalogPanel() {
           );
         })()}
 
-        {activeTab === "tables" && (
-          <div className="tables-grid-view">
-            {Array.from({ length: 24 }, (_, i) => i + 1).map(num => {
-              const isOccupied = occupiedTables.includes(num);
-              const isSelected = selectedTable === num;
-              return (
-                <div 
-                  key={num} 
-                  className={`table-grid-cell ${isOccupied ? "occupied" : ""} ${isSelected ? "selected" : ""}`}
-                  onClick={() => {
-                    setSelectedTable(num);
-                    setActiveTab("home");
-                  }}
-                >
-                  <div>{t.table} {num}</div>
-                  <div className="table-status-dot"></div>
-                </div>
-              );
-            })}
-          </div>
+        {activeTab === "tables" && (() => {
+          const isOrderUncompleted = (ord) => {
+            const s = String(ord.status || "pending").toLowerCase().replace(/\s+/g, "");
+            return s !== "finished" && s !== "finised" && s !== "cancelled";
+          };
+
+          const tableList = tables && tables.length > 0
+            ? tables.map(tb => ({
+                id: tb._id,
+                label: tb.label,
+                num: Number(tb.label) || tb.label
+              }))
+            : Array.from({ length: 24 }, (_, i) => ({ id: i + 1, label: (i + 1).toString(), num: i + 1 }));
+
+          return (
+            <div className="tables-grid-view">
+              {tableList.map(tbItem => {
+                const num = tbItem.num;
+                const isOccupied = occupiedTables.includes(Number(num)) || occupiedTables.includes(String(num));
+                const isSelected = selectedTable === num || selectedTable === Number(num);
+                const activeOrderForTable = placedOrders.find(ord => (ord.tableId === num || String(ord.tableId) === String(num)) && isOrderUncompleted(ord));
+
+                return (
+                  <div 
+                    key={tbItem.id || num} 
+                    className={`table-grid-cell ${isOccupied ? "occupied" : ""} ${isSelected ? "selected" : ""}`}
+                    onClick={() => {
+                      if (activeOrderForTable) {
+                        handleOpenOrder(activeOrderForTable);
+                      } else {
+                        setSelectedTable(num);
+                        setActiveTab("home");
+                      }
+                    }}
+                    title={activeOrderForTable ? (lang === "ar" ? `فتح طلب طاولة ${num}` : `Open Order for Table ${num}`) : ""}
+                  >
+                    <div>{t.table} {tbItem.label || num}</div>
+                    {activeOrderForTable && (
+                      <div className="table-active-order-tag">
+                        #{activeOrderForTable.dailyOrderNumber} ({activeOrderForTable.totalPrice.toFixed(0)} {lang === "ar" ? "ر.س" : ""})
+                      </div>
+                    )}
+                    <div className="table-status-dot"></div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {activeTab === "payment" && (
+          <PaymentMethodsView />
         )}
       </div>
 
@@ -375,45 +538,389 @@ export default function CatalogPanel() {
       )}
 
       {/* Bottom Nav Menu */}
-      <div className="bottom-nav">
-        <button className={`nav-item ${activeTab === "home" ? "active" : ""}`} onClick={() => { setActiveTab("home"); setSelectedCategory(null); }}>
-          <span className="nav-item-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 3h13a5 5 0 0 1 5 5v2a5 5 0 0 1-5 5H11v6H6V3zm5 5v3h7a1.5 1.5 0 0 0 1.5-1.5v-1A1.5 1.5 0 0 0 18 8h-7z" />
-            </svg>
-          </span>
-          <span>{t.home}</span>
-        </button>
-        <button className={`nav-item ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
-          <span className="nav-item-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </span>
-          <span>{t.orders}</span>
-        </button>
-        <button className={`nav-item ${activeTab === "tables" ? "active" : ""}`} onClick={() => setActiveTab("tables")}>
-          <span className="nav-item-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-          </span>
-          <span>{t.tables}</span>
-        </button>
-        <button className="nav-item" onClick={() => handleClearCart(false) /* triggers new cart reset */}>
-          <span className="nav-item-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </span>
-          <span>{t.new}</span>
-        </button>
+      {activeTab !== "payment" && (
+        <div className="bottom-nav">
+          <button className={`nav-item ${activeTab === "home" ? "active" : ""}`} onClick={() => { setActiveTab("home"); setSelectedCategory(null); }}>
+            <span className="nav-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 3h13a5 5 0 0 1 5 5v2a5 5 0 0 1-5 5H11v6H6V3zm5 5v3h7a1.5 1.5 0 0 0 1.5-1.5v-1A1.5 1.5 0 0 0 18 8h-7z" />
+              </svg>
+            </span>
+            <span>{t.home}</span>
+          </button>
+          <button className={`nav-item ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}>
+            <span className="nav-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <span>{t.orders}</span>
+          </button>
+          <button className={`nav-item ${activeTab === "tables" ? "active" : ""}`} onClick={() => setActiveTab("tables")}>
+            <span className="nav-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+            <span>{t.tables}</span>
+          </button>
+          <button className="nav-item" onClick={handleNewOrder} title={lang === "ar" ? "طلب جديد" : "New Order"}>
+            <span className="nav-item-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </span>
+            <span>{t.new}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentMethodsView() {
+  const {
+    grandTotal,
+    lang,
+    t,
+    handleSubmitOrder,
+    setShowCustModal,
+    setShowMoreModal,
+    setActiveTab,
+    cart,
+    activeEditingOrderId,
+    placedOrders,
+    setShowPrintModal
+  } = useCashier();
+
+  const editingOrder = placedOrders.find(ord => ord._id === activeEditingOrderId);
+  const isOrderPaid = editingOrder && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
+
+  const [paidCash, setPaidCash] = useState(0);
+  const [paidCard, setPaidCard] = useState(0);
+  const [activeModal, setActiveModal] = useState(null); // "cash" | "card" | null
+  const [modalInput, setModalInput] = useState("");
+
+  if (isOrderPaid) {
+    return (
+      <div className="payment-screen-container" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "350px", textAlign: "center", padding: "24px" }}>
+        <div style={{ background: "#ffffff", padding: "32px", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "400px", width: "100%" }}>
+          <span style={{ fontSize: "48px", display: "block", marginBottom: "12px" }}>✅</span>
+          <h2 style={{ color: "#166534", marginBottom: "8px" }}>{lang === "ar" ? "الطلب مدفوع بالكامل" : "Order Already Paid"}</h2>
+          <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>
+            {lang === "ar" 
+              ? `تم سداد قيمة هذا الطلب #${editingOrder?.dailyOrderNumber || ""} مسبقاً.` 
+              : `Order #${editingOrder?.dailyOrderNumber || ""} is already settled and closed.`}
+          </p>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button className="payment-purple-btn" onClick={() => setShowPrintModal(editingOrder)}>
+              🖨️ {lang === "ar" ? "طباعة الفاتورة" : "Print Receipt"}
+            </button>
+            <button className="payment-purple-btn" onClick={() => setActiveTab("home")}>
+              ← {lang === "ar" ? "العودة للرئيسية" : "Back to Home"}
+            </button>
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  const remaining = Math.max(0, parseFloat((grandTotal - paidCash - paidCard).toFixed(2)));
+  const totalPaid = parseFloat((paidCash + paidCard).toFixed(2));
+  const isFullyPaid = (totalPaid >= grandTotal && grandTotal > 0);
+
+  const handleInfoClick = (e) => {
+    e.stopPropagation();
+    alert(
+      lang === "ar"
+        ? "جهاز الدفع غير متصل بالشبكة حالياً. يرجى التحقق من اتصال الإنترنت بجهاز POS."
+        : "Payment terminal is currently offline. Please verify the POS connection."
+    );
+  };
+
+  const openAmountModal = (method) => {
+    if (method === "terminal") {
+      alert(
+        lang === "ar"
+          ? "لا يمكن استخدام جهاز الدفع لأنه غير متصل."
+          : "Payment terminal cannot be used because it is offline."
+      );
+      return;
+    }
+    
+    // Default modal input to the current remaining amount
+    const currentMethodVal = method === "cash" ? paidCash : paidCard;
+    const initialVal = remaining > 0 ? remaining : (currentMethodVal > 0 ? currentMethodVal : grandTotal);
+    setModalInput(initialVal > 0 ? initialVal.toFixed(2) : "");
+    setActiveModal(method);
+  };
+
+  const handleExactConfirm = () => {
+    const amountToApply = remaining > 0 ? remaining : grandTotal;
+    if (activeModal === "cash") {
+      setPaidCash(prev => parseFloat((prev + amountToApply).toFixed(2)));
+    } else if (activeModal === "card") {
+      setPaidCard(prev => parseFloat((prev + amountToApply).toFixed(2)));
+    }
+    setActiveModal(null);
+  };
+
+  const handleCustomConfirm = () => {
+    const val = parseFloat(modalInput) || 0;
+    if (val <= 0) {
+      alert(lang === "ar" ? "يرجى إدخال مبلغ صالح أكبر من صفر" : "Please enter a valid amount greater than zero");
+      return;
+    }
+    if (activeModal === "cash") {
+      setPaidCash(val);
+    } else if (activeModal === "card") {
+      setPaidCard(val);
+    }
+    setActiveModal(null);
+  };
+
+  const handleClearMethod = (e, method) => {
+    e.stopPropagation();
+    if (method === "cash") setPaidCash(0);
+    if (method === "card") setPaidCard(0);
+  };
+
+  const handlePay = async () => {
+    if (!cart.length) {
+      alert(lang === "ar" ? "السلة فارغة" : "Cart is empty");
+      return;
+    }
+
+    let finalCash = paidCash;
+    let finalCard = paidCard;
+
+    // If no payment method amount was explicitly entered, default to full cash
+    if (finalCash === 0 && finalCard === 0) {
+      finalCash = grandTotal;
+    } else if (remaining > 0) {
+      // Cover the remaining balance with the active method
+      if (finalCard > 0) {
+        finalCard = parseFloat((finalCard + remaining).toFixed(2));
+      } else {
+        finalCash = parseFloat((finalCash + remaining).toFixed(2));
+      }
+    }
+
+    const finalMethod = (finalCash > 0 && finalCard > 0) ? "split" : (finalCard > 0 ? "card" : "cash");
+    try {
+      await handleSubmitOrder(finalMethod, { cash: finalCash, card: finalCard });
+    } catch (err) {
+      console.error("Payment execution error:", err);
+    }
+  };
+
+  return (
+    <div className="payment-screen-container">
+      {/* Top action row with purple buttons split to left and right */}
+      <div className="payment-top-row">
+        <div className="payment-top-left">
+          <button className="payment-purple-btn" onClick={() => setActiveTab("home")}>
+            {lang === "ar" ? "رجوع" : "Back"}
+          </button>
+        </div>
+        <div className="payment-top-right">
+          <button className="payment-purple-btn">
+            {lang === "ar" ? "العملة" : "Currency"}
+          </button>
+          <button className="payment-purple-btn" onClick={() => setShowCustModal(true)}>
+            {lang === "ar" ? "العميل" : "Customer"}
+          </button>
+        </div>
+      </div>
+
+      {/* Center Wrapper Column */}
+      <div className="payment-methods-wrapper">
+        {/* Heading */}
+        <h2 className="payment-title-heading">
+          {t.paymentMethods}
+        </h2>
+
+        {/* Payment methods list */}
+        <div className="payment-methods-list">
+          {/* Terminal Method - Disabled */}
+          <div 
+            className="payment-method-card disabled-method terminal-card"
+            onClick={() => openAmountModal("terminal")}
+          >
+            <span className="payment-method-card-label">
+              {t.paymentDevice}
+            </span>
+            <div className="terminal-status-group" onClick={handleInfoClick}>
+              <span className="terminal-status-text">{t.disconnected}</span>
+              <span className="terminal-info-circle">i</span>
+            </div>
+          </div>
+
+          {/* Cash Method */}
+          <div 
+            className={`payment-method-card ${paidCash > 0 ? "method-has-payment" : "center-label-card"}`}
+            onClick={() => openAmountModal("cash")}
+          >
+            <span className="payment-method-card-label">
+              {t.cash}
+            </span>
+            {paidCash > 0 && (
+              <div className="paid-method-badge cash-badge">
+                <span>💵 {paidCash.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+                <button 
+                  className="clear-paid-btn" 
+                  title={lang === "ar" ? "إلغاء" : "Clear"}
+                  onClick={(e) => handleClearMethod(e, "cash")}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Network / Card Method */}
+          <div 
+            className={`payment-method-card ${paidCard > 0 ? "method-has-payment" : "center-label-card"}`}
+            onClick={() => openAmountModal("card")}
+          >
+            <span className="payment-method-card-label">
+              {t.network}
+            </span>
+            {paidCard > 0 && (
+              <div className="paid-method-badge card-badge">
+                <span>💳 {paidCard.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+                <button 
+                  className="clear-paid-btn" 
+                  title={lang === "ar" ? "إلغاء" : "Clear"}
+                  onClick={(e) => handleClearMethod(e, "card")}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Area */}
+        <div className="payment-bottom-section">
+          <div className={`remaining-to-pay-box ${isFullyPaid ? "fully-covered-box" : ""}`}>
+            {isFullyPaid ? (
+              <span>✓ {lang === "ar" ? "تم تغطية كامل المبلغ" : "Fully Covered"}: {grandTotal.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+            ) : (
+              <span>{t.remainingToPay} {remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+            )}
+          </div>
+          <div className="payment-action-row">
+            <button 
+              className={`payment-submit-btn ${isFullyPaid ? "ready-to-pay active-ready" : ""}`}
+              onClick={handlePay}
+              disabled={!cart.length}
+            >
+              {isFullyPaid 
+                ? (lang === "ar" ? `دفع ${grandTotal.toFixed(2)} ﷼` : `Pay ${grandTotal.toFixed(2)} SAR`)
+                : t.payText}
+            </button>
+            <button className="payment-more-options-btn" onClick={() => setShowMoreModal(true)}>
+              ⋯
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Amount Selection Modal for Cash and Card */}
+      {activeModal && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-content payment-amount-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {activeModal === "cash" 
+                  ? (lang === "ar" ? "💵 الدفع النقدي (كاش)" : "💵 Cash Payment")
+                  : (lang === "ar" ? "💳 الدفع بالشبكة / البطاقة" : "💳 Network / Card Payment")}
+              </h3>
+              <button 
+                style={{ border: "none", background: "none", fontSize: "16px", cursor: "pointer" }} 
+                onClick={() => setActiveModal(null)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {/* Remaining Banner */}
+              <div className="amount-modal-banner">
+                <span className="banner-label">{lang === "ar" ? "المبلغ المتبقي للطلب" : "Remaining to Pay"}:</span>
+                <span className="banner-value">{remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+              </div>
+
+              {/* Exact Amount Quick Button */}
+              {remaining > 0 && (
+                <div className="quick-exact-section">
+                  <button 
+                    type="button"
+                    className="quick-exact-btn" 
+                    onClick={handleExactConfirm}
+                  >
+                    <span className="exact-icon">⚡</span>
+                    <span className="exact-text">
+                      {lang === "ar" ? "المبلغ المتبقي بالضبط" : "Exact Remaining Amount"}
+                    </span>
+                    <span className="exact-amt-badge">
+                      {remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {/* Custom Amount Form */}
+              <div className="custom-amount-section">
+                <label className="amount-input-label">
+                  {lang === "ar" ? "أو أدخل مبلغاً مخصصاً:" : "Or enter custom amount:"}
+                </label>
+                <div className="amount-input-wrapper">
+                  <input 
+                    type="number"
+                    step="0.01"
+                    className="form-input custom-amt-input" 
+                    value={modalInput} 
+                    onChange={(e) => setModalInput(e.target.value)}
+                    placeholder={remaining > 0 ? remaining.toFixed(2) : grandTotal.toFixed(2)}
+                    autoFocus
+                  />
+                  <span className="amount-input-currency">{lang === "ar" ? "﷼" : "SAR"}</span>
+                </div>
+
+                {/* Quick bill presets */}
+                <div className="amount-preset-chips">
+                  {[5, 10, 20, 50, 100, 200, 500].map(val => (
+                    <button 
+                      key={val} 
+                      type="button"
+                      className="preset-chip-btn" 
+                      onClick={() => setModalInput(val.toString())}
+                    >
+                      {val} {lang === "ar" ? "﷼" : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="modal-btn cancel" onClick={() => setActiveModal(null)}>
+                {t.cancel}
+              </button>
+              <button className="modal-btn confirm" onClick={handleCustomConfirm}>
+                {t.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,11 +68,16 @@ const usersSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    /** Quick Screen Lock PIN (4-digit code synced across all devices) */
+    posPin: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true },
 );
 
-usersSchema.index({ email: 1, tenantId: 1 }, { unique: true });
+usersSchema.index({ email: 1, tenantId: 1, role: 1 }, { unique: true });
 
 const User = mongoose.model("User", usersSchema);
 

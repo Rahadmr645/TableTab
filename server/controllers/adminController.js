@@ -64,11 +64,28 @@ export const adminCreate = async (req, res) => {
     const dup = await User.findOne({
       email: String(email).toLowerCase().trim(),
       tenantId,
-    })
-      .select("_id")
-      .lean();
+      role,
+    });
 
-    if (dup) return res.status(400).json({ message: "user already exists for this restaurant" });
+    if (dup) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      dup.username = username;
+      dup.password = hashedPassword;
+      dup.staffStatus = "active";
+      if (profilePic) dup.profilePic = profilePic;
+      await dup.save();
+
+      const token = signUserToken(buildStaffTokenPayload(dup));
+      const safe = dup.toObject();
+      delete safe.password;
+
+      return res.status(200).json({
+        messasge: "staff user updated successfully",
+        admin: safe,
+        token,
+      });
+    }
 
     let staffSinceAt = null;
     if (staffSinceRaw != null && String(staffSinceRaw).trim() !== "") {
@@ -104,6 +121,32 @@ export const adminCreate = async (req, res) => {
       token,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      try {
+        const normEmail = String(req.body?.email || "").toLowerCase().trim();
+        const existing = await User.findOne({ email: normEmail, tenantId: req.tenantId });
+        if (existing) {
+          if (req.body?.password) {
+            const salt = await bcrypt.genSalt(10);
+            existing.password = await bcrypt.hash(req.body.password, salt);
+          }
+          if (req.body?.username) existing.username = req.body.username;
+          existing.staffStatus = "active";
+          await existing.save();
+
+          const token = signUserToken(buildStaffTokenPayload(existing));
+          const safe = existing.toObject();
+          delete safe.password;
+          return res.status(200).json({
+            messasge: "Staff user configured successfully",
+            admin: safe,
+            token,
+          });
+        }
+      } catch (inner) {
+        console.error("Duplicate recovery error:", inner);
+      }
+    }
     console.error("ADMIN CREATE ERROR:", error);
     res.status(500).json({ message: `Failed to create staff user: ${error.message}` });
   }
@@ -115,7 +158,7 @@ export const adminLogin = async (req, res) => {
       return res.status(503).json({ message: "Server authentication is not configured" });
     }
 
-    const { email, password, tenantSlug } = req.body || {};
+    const { email, password, tenantSlug, role: requestedRole } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -142,7 +185,10 @@ export const adminLogin = async (req, res) => {
 
     let user = matches[0];
 
-    if (matches.length > 1) {
+    // If multiple matches across tenants or roles
+    const uniqueTenants = [...new Set(matches.map((m) => String(m.tenantId)))];
+
+    if (uniqueTenants.length > 1) {
       if (!tenantSlug || !String(tenantSlug).trim()) {
         return res.status(400).json({
           code: "TENANT_REQUIRED",
@@ -156,9 +202,21 @@ export const adminLogin = async (req, res) => {
       if (!t) {
         return res.status(400).json({ message: "Restaurant not found" });
       }
-      user = matches.find((m) => String(m.tenantId) === String(t._id));
-      if (!user) {
+      const tenantMatches = matches.filter((m) => String(m.tenantId) === String(t._id));
+      if (tenantMatches.length === 0) {
         return res.status(400).json({ message: "invalid credentials for that restaurant" });
+      }
+      if (requestedRole) {
+        user = tenantMatches.find((m) => m.role === requestedRole) || tenantMatches[0];
+      } else {
+        user = tenantMatches.find((m) => m.role === "cashier") || tenantMatches[0];
+      }
+    } else {
+      // Single tenant, but could have multiple roles (e.g. owner and cashier)
+      if (requestedRole) {
+        user = matches.find((m) => m.role === requestedRole) || matches[0];
+      } else {
+        user = matches.find((m) => m.role === "cashier") || matches[0];
       }
     }
 
@@ -457,5 +515,39 @@ export const updateStripeSettings = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to update Stripe settings", error: error.message });
+  }
+};
+
+export const updatePosPin = async (req, res) => {
+  try {
+    const { pin } = req.body || {};
+    if (!pin || String(pin).trim().length !== 4) {
+      return res.status(400).json({ message: "PIN must be exactly 4 digits" });
+    }
+
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.posPin = String(pin).trim();
+    await user.save();
+
+    const safe = user.toObject();
+    delete safe.password;
+
+    res.status(200).json({
+      message: "POS Lock PIN updated successfully",
+      posPin: user.posPin,
+      user: safe,
+    });
+  } catch (error) {
+    console.error("UPDATE POS PIN ERROR:", error);
+    res.status(500).json({ message: "Failed to update POS Lock PIN", error: error.message });
   }
 };

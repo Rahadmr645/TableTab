@@ -6,19 +6,30 @@ import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import "./CreateStaffModal.css";
 
 const ROLE_OPTIONS = [
+  { value: "cashier", label: "Cashier" },
   { value: "manager", label: "Manager" },
   { value: "chef", label: "Chef" },
   { value: "barista", label: "Barista" },
 ];
 
-function CreateStaffModalInner({ onClose }) {
-  const { URL } = useContext(AuthContext);
+function CreateStaffModalInner({
+  onClose,
+  defaultRole = "cashier",
+  hideRole = false,
+  title,
+  lead,
+}) {
+  const { URL, admin } = useContext(AuthContext);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("chef");
+  const [role, setRole] = useState(defaultRole);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  useEffect(() => {
+    setRole(defaultRole);
+  }, [defaultRole]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -57,7 +68,7 @@ function CreateStaffModalInner({ onClose }) {
           username: u,
           email: em,
           password,
-          role,
+          role: hideRole ? defaultRole : role,
         },
         {
           headers: {
@@ -69,12 +80,12 @@ function CreateStaffModalInner({ onClose }) {
       );
       setMessage({
         type: "ok",
-        text: "Staff account created. They can sign in from Staff on the login page with this email and password.",
+        text: `${hideRole ? "Cashier" : "Staff"} account created successfully! They can sign in on the POS terminal with this email and password.`,
       });
       setUsername("");
       setEmail("");
       setPassword("");
-      setRole("chef");
+      setRole(defaultRole);
     } catch (err) {
       const text =
         err.response?.data?.message || err.message || "Could not create staff.";
@@ -107,13 +118,42 @@ function CreateStaffModalInner({ onClose }) {
           ×
         </button>
         <h2 id="create-staff-heading" className="create-staff__title">
-          Create staff
+          {title || "Create staff"}
         </h2>
         <p className="create-staff__lead">
-          Add team members for this restaurant. They sign in on the login page with the email and
-          password you set here.
+          {lead ||
+            "Add team members for this restaurant. They sign in on the login page with the email and password you set here."}
         </p>
         <form className="create-staff__form" onSubmit={handleSubmit}>
+          {/* Cafe Name (Locked / Read-Only from server) */}
+          <div className="create-staff__field">
+            <label htmlFor="create-staff-venue">
+              Cafe / Restaurant Name <span style={{ fontSize: "11px", color: "var(--text-secondary, #94a3b8)", fontWeight: "normal" }}>(Locked from Registration)</span>
+            </label>
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                id="create-staff-venue"
+                type="text"
+                value={admin?.businessName || admin?.companyName || admin?.username || "Your Cafe"}
+                disabled
+                readOnly
+                style={{
+                  width: "100%",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  color: "#cbd5e1",
+                  cursor: "not-allowed",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  fontWeight: "600",
+                  paddingRight: "36px",
+                  boxSizing: "border-box"
+                }}
+              />
+              <span style={{ position: "absolute", right: "12px", color: "#64748b", fontSize: "14px" }}>🔒</span>
+            </div>
+          </div>
+
           <div className="create-staff__field">
             <label htmlFor="create-staff-name">Name</label>
             <input
@@ -123,6 +163,8 @@ function CreateStaffModalInner({ onClose }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. Sam Taylor"
+              required
+              autoFocus
             />
           </div>
           <div className="create-staff__field">
@@ -134,7 +176,8 @@ function CreateStaffModalInner({ onClose }) {
               autoComplete="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="sam@yourrestaurant.com"
+              placeholder="cashier@yourrestaurant.com"
+              required
             />
           </div>
           <div className="create-staff__field">
@@ -146,24 +189,27 @@ function CreateStaffModalInner({ onClose }) {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Choose a temporary password"
+              placeholder="Choose a password (e.g. 12345678)"
+              required
             />
           </div>
-          <div className="create-staff__field">
-            <label htmlFor="create-staff-role">Role</label>
-            <select
-              id="create-staff-role"
-              name="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!hideRole && (
+            <div className="create-staff__field">
+              <label htmlFor="create-staff-role">Role</label>
+              <select
+                id="create-staff-role"
+                name="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                {ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {message.text ? (
             <p
               className={`create-staff__msg${message.type === "error" ? " create-staff__msg--err" : " create-staff__msg--ok"}`}
@@ -177,7 +223,7 @@ function CreateStaffModalInner({ onClose }) {
               Close
             </button>
             <button type="submit" className="create-staff__submit" disabled={submitting}>
-              {submitting ? "Creating…" : "Create staff account"}
+              {submitting ? "Creating…" : (hideRole ? "Create Cashier Account" : "Create staff account")}
             </button>
           </div>
         </form>
@@ -186,10 +232,26 @@ function CreateStaffModalInner({ onClose }) {
   );
 }
 
-export default function CreateStaffModal({ open, onClose }) {
+export default function CreateStaffModal({
+  open,
+  onClose,
+  defaultRole = "cashier",
+  hideRole = false,
+  title,
+  lead,
+}) {
   const { admin } = useContext(AuthContext);
   const can = admin && admin.role === "owner";
   if (!can || typeof document === "undefined" || !open) return null;
 
-  return createPortal(<CreateStaffModalInner onClose={onClose} />, document.body);
+  return createPortal(
+    <CreateStaffModalInner
+      onClose={onClose}
+      defaultRole={defaultRole}
+      hideRole={hideRole}
+      title={title}
+      lead={lead}
+    />,
+    document.body,
+  );
 }
