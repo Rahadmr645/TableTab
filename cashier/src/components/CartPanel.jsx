@@ -124,13 +124,6 @@ export default function CartPanel() {
         )}
       </div>
 
-      {/* Add Custom Dish Button inside the cart list area, at the bottom of the list */}
-      {!isOrderPaid && (
-        <button className="add-dish-btn" onClick={() => setShowCustomDishModal(true)}>
-          + {t.addDish}
-        </button>
-      )}
-
       <div className="cart-footer">
         {discountAmount > 0 && (
           <div className="bill-row subtotal">
