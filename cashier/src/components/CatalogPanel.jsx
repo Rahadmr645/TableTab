@@ -20,7 +20,10 @@ export default function CatalogPanel() {
     setActiveTab,
     handleAddToCart,
     handleClearCart,
+    orderDiscount,
+    discountType,
     setShowDiscountModal,
+    isPaymentProcessing,
     setLang,
     setShowPrintModal,
     setSelectedTable,
@@ -34,14 +37,21 @@ export default function CatalogPanel() {
     grandTotal,
     activeEditingOrderId,
     handleOpenOrder,
+    handlePayOrderDirect,
     handleNewOrder,
     handleSendToKitchen,
     currentTenant,
     currentUser,
+    isManagerOrOwner,
     socketConnected,
     setShowAuthModal,
     handleLockScreen,
-    setShowLockPinModal
+    setShowLockPinModal,
+    handlePrintReceipt,
+    autoPrintEnabled,
+    toggleAutoPrint,
+    setShowPrinterModal,
+    printerConfig
   } = useCashier();
 
   const [activeHoldId, setActiveHoldId] = useState(null);
@@ -54,7 +64,7 @@ export default function CatalogPanel() {
   const handlePressStart = (e, id) => {
     isLongPressRef.current = false;
     isScrollingRef.current = false;
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     touchStartRef.current = { x: clientX, y: clientY };
@@ -70,13 +80,13 @@ export default function CatalogPanel() {
 
   const handlePressMove = (e) => {
     if (isScrollingRef.current) return;
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
+
     const diffX = Math.abs(clientX - touchStartRef.current.x);
     const diffY = Math.abs(clientY - touchStartRef.current.y);
-    
+
     if (diffX > 10 || diffY > 10) {
       isScrollingRef.current = true;
       if (timerRef.current) {
@@ -202,7 +212,7 @@ export default function CatalogPanel() {
           </button>
         </div>
       </div>
-      
+
       {/* Top action row */}
       {activeTab !== "payment" && (
         <div className="action-row">
@@ -222,9 +232,16 @@ export default function CatalogPanel() {
             <span className="action-btn-icon">🕒</span>
             <span className="action-btn-label">{t.activity}</span>
           </button>
-          <button className="action-btn" onClick={() => setShowDiscountModal(true)}>
+          <button 
+            className={`action-btn ${orderDiscount > 0 ? "active-discount" : ""}`} 
+            onClick={() => setShowDiscountModal(true)}
+            style={orderDiscount > 0 ? { border: "1px solid #4ade80", background: "rgba(74, 222, 128, 0.15)", color: "#4ade80" } : {}}
+            title={orderDiscount > 0 ? (lang === "ar" ? "خصم مفعل على الطلب" : "Active Discount") : (lang === "ar" ? "تطبيق خصم" : "Apply Discount")}
+          >
             <span className="action-btn-icon">🏷️</span>
-            <span className="action-btn-label">{t.discount}</span>
+            <span className="action-btn-label">
+              {t.discount} {orderDiscount > 0 ? `(${discountType === "fixed" ? orderDiscount + " ﷼" : orderDiscount + "%"})` : ""}
+            </span>
           </button>
           <button className="action-btn">
             <span className="action-btn-icon">📝</span>
@@ -242,8 +259,8 @@ export default function CatalogPanel() {
         <div className="search-wrapper">
           <div className="search-container">
             <span className="search-icon">🔍</span>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -275,10 +292,31 @@ export default function CatalogPanel() {
             {/* If no category is selected, render categories */}
             {!selectedCategory ? (
               <>
+                {categories.length === 0 && (
+                  <div style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "36px 16px",
+                    color: "var(--text-secondary, #94a3b8)",
+                    background: "rgba(255, 255, 255, 0.02)",
+                    borderRadius: "12px",
+                    border: "1px dashed var(--border-color, #333d4e)",
+                    marginBottom: "10px"
+                  }}>
+                    <div style={{ fontSize: "36px", marginBottom: "8px" }}>📂</div>
+                    <div style={{ fontWeight: "700", fontSize: "16px", color: "var(--text-primary, #ffffff)" }}>
+                      {lang === "ar" ? "لا توجد تصنيفات في هذا المتجر" : "No categories in this venue"}
+                    </div>
+                    <div style={{ fontSize: "13px", marginTop: "4px" }}>
+                      {lang === "ar" ? "اضغط على زر (إضافة تصنيف) لإنشاء أول تصنيف على الخادم" : "Click (+ Add Category) to add a category directly to server"}
+                    </div>
+                  </div>
+                )}
+
                 {categories.map((cat, idx) => (
-                  <div 
-                    className={`grid-item category-item ${activeHoldId === cat.id ? "editing" : ""}`} 
-                    key={idx}
+                  <div
+                    className={`grid-item category-item ${activeHoldId === cat.id ? "editing" : ""}`}
+                    key={cat.id || idx}
                     onMouseDown={(e) => handlePressStart(e, cat.id)}
                     onMouseMove={handlePressMove}
                     onMouseUp={(e) => handlePressEnd(e, () => { setSelectedCategory(cat); setActiveHoldId(null); })}
@@ -290,27 +328,54 @@ export default function CatalogPanel() {
                   >
                     <div className="grid-item-icon">❄️</div>
                     <div className="grid-item-title">
-                      <span className="grid-item-title-ar">{cat.nameAr}</span>
-                      <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{cat.nameEn}</span>
+                      <span className="grid-item-title-ar">{cat.nameAr || cat.nameEn}</span>
+                      {cat.nameEn && cat.nameEn !== cat.nameAr && (
+                        <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{cat.nameEn}</span>
+                      )}
                     </div>
-                    <div className="grid-item-actions">
-                      <button className="grid-action-btn edit" onClick={(e) => { e.stopPropagation(); setShowCatModal(cat); setActiveHoldId(null); }}>✏️</button>
-                      <button className="grid-action-btn delete" onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); setActiveHoldId(null); }}>🗑️</button>
-                    </div>
+                    {isManagerOrOwner && (
+                      <div className="grid-item-actions">
+                        <button className="grid-action-btn edit" onClick={(e) => { e.stopPropagation(); setShowCatModal(cat); setActiveHoldId(null); }}>✏️</button>
+                        <button className="grid-action-btn delete" onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); setActiveHoldId(null); }}>🗑️</button>
+                      </div>
+                    )}
                   </div>
                 ))}
-                <div className="grid-item add-grid-item" onClick={() => setShowCatModal(true)}>
-                  <div className="add-grid-item-icon">+</div>
-                  <div className="add-grid-item-label">{lang === "ar" ? "إضافة تصنيف" : "Add Category"}</div>
-                </div>
+                {isManagerOrOwner && (
+                  <div className="grid-item add-grid-item" onClick={() => setShowCatModal(true)}>
+                    <div className="add-grid-item-icon">+</div>
+                    <div className="add-grid-item-label">{lang === "ar" ? "إضافة تصنيف" : "Add Category"}</div>
+                  </div>
+                )}
               </>
             ) : (
               // Else, render products of that category
               <>
+                {filteredProducts.length === 0 && (
+                  <div style={{
+                    gridColumn: "1 / -1",
+                    textAlign: "center",
+                    padding: "36px 16px",
+                    color: "var(--text-secondary, #94a3b8)",
+                    background: "rgba(255, 255, 255, 0.02)",
+                    borderRadius: "12px",
+                    border: "1px dashed var(--border-color, #333d4e)",
+                    marginBottom: "10px"
+                  }}>
+                    <div style={{ fontSize: "36px", marginBottom: "8px" }}>🍽️</div>
+                    <div style={{ fontWeight: "700", fontSize: "16px", color: "var(--text-primary, #ffffff)" }}>
+                      {lang === "ar" ? "لا توجد أطباق في هذا التصنيف" : "No dishes in this category"}
+                    </div>
+                    <div style={{ fontSize: "13px", marginTop: "4px" }}>
+                      {lang === "ar" ? "اضغط على زر (إضافة منتج) لإنشاء طبق جديد على الخادم" : "Click (+ Add Product) to create a dish on the server"}
+                    </div>
+                  </div>
+                )}
+
                 {filteredProducts.map((prod, idx) => (
-                  <div 
-                    className={`grid-item product-item ${activeHoldId === prod.id ? "editing" : ""}`} 
-                    key={idx}
+                  <div
+                    className={`grid-item product-item ${activeHoldId === prod.id ? "editing" : ""}`}
+                    key={prod.id || idx}
                     onMouseDown={(e) => handlePressStart(e, prod.id)}
                     onMouseMove={handlePressMove}
                     onMouseUp={(e) => handlePressEnd(e, () => { handleAddToCart(prod); setActiveHoldId(null); })}
@@ -320,24 +385,38 @@ export default function CatalogPanel() {
                     onTouchEnd={(e) => handlePressEnd(e, () => { handleAddToCart(prod); setActiveHoldId(null); })}
                     onTouchCancel={handlePressCancel}
                   >
-                    <div className="grid-item-icon" style={{ fontSize: "18px" }}>☕</div>
+                    {prod.image ? (
+                      <img
+                        src={prod.image}
+                        alt={prod.nameEn || prod.nameAr}
+                        style={{ width: "36px", height: "36px", objectFit: "cover", borderRadius: "8px", marginBottom: "4px" }}
+                      />
+                    ) : (
+                      <div className="grid-item-icon" style={{ fontSize: "18px" }}>☕</div>
+                    )}
                     <div className="grid-item-title">
-                      <span className="grid-item-title-ar">{prod.nameAr}</span>
-                      <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{prod.nameEn}</span>
+                      <span className="grid-item-title-ar">{prod.nameAr || prod.nameEn}</span>
+                      {prod.nameEn && prod.nameEn !== prod.nameAr && (
+                        <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{prod.nameEn}</span>
+                      )}
                     </div>
                     <div className="grid-item-price">
-                      {prod.price.toFixed(2)} ر.س
+                      {Number(prod.price || 0).toFixed(2)} ﷼
                     </div>
-                    <div className="grid-item-actions">
-                      <button className="grid-action-btn edit" onClick={(e) => { e.stopPropagation(); setShowProdModal(prod); setActiveHoldId(null); }}>✏️</button>
-                      <button className="grid-action-btn delete" onClick={(e) => { e.stopPropagation(); handleDeleteProduct(prod.id); setActiveHoldId(null); }}>🗑️</button>
-                    </div>
+                    {isManagerOrOwner && (
+                      <div className="grid-item-actions">
+                        <button className="grid-action-btn edit" onClick={(e) => { e.stopPropagation(); setShowProdModal(prod); setActiveHoldId(null); }}>✏️</button>
+                        <button className="grid-action-btn delete" onClick={(e) => { e.stopPropagation(); handleDeleteProduct(prod.id); setActiveHoldId(null); }}>🗑️</button>
+                      </div>
+                    )}
                   </div>
                 ))}
-                <div className="grid-item add-grid-item" onClick={() => setShowProdModal(true)}>
-                  <div className="add-grid-item-icon">+</div>
-                  <div className="add-grid-item-label">{lang === "ar" ? "إضافة منتج" : "Add Product"}</div>
-                </div>
+                {isManagerOrOwner && (
+                  <div className="grid-item add-grid-item" onClick={() => setShowProdModal(true)}>
+                    <div className="add-grid-item-icon">+</div>
+                    <div className="add-grid-item-label">{lang === "ar" ? "إضافة منتج" : "Add Product"}</div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -379,14 +458,14 @@ export default function CatalogPanel() {
           return (
             <div className="orders-list-view">
               <div className="orders-filter-bar">
-                <button 
-                  className={`orders-filter-btn ${orderFilter === "uncompleted" ? "active" : ""}`} 
+                <button
+                  className={`orders-filter-btn ${orderFilter === "uncompleted" ? "active" : ""}`}
                   onClick={() => setOrderFilter("uncompleted")}
                 >
                   {t.uncompletedOrders}
                 </button>
-                <button 
-                  className={`orders-filter-btn ${orderFilter === "all" ? "active" : ""}`} 
+                <button
+                  className={`orders-filter-btn ${orderFilter === "all" ? "active" : ""}`}
                   onClick={() => setOrderFilter("all")}
                 >
                   {t.allOrders}
@@ -399,8 +478,8 @@ export default function CatalogPanel() {
                 </div>
               ) : (
                 filteredOrders.map((ord, idx) => (
-                  <div 
-                    className={`pos-order-card ${activeEditingOrderId === ord._id ? "active-editing-card" : ""}`} 
+                  <div
+                    className={`pos-order-card ${activeEditingOrderId === ord._id ? "active-editing-card" : ""}`}
                     key={ord._id || idx}
                     onClick={() => handleOpenOrder(ord)}
                     title={lang === "ar" ? "انقر لفتح الطلب في الكاشير والتعديل عليه أو دفعه" : "Click to open order in register to edit or pay"}
@@ -425,17 +504,36 @@ export default function CatalogPanel() {
                       </span>
 
                       <span className={`payment-pill-tag ${ord.paymentStatus === "paid" ? "paid" : "unpaid"}`} style={{ margin: "0 4px" }}>
-                        {ord.paymentStatus === "paid" 
-                          ? (lang === "ar" ? "مدفوع" : "PAID") 
+                        {ord.paymentStatus === "paid"
+                          ? (lang === "ar" ? "مدفوع" : "PAID")
                           : (lang === "ar" ? "غير مدفوع" : "UNPAID")}
                       </span>
 
                       <span style={{ fontWeight: "700", color: "var(--accent)", margin: "0 10px" }}>
-                        {ord.totalPrice.toFixed(2)} {lang === "ar" ? "ر.س" : "SAR"}
+                        {ord.totalPrice.toFixed(2)} ﷼
                       </span>
 
-                      <button 
-                        className="item-action-btn open-btn" 
+                      {ord.paymentStatus !== "paid" && (
+                        <button
+                          className="item-action-btn pay-btn"
+                          onClick={() => handlePayOrderDirect(ord)}
+                          style={{
+                            margin: "0 4px",
+                            backgroundColor: "#10b981",
+                            color: "#ffffff",
+                            border: "none",
+                            fontWeight: "700",
+                            padding: "4px 10px",
+                            borderRadius: "6px"
+                          }}
+                          title={lang === "ar" ? "سداد قيمة الطلب فوراً" : "Pay Order Now"}
+                        >
+                          💳 {lang === "ar" ? "سداد" : "Pay"}
+                        </button>
+                      )}
+
+                      <button
+                        className="item-action-btn open-btn"
                         onClick={() => handleOpenOrder(ord)}
                         style={{ margin: "0 4px", backgroundColor: "#7065db", color: "#ffffff", border: "none" }}
                       >
@@ -443,8 +541,8 @@ export default function CatalogPanel() {
                       </button>
 
                       {isOrderUncompleted(ord) && (
-                        <button 
-                          className="item-action-btn complete-btn" 
+                        <button
+                          className="item-action-btn complete-btn"
                           onClick={() => handleUpdateOrderStatus(ord._id, "Finished")}
                           style={{ margin: "0 4px" }}
                         >
@@ -452,9 +550,9 @@ export default function CatalogPanel() {
                         </button>
                       )}
 
-                      <button 
-                        className="item-action-btn" 
-                        onClick={() => setShowPrintModal(ord)}
+                      <button
+                        className="item-action-btn"
+                        onClick={() => handlePrintReceipt(ord)}
                         style={{ margin: "0 4px" }}
                       >
                         🖨️ {t.print}
@@ -475,10 +573,10 @@ export default function CatalogPanel() {
 
           const tableList = tables && tables.length > 0
             ? tables.map(tb => ({
-                id: tb._id,
-                label: tb.label,
-                num: Number(tb.label) || tb.label
-              }))
+              id: tb._id,
+              label: tb.label,
+              num: Number(tb.label) || tb.label
+            }))
             : Array.from({ length: 24 }, (_, i) => ({ id: i + 1, label: (i + 1).toString(), num: i + 1 }));
 
           return (
@@ -490,8 +588,8 @@ export default function CatalogPanel() {
                 const activeOrderForTable = placedOrders.find(ord => (ord.tableId === num || String(ord.tableId) === String(num)) && isOrderUncompleted(ord));
 
                 return (
-                  <div 
-                    key={tbItem.id || num} 
+                  <div
+                    key={tbItem.id || num}
                     className={`table-grid-cell ${isOccupied ? "occupied" : ""} ${isSelected ? "selected" : ""}`}
                     onClick={() => {
                       if (activeOrderForTable) {
@@ -506,7 +604,7 @@ export default function CatalogPanel() {
                     <div>{t.table} {tbItem.label || num}</div>
                     {activeOrderForTable && (
                       <div className="table-active-order-tag">
-                        #{activeOrderForTable.dailyOrderNumber} ({activeOrderForTable.totalPrice.toFixed(0)} {lang === "ar" ? "ر.س" : ""})
+                        #{activeOrderForTable.dailyOrderNumber} ({activeOrderForTable.totalPrice.toFixed(0)} ﷼)
                       </div>
                     )}
                     <div className="table-status-dot"></div>
@@ -529,7 +627,7 @@ export default function CatalogPanel() {
             <span className="cart-icon-badge">🛒 {cart.reduce((sum, item) => sum + item.quantity, 0)} {lang === "ar" ? "أصناف" : "items"}</span>
           </div>
           <div className="mobile-cart-summary-right">
-            <span>{grandTotal.toFixed(2)} ر.س</span>
+            <span>{grandTotal.toFixed(2)} ﷼</span>
             <span className="view-cart-btn-text">
               {lang === "ar" ? " ← عرض الطلب" : "View Order →"}
             </span>
@@ -595,7 +693,14 @@ function PaymentMethodsView() {
     cart,
     activeEditingOrderId,
     placedOrders,
-    setShowPrintModal
+    setShowPrintModal,
+    handlePrintReceipt,
+    isPaymentProcessing,
+    terminalConfig,
+    terminalHealth,
+    checkTerminalHealth,
+    setShowTerminalModal,
+    handlePayWithTerminal
   } = useCashier();
 
   const editingOrder = placedOrders.find(ord => ord._id === activeEditingOrderId);
@@ -613,12 +718,12 @@ function PaymentMethodsView() {
           <span style={{ fontSize: "48px", display: "block", marginBottom: "12px" }}>✅</span>
           <h2 style={{ color: "#166534", marginBottom: "8px" }}>{lang === "ar" ? "الطلب مدفوع بالكامل" : "Order Already Paid"}</h2>
           <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>
-            {lang === "ar" 
-              ? `تم سداد قيمة هذا الطلب #${editingOrder?.dailyOrderNumber || ""} مسبقاً.` 
+            {lang === "ar"
+              ? `تم سداد قيمة هذا الطلب #${editingOrder?.dailyOrderNumber || ""} مسبقاً.`
               : `Order #${editingOrder?.dailyOrderNumber || ""} is already settled and closed.`}
           </p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button className="payment-purple-btn" onClick={() => setShowPrintModal(editingOrder)}>
+            <button className="payment-purple-btn" onClick={() => handlePrintReceipt(editingOrder)}>
               🖨️ {lang === "ar" ? "طباعة الفاتورة" : "Print Receipt"}
             </button>
             <button className="payment-purple-btn" onClick={() => setActiveTab("home")}>
@@ -634,25 +739,16 @@ function PaymentMethodsView() {
   const totalPaid = parseFloat((paidCash + paidCard).toFixed(2));
   const isFullyPaid = (totalPaid >= grandTotal && grandTotal > 0);
 
-  const handleInfoClick = (e) => {
-    e.stopPropagation();
-    alert(
-      lang === "ar"
-        ? "جهاز الدفع غير متصل بالشبكة حالياً. يرجى التحقق من اتصال الإنترنت بجهاز POS."
-        : "Payment terminal is currently offline. Please verify the POS connection."
-    );
+  const handleTerminalClick = () => {
+    if (terminalHealth === "disconnected" || !terminalConfig?.enabled) {
+      setShowTerminalModal(true);
+      return;
+    }
+    const amountToSend = remaining > 0 ? remaining : grandTotal;
+    handlePayWithTerminal(amountToSend);
   };
 
   const openAmountModal = (method) => {
-    if (method === "terminal") {
-      alert(
-        lang === "ar"
-          ? "لا يمكن استخدام جهاز الدفع لأنه غير متصل."
-          : "Payment terminal cannot be used because it is offline."
-      );
-      return;
-    }
-    
     // Default modal input to the current remaining amount
     const currentMethodVal = method === "cash" ? paidCash : paidCard;
     const initialVal = remaining > 0 ? remaining : (currentMethodVal > 0 ? currentMethodVal : grandTotal);
@@ -691,8 +787,8 @@ function PaymentMethodsView() {
   };
 
   const handlePay = async () => {
-    if (!cart.length) {
-      alert(lang === "ar" ? "السلة فارغة" : "Cart is empty");
+    if (!cart.length || isPaymentProcessing) {
+      if (!cart.length) alert(lang === "ar" ? "السلة فارغة" : "Cart is empty");
       return;
     }
 
@@ -747,22 +843,74 @@ function PaymentMethodsView() {
 
         {/* Payment methods list */}
         <div className="payment-methods-list">
-          {/* Terminal Method - Disabled */}
-          <div 
-            className="payment-method-card disabled-method terminal-card"
-            onClick={() => openAmountModal("terminal")}
+          {/* Terminal Method - Active & Configurable */}
+          <div
+            className="payment-method-card terminal-card"
+            onClick={handleTerminalClick}
+            style={{
+              cursor: "pointer",
+              border: terminalConfig?.enabled ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.12)"
+            }}
           >
-            <span className="payment-method-card-label">
-              {t.paymentDevice}
+            <span className="payment-method-card-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              💳 {lang === "ar" ? "جهاز مدى / POS Terminal" : "Mada POS Terminal"}
             </span>
-            <div className="terminal-status-group" onClick={handleInfoClick}>
-              <span className="terminal-status-text">{t.disconnected}</span>
-              <span className="terminal-info-circle">i</span>
+            <div 
+              className="terminal-status-group" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTerminalModal(true);
+              }}
+              title={lang === "ar" ? "إعدادات وفحص الـ IP لجهاز مدى" : "Configure & Test Terminal IP"}
+              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <span 
+                className="terminal-status-text"
+                style={{
+                  color: terminalHealth === "connected"
+                    ? "#22c55e"
+                    : terminalHealth === "demo"
+                      ? "#38bdf8"
+                      : terminalHealth === "checking"
+                        ? "#eab308"
+                        : "#ef4444",
+                  fontWeight: "800",
+                  fontSize: "12px"
+                }}
+              >
+                ● {terminalHealth === "connected"
+                    ? (lang === "ar" ? `متصل (${terminalConfig?.ip})` : `Connected (${terminalConfig?.ip})`)
+                    : terminalHealth === "demo"
+                      ? (lang === "ar" ? "وضع تجريبي (Demo)" : "Demo Mode")
+                      : terminalHealth === "checking"
+                        ? (lang === "ar" ? "جاري الفحص..." : "Checking...")
+                        : (lang === "ar" ? `غير متصل (${terminalConfig?.ip || "انقر للربط"})` : `Disconnected (${terminalConfig?.ip || "Setup"})`)}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  checkTerminalHealth();
+                }}
+                title={lang === "ar" ? "إعادة فحص الاتصال بالجهاز" : "Re-check connection"}
+                style={{
+                  background: "rgba(59, 130, 246, 0.15)",
+                  color: "#60a5fa",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "2px 6px",
+                  fontSize: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                🔄
+              </button>
+              <span className="terminal-info-circle" style={{ background: "rgba(59, 130, 246, 0.3)", color: "#60a5fa" }}>⚙️</span>
             </div>
           </div>
 
           {/* Cash Method */}
-          <div 
+          <div
             className={`payment-method-card ${paidCash > 0 ? "method-has-payment" : "center-label-card"}`}
             onClick={() => openAmountModal("cash")}
           >
@@ -771,9 +919,9 @@ function PaymentMethodsView() {
             </span>
             {paidCash > 0 && (
               <div className="paid-method-badge cash-badge">
-                <span>💵 {paidCash.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
-                <button 
-                  className="clear-paid-btn" 
+                <span>💵 {paidCash.toFixed(2)} ﷼</span>
+                <button
+                  className="clear-paid-btn"
                   title={lang === "ar" ? "إلغاء" : "Clear"}
                   onClick={(e) => handleClearMethod(e, "cash")}
                 >
@@ -784,7 +932,7 @@ function PaymentMethodsView() {
           </div>
 
           {/* Network / Card Method */}
-          <div 
+          <div
             className={`payment-method-card ${paidCard > 0 ? "method-has-payment" : "center-label-card"}`}
             onClick={() => openAmountModal("card")}
           >
@@ -793,9 +941,9 @@ function PaymentMethodsView() {
             </span>
             {paidCard > 0 && (
               <div className="paid-method-badge card-badge">
-                <span>💳 {paidCard.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
-                <button 
-                  className="clear-paid-btn" 
+                <span>💳 {paidCard.toFixed(2)} ﷼</span>
+                <button
+                  className="clear-paid-btn"
                   title={lang === "ar" ? "إلغاء" : "Clear"}
                   onClick={(e) => handleClearMethod(e, "card")}
                 >
@@ -810,20 +958,28 @@ function PaymentMethodsView() {
         <div className="payment-bottom-section">
           <div className={`remaining-to-pay-box ${isFullyPaid ? "fully-covered-box" : ""}`}>
             {isFullyPaid ? (
-              <span>✓ {lang === "ar" ? "تم تغطية كامل المبلغ" : "Fully Covered"}: {grandTotal.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+              <span>✓ {lang === "ar" ? "تم تغطية كامل المبلغ" : "Fully Covered"}: {grandTotal.toFixed(2)} ﷼</span>
             ) : (
-              <span>{t.remainingToPay} {remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+              <span>{t.remainingToPay} {remaining.toFixed(2)} ﷼</span>
             )}
           </div>
           <div className="payment-action-row">
-            <button 
+            <button
               className={`payment-submit-btn ${isFullyPaid ? "ready-to-pay active-ready" : ""}`}
               onClick={handlePay}
-              disabled={!cart.length}
+              disabled={!cart.length || isPaymentProcessing}
+              style={{
+                opacity: isPaymentProcessing ? 0.75 : 1,
+                cursor: isPaymentProcessing ? "wait" : "pointer"
+              }}
             >
-              {isFullyPaid 
-                ? (lang === "ar" ? `دفع ${grandTotal.toFixed(2)} ﷼` : `Pay ${grandTotal.toFixed(2)} SAR`)
-                : t.payText}
+              {isPaymentProcessing ? (
+                <span>⏳ {lang === "ar" ? "جاري الدفع..." : "Processing..."}</span>
+              ) : isFullyPaid ? (
+                lang === "ar" ? `دفع ${grandTotal.toFixed(2)} ﷼` : `Pay ${grandTotal.toFixed(2)} ﷼`
+              ) : (
+                t.payText
+              )}
             </button>
             <button className="payment-more-options-btn" onClick={() => setShowMoreModal(true)}>
               ⋯
@@ -838,31 +994,31 @@ function PaymentMethodsView() {
           <div className="modal-content payment-amount-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                {activeModal === "cash" 
+                {activeModal === "cash"
                   ? (lang === "ar" ? "💵 الدفع النقدي (كاش)" : "💵 Cash Payment")
                   : (lang === "ar" ? "💳 الدفع بالشبكة / البطاقة" : "💳 Network / Card Payment")}
               </h3>
-              <button 
-                style={{ border: "none", background: "none", fontSize: "16px", cursor: "pointer" }} 
+              <button
+                style={{ border: "none", background: "none", fontSize: "16px", cursor: "pointer" }}
                 onClick={() => setActiveModal(null)}
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="modal-body">
               {/* Remaining Banner */}
               <div className="amount-modal-banner">
                 <span className="banner-label">{lang === "ar" ? "المبلغ المتبقي للطلب" : "Remaining to Pay"}:</span>
-                <span className="banner-value">{remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}</span>
+                <span className="banner-value">{remaining.toFixed(2)} ﷼</span>
               </div>
 
               {/* Exact Amount Quick Button */}
               {remaining > 0 && (
                 <div className="quick-exact-section">
-                  <button 
+                  <button
                     type="button"
-                    className="quick-exact-btn" 
+                    className="quick-exact-btn"
                     onClick={handleExactConfirm}
                   >
                     <span className="exact-icon">⚡</span>
@@ -870,7 +1026,7 @@ function PaymentMethodsView() {
                       {lang === "ar" ? "المبلغ المتبقي بالضبط" : "Exact Remaining Amount"}
                     </span>
                     <span className="exact-amt-badge">
-                      {remaining.toFixed(2)} {lang === "ar" ? "﷼" : "SAR"}
+                      {remaining.toFixed(2)} ﷼
                     </span>
                   </button>
                 </div>
@@ -882,28 +1038,28 @@ function PaymentMethodsView() {
                   {lang === "ar" ? "أو أدخل مبلغاً مخصصاً:" : "Or enter custom amount:"}
                 </label>
                 <div className="amount-input-wrapper">
-                  <input 
+                  <input
                     type="number"
                     step="0.01"
-                    className="form-input custom-amt-input" 
-                    value={modalInput} 
+                    className="form-input custom-amt-input"
+                    value={modalInput}
                     onChange={(e) => setModalInput(e.target.value)}
                     placeholder={remaining > 0 ? remaining.toFixed(2) : grandTotal.toFixed(2)}
                     autoFocus
                   />
-                  <span className="amount-input-currency">{lang === "ar" ? "﷼" : "SAR"}</span>
+                  <span className="amount-input-currency">﷼</span>
                 </div>
 
                 {/* Quick bill presets */}
                 <div className="amount-preset-chips">
                   {[5, 10, 20, 50, 100, 200, 500].map(val => (
-                    <button 
-                      key={val} 
+                    <button
+                      key={val}
                       type="button"
-                      className="preset-chip-btn" 
+                      className="preset-chip-btn"
                       onClick={() => setModalInput(val.toString())}
                     >
-                      {val} {lang === "ar" ? "﷼" : ""}
+                      {val} ﷼
                     </button>
                   ))}
                 </div>

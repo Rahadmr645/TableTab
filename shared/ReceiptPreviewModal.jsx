@@ -2,18 +2,23 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   mountReceiptPreview,
   downloadOrderReceiptPdf,
+  printOrderReceipt,
 } from "./orderReceiptPdf.js";
 import "./ReceiptPreviewModal.css";
 
 /**
- * Modal: shows thermal-style receipt preview, then optional PDF download.
- * @param {{ order: Record<string, unknown> | null, businessName?: string, logoUrl?: string, onClose: () => void }} props
+ * Modal: shows thermal-style receipt preview, then optional PDF download or direct printing.
+ * @param {{ order: Record<string, unknown> | null, businessName?: string, logoUrl?: string, taxNumber?: string, onClose: () => void }} props
  */
-export default function ReceiptPreviewModal({ order, businessName, logoUrl, onClose }) {
+export default function ReceiptPreviewModal({ order, businessName, logoUrl, taxNumber, onClose }) {
   const viewportRef = useRef(null);
   const printTimeRef = useRef(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [downloadBusy, setDownloadBusy] = useState(false);
+  const [printBusy, setPrintBusy] = useState(false);
+
+  const resolvedTaxNumber = taxNumber || order?.taxNumber || undefined;
+  const resolvedBizName = businessName || order?.businessName || order?.cafeName || undefined;
 
   useLayoutEffect(() => {
     if (!order) return undefined;
@@ -29,7 +34,7 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
       if (!host || cancelled) return;
       setPreviewBusy(true);
       try {
-        await mountReceiptPreview(host, order, stamp, { businessName, logoUrl });
+        await mountReceiptPreview(host, order, stamp, { businessName: resolvedBizName, logoUrl, taxNumber: resolvedTaxNumber });
       } catch (e) {
         console.error(e);
       } finally {
@@ -43,7 +48,7 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
       const el = viewportRef.current;
       if (el) el.innerHTML = "";
     };
-  }, [order, businessName, logoUrl]);
+  }, [order, resolvedBizName, logoUrl, resolvedTaxNumber]);
 
   useEffect(() => {
     if (!order) return undefined;
@@ -54,14 +59,33 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
     return () => window.removeEventListener("keydown", onKey);
   }, [order, onClose]);
 
+  async function handlePrint() {
+    if (!order || printBusy) return;
+    setPrintBusy(true);
+    try {
+      await printOrderReceipt(order, {
+        printTime: printTimeRef.current || undefined,
+        businessName: resolvedBizName,
+        logoUrl,
+        taxNumber: resolvedTaxNumber,
+      });
+    } catch (e) {
+      console.error(e);
+      window.print();
+    } finally {
+      setPrintBusy(false);
+    }
+  }
+
   async function handleDownload() {
     if (!order || downloadBusy || previewBusy) return;
     setDownloadBusy(true);
     try {
       await downloadOrderReceiptPdf(order, {
         printTime: printTimeRef.current || undefined,
-        businessName,
+        businessName: resolvedBizName,
         logoUrl,
+        taxNumber: resolvedTaxNumber,
       });
     } catch (e) {
       console.error(e);
@@ -72,6 +96,8 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
   }
 
   if (!order) return null;
+
+  const orderNum = order?.dailyOrderNumber != null ? `#${order.dailyOrderNumber}` : "";
 
   return (
     <div
@@ -85,16 +111,22 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
     >
       <div className="rcp-panel">
         <div className="rcp-header">
-          <h2 id="rcp-title-el" className="rcp-title">
-            Receipt preview
-          </h2>
-          <button type="button" className="rcp-close" onClick={onClose}>
-            Close
+          <div className="rcp-header-title-group">
+            <span className="rcp-pdf-badge">PDF</span>
+            <h2 id="rcp-title-el" className="rcp-title">
+              Order Slip Preview {orderNum}
+            </h2>
+          </div>
+          <button type="button" className="rcp-close" onClick={onClose} aria-label="Close">
+            ✕
           </button>
         </div>
         <div className="rcp-scroll-wrap">
           {previewBusy ? (
-            <div className="rcp-loading">Loading preview…</div>
+            <div className="rcp-loading">
+              <span className="rcp-spinner" />
+              Generating Slip Preview…
+            </div>
           ) : null}
           <div
             ref={viewportRef}
@@ -103,16 +135,26 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, onCl
           />
         </div>
         <div className="rcp-actions">
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
+          <div className="rcp-actions-top-row">
+            <button type="button" className="rcp-btn-cancel" onClick={onClose}>
+              Close
+            </button>
+            <button
+              type="button"
+              className="rcp-btn-print"
+              disabled={previewBusy || printBusy}
+              onClick={handlePrint}
+            >
+              {printBusy ? "Printing…" : "🖨️ Print Slip"}
+            </button>
+          </div>
           <button
             type="button"
-            className="rcp-btn-primary"
+            className="rcp-btn-primary rcp-btn-download"
             disabled={previewBusy || downloadBusy}
             onClick={handleDownload}
           >
-            {downloadBusy ? "Saving PDF…" : "Download PDF"}
+            {downloadBusy ? "Downloading PDF…" : "📥 Download PDF Slip"}
           </button>
         </div>
       </div>

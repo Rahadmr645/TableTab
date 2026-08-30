@@ -249,7 +249,7 @@ export async function getTenantBySlug(req, res) {
     if (!slug) return res.status(400).json({ message: "slug required" });
 
     const tenant = await Tenant.findOne({ slug })
-      .select("_id businessName slug subscriptionStatus plan accountStatus")
+      .select("_id businessName slug subscriptionStatus plan accountStatus taxNumber")
       .lean();
 
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
@@ -264,9 +264,9 @@ export async function getTenantBySlug(req, res) {
 export async function resolveTenantIdBySlug(req, res) {
   try {
     const slug = String(req.params.slug || "").toLowerCase().trim();
-    const t = await Tenant.findOne({ slug }).select("_id businessName").lean();
+    const t = await Tenant.findOne({ slug }).select("_id businessName taxNumber").lean();
     if (!t) return res.status(404).json({ message: "Tenant not found" });
-    res.status(200).json({ tenantId: t._id, businessName: t.businessName });
+    res.status(200).json({ tenantId: t._id, businessName: t.businessName, taxNumber: t.taxNumber || "" });
   } catch (error) {
     res.status(500).json({ message: "Resolve failed", error: error.message });
   }

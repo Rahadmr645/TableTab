@@ -41,6 +41,8 @@ const tenantSchema = new mongoose.Schema(
     /** Merchant Stripe keys for direct guest checkout routing */
     stripePublishableKey: { type: String, default: "", trim: true },
     stripeSecretKey: { type: String, default: "", trim: true },
+    /** Official Tax / VAT Registration Number (e.g. TRN / VAT ID / الرقم الضريبي) */
+    taxNumber: { type: String, default: "", trim: true },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: true },

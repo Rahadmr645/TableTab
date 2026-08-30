@@ -1,4 +1,5 @@
 import Order from "../models/OrderModel.js";
+import Tenant from "../models/Tenant.js";
 import Menu from "../models/Menu.js";
 import MenuVote from "../models/MenuVote.js";
 import MenuComment from "../models/MenuComment.js";
@@ -198,7 +199,21 @@ async function normalizeOrderItems(raw, tenantId, branchHint) {
 export const createOrder = async (req, res) => {
   try {
     const io = getIo();
-    const { customerName, totalPrice, tableId, userID, guestToken, paymentMethod, paymentIntentId, cashAmount, cardAmount } = req.body;
+    const {
+      customerName,
+      totalPrice,
+      tableId,
+      userID,
+      guestToken,
+      paymentMethod,
+      paymentIntentId,
+      cashAmount,
+      cardAmount,
+      discount,
+      discountAmount,
+      discountType,
+      discountReason,
+    } = req.body;
 
     let items = req.body.items;
 
@@ -247,7 +262,13 @@ export const createOrder = async (req, res) => {
       resolvedPaymentStatus = req.body.paymentStatus === "paid" ? "paid" : "unpaid";
     }
 
-    const initialStatus = req.body.status || (resolvedPaymentStatus === "paid" && (finalPaymentMethod === "cash" || finalPaymentMethod === "split") ? "Finished" : "pending");
+    const initialStatus =
+      req.body.status && ["pending", "In Progress", "Ready", "Finished", "Finised"].includes(req.body.status)
+        ? req.body.status
+        : (resolvedPaymentStatus === "paid" && (finalPaymentMethod === "cash" || finalPaymentMethod === "split") ? "Finished" : "pending");
+
+    let orderCafeName = req.tenantRecord?.businessName || "TableTab";
+    let orderTaxNumber = req.tenantRecord?.taxNumber || "";
 
     let savedOrder = null;
     let saveError = null;
@@ -265,6 +286,13 @@ export const createOrder = async (req, res) => {
         tableId,
         items,
         totalPrice,
+        discount: Number(discount) || 0,
+        discountAmount: Number(discountAmount) || 0,
+        discountType: discountType || "percent",
+        discountReason: discountReason || "",
+        taxNumber: orderTaxNumber,
+        businessName: orderCafeName,
+        cafeName: orderCafeName,
         userID: userID || null,
         guestToken: finalGuestToken || null,
         businessDay,
@@ -322,6 +350,10 @@ export const updateOrder = async (req, res) => {
       cardAmount,
       paymentStatus,
       status,
+      discount,
+      discountAmount,
+      discountType,
+      discountReason,
     } = req.body;
 
     const existingOrder = await Order.findOne({ _id: id, tenantId: req.tenantId });
@@ -341,6 +373,10 @@ export const updateOrder = async (req, res) => {
     if (totalPrice !== undefined) updateFields.totalPrice = Number(totalPrice);
     if (tableId !== undefined) updateFields.tableId = tableId;
     if (items) updateFields.items = items;
+    if (discount !== undefined) updateFields.discount = Number(discount) || 0;
+    if (discountAmount !== undefined) updateFields.discountAmount = Number(discountAmount) || 0;
+    if (discountType !== undefined) updateFields.discountType = discountType;
+    if (discountReason !== undefined) updateFields.discountReason = discountReason;
     if (paymentMethod !== undefined) updateFields.paymentMethod = paymentMethod;
     if (cashAmount !== undefined) updateFields.cashAmount = Number(cashAmount);
     if (cardAmount !== undefined) updateFields.cardAmount = Number(cardAmount);
@@ -571,7 +607,9 @@ export const getOrdersByUser = async (req, res) => {
 
     const orders = await Order.find(q).sort({ createdAt: -1 });
 
-    if (orders.length === 0) return res.status(404).json({ message: "No order found for this token" });
+    if (orders.length === 0) {
+      return res.status(200).json({ message: "No order found for this token", orders: [] });
+    }
 
     const enriched = await enrichMyOrdersDocuments(
       orders,
@@ -732,9 +770,11 @@ export const requestCancellation = async (req, res) => {
       requestedBy = "customer";
       let hasAccess = false;
       const reqCustomerId = req.user?.userId;
-      if (reqCustomerId && String(order.userID) === String(reqCustomerId)) {
+      if (reqCustomerId && order.userID && String(order.userID) === String(reqCustomerId)) {
         hasAccess = true;
-      } else if (guestToken && order.guestToken === guestToken) {
+      } else if (guestToken && order.guestToken && String(order.guestToken).trim() === String(guestToken).trim()) {
+        hasAccess = true;
+      } else if (!order.userID || !order.guestToken || order.guestToken === "null") {
         hasAccess = true;
       }
 
@@ -746,19 +786,9 @@ export const requestCancellation = async (req, res) => {
       const normalizedStatus = String(order.status || "").toLowerCase().replace(/\s+/g, "");
       if (normalizedStatus !== "pending") {
         return res.status(400).json({
-          message: "Order has already been prepared or served and cannot be cancelled.",
+          message: "Order has already started preparation and cannot be cancelled.",
         });
       }
-    }
-
-    // Check if there's already a pending request from the same side
-    const pendingReq = order.cancellationRequests.find(
-      (r) => r.status === "pending" && r.requestedBy === requestedBy
-    );
-    if (pendingReq) {
-      return res.status(400).json({
-        message: "You already have a pending cancellation request for this order.",
-      });
     }
 
     // Prepare requested items
@@ -796,10 +826,62 @@ export const requestCancellation = async (req, res) => {
     }
 
     if (reqItems.length === 0) {
-      return res.status(400).json({ message: "No active items selected for cancellation request." });
+      return res.status(400).json({ message: "No active items selected for cancellation." });
     }
 
-    // Add request
+    // If customer cancels their own pending order, directly apply cancellation
+    if (requestedBy === "customer") {
+      for (const reqItem of reqItems) {
+        const item = order.items.find(
+          (it) => {
+            const idMatch = it.menuItemId && reqItem.menuItemId && String(it.menuItemId) === String(reqItem.menuItemId);
+            const nameMatch = it.name === reqItem.name;
+            return idMatch || nameMatch;
+          }
+        );
+        if (item) {
+          const qty = Math.min(item.quantity, reqItem.quantityToCancel);
+          if (qty > 0) {
+            item.quantity -= qty;
+            item.cancelledQuantity = (item.cancelledQuantity || 0) + qty;
+            item.cancelReason = cancelReason || "Customer cancelled";
+          }
+        }
+      }
+
+      order.totalPrice = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const remainingItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+      if (remainingItems === 0) {
+        order.status = "Cancelled";
+      }
+
+      order.cancellationRequests.push({
+        requestedBy: "customer",
+        requestedAt: new Date(),
+        resolvedAt: new Date(),
+        items: reqItems,
+        cancelReason: cancelReason || "Cancelled by customer",
+        status: "accepted",
+      });
+
+      order.markModified("items");
+      order.markModified("cancellationRequests");
+      const savedOrder = await order.save();
+
+      const io = getIo();
+      const tid = String(req.tenantId);
+      io.to(`tenant:${tid}`).emit("orderUpdated", savedOrder.toObject());
+      if (order.status === "Cancelled") {
+        io.to(`tenant:${tid}`).emit("orderRemoved", String(order._id));
+      }
+
+      return res.status(200).json({
+        message: "Order cancelled successfully.",
+        order: savedOrder,
+      });
+    }
+
+    // Staff cancellation request flow
     order.cancellationRequests.push({
       requestedBy,
       requestedAt: new Date(),

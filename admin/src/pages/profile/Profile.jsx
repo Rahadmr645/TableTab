@@ -20,12 +20,50 @@ const Profile = () => {
   const [stripeSec, setStripeSec] = useState("");
   const [savingStripe, setSavingStripe] = useState(false);
 
+  const [cafeName, setCafeName] = useState("");
+  const [taxNum, setTaxNum] = useState("");
+  const [savingVenue, setSavingVenue] = useState(false);
+
   useEffect(() => {
     if (admin) {
       setStripePub(admin.stripePublishableKey || "");
       setStripeSec(admin.stripeSecretKey || "");
+      setTaxNum(admin.taxNumber || "");
+      setCafeName(admin.companyName || admin.businessName || "");
     }
   }, [admin]);
+
+  const handleSaveVenueSettings = async () => {
+    setSavingVenue(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `${URL}/api/admin/venue-settings`,
+        { 
+          taxNumber: taxNum,
+          businessName: cafeName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...getStaffTenantHeaders(),
+          },
+        }
+      );
+      alert("Cafe & Tax settings updated successfully!");
+      setAdmin((prev) => ({
+        ...prev,
+        taxNumber: res.data.taxNumber,
+        companyName: res.data.businessName || prev.companyName,
+        businessName: res.data.businessName || prev.businessName,
+      }));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to update Venue & Tax settings");
+    } finally {
+      setSavingVenue(false);
+    }
+  };
 
   const handleSaveStripe = async () => {
     setSavingStripe(true);
@@ -160,6 +198,7 @@ const Profile = () => {
     { label: "Email", value: admin?.email },
     { label: "Role", value: admin?.role },
     { label: "Company name", value: admin?.companyName },
+    { label: "Tax Number (VAT / TRN)", value: admin?.taxNumber || "Not Set" },
     admin?.role === "owner" ? { label: "Subscription", value: subscriptionDisplay } : null,
     admin?.role === "owner" ? {
       label: "Registered Staff",
@@ -292,6 +331,46 @@ const Profile = () => {
               </div>
             ))}
           </div>
+
+          {admin?.role === "owner" && (
+            <div className="admin-profile__stripe-settings" style={{ marginTop: "24px" }}>
+              <p className="admin-profile__section-label">Cafe &amp; Tax Information</p>
+              <p className="admin-profile__stripe-desc">
+                Configure your official Cafe Name and Tax / VAT Registration Number (الرقم الضريبي). Both details will be displayed prominently on every order slip, receipt preview, thermal printout, and invoice PDF.
+              </p>
+              <div className="admin-profile__stripe-fields">
+                <div className="admin-profile__stripe-field">
+                  <label>Cafe / Restaurant Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. TableTab Cafe &amp; Roastery"
+                    value={cafeName}
+                    onChange={(e) => setCafeName(e.target.value)}
+                    className="admin-profile__stripe-input"
+                  />
+                </div>
+                <div className="admin-profile__stripe-field">
+                  <label>Tax / VAT Registration Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 300123456700003"
+                    value={taxNum}
+                    onChange={(e) => setTaxNum(e.target.value)}
+                    className="admin-profile__stripe-input"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveVenueSettings}
+                  disabled={savingVenue}
+                  className="admin-profile__btn admin-profile__btn--primary"
+                  style={{ alignSelf: "flex-start", marginTop: "8px" }}
+                >
+                  {savingVenue ? "Saving..." : "Save Cafe & Tax Settings"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {admin?.role === "owner" && (
             <div className="admin-profile__stripe-settings">

@@ -39,7 +39,7 @@ router.get("/", ...staffBase, listCategories);
 router.post(
   "/",
   ...staffBase,
-  requireRole(["owner", "manager", "cashier"]),
+  requireRole(["owner", "manager"]),
   stripForbiddenTenantFields,
   createCategory,
 );
@@ -47,7 +47,7 @@ router.post(
 router.put(
   "/:id",
   ...staffBase,
-  requireRole(["owner", "manager", "cashier"]),
+  requireRole(["owner", "manager"]),
   stripForbiddenTenantFields,
   updateCategory,
 );
@@ -55,7 +55,7 @@ router.put(
 router.delete(
   "/:id",
   ...staffBase,
-  requireRole(["owner", "manager", "cashier"]),
+  requireRole(["owner", "manager"]),
   stripForbiddenTenantFields,
   deleteCategory,
 );

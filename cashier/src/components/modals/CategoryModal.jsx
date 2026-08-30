@@ -31,14 +31,18 @@ export default function CategoryModal() {
   const onClose = () => setShowCatModal(false);
 
   const handleConfirm = () => {
-    if (!nameEn.trim() || !nameAr.trim()) {
-      alert(lang === "ar" ? "يرجى ملء جميع الحقول!" : "Please fill in all fields!");
+    const trimmedEn = nameEn.trim();
+    const trimmedAr = nameAr.trim();
+    if (!trimmedEn && !trimmedAr) {
+      alert(lang === "ar" ? "يرجى إدخال اسم التصنيف!" : "Please enter category name!");
       return;
     }
+    const finalEn = trimmedEn || trimmedAr;
+    const finalAr = trimmedAr || trimmedEn;
     if (isEdit) {
-      handleEditCategory(showCatModal.id, nameEn.trim(), nameAr.trim());
+      handleEditCategory(showCatModal.id, finalEn, finalAr);
     } else {
-      handleAddCategory(nameEn.trim(), nameAr.trim());
+      handleAddCategory(finalEn, finalAr);
     }
     onClose();
   };

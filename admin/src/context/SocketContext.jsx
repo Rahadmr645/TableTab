@@ -129,6 +129,13 @@ export const SocketProvider = ({ children }) => {
       setChefOrders((prev) => prev.filter((o) => o._id !== id));
     });
 
+    newSocket.on("app:pwa-update", () => {
+      console.log("[Admin] Remote PWA update requested via socket.");
+      if (typeof window !== "undefined" && window.__tabletab_force_pwa_update) {
+        window.__tabletab_force_pwa_update();
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {

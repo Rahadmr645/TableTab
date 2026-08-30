@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { io } from "socket.io-client";
 import { api, API_BASE_URL, getApiBaseUrl } from "../utils/api.js";
 import { FALLBACK_CATEGORIES, FALLBACK_PRODUCTS, VOCAB } from "../utils/constants.js";
+import { printOrderReceipt } from "@shared/orderReceiptPdf.js";
 
 const CashierContext = createContext();
 
 export function CashierProvider({ children }) {
   const [lang, setLang] = useState(() => localStorage.getItem("cashier_lang") || "ar");
-  const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
-  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
   const [tables, setTables] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,7 +17,7 @@ export function CashierProvider({ children }) {
   const [mobileView, setMobileView] = useState("catalog"); // 'catalog' | 'cart'
 
   // Multi-Tenant & Auth State
-  const [token, setToken] = useState(() => localStorage.getItem("token") || localStorage.getItem("cashier_token") || "");
+  const [token, setToken] = useState(() => localStorage.getItem("cashier_token") || localStorage.getItem("token") || "");
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem("cashier_user");
@@ -36,6 +37,17 @@ export function CashierProvider({ children }) {
   const [socketConnected, setSocketConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const socketRef = useRef(null);
+
+  // Listen for session expiration from API interceptor
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setToken("");
+      setCurrentUser(null);
+      setShowAuthModal(true);
+    };
+    window.addEventListener("cashier:session-expired", handleSessionExpired);
+    return () => window.removeEventListener("cashier:session-expired", handleSessionExpired);
+  }, []);
 
   // PWA Install state
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -95,6 +107,8 @@ export function CashierProvider({ children }) {
     const saved = localStorage.getItem("cashier_order_discount");
     return saved ? Number(saved) : 0;
   });
+  const [discountType, setDiscountType] = useState(() => localStorage.getItem("cashier_discount_type") || "percent");
+  const [discountReason, setDiscountReason] = useState(() => localStorage.getItem("cashier_discount_reason") || "");
 
   const [placedOrders, setPlacedOrders] = useState(() => {
     try {
@@ -115,6 +129,89 @@ export function CashierProvider({ children }) {
   const [showCatModal, setShowCatModal] = useState(false);
   const [showProdModal, setShowProdModal] = useState(false);
   const [showMoreModal, setShowMoreModal] = useState(false);
+  const [showDailySalesModal, setShowDailySalesModal] = useState(false);
+  const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const [showTerminalModal, setShowTerminalModal] = useState(false);
+  const [paymentSuccessData, setPaymentSuccessData] = useState(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [terminalActiveTransaction, setTerminalActiveTransaction] = useState(null); // { amount, ip }
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(() => {
+    return localStorage.getItem("cashier_auto_print") === "true";
+  });
+
+  const [terminalConfig, setTerminalConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cashier_terminal_config");
+      return saved ? JSON.parse(saved) : { type: "network", ip: "192.168.1.150", port: 5000, protocol: "mada_ecr", enabled: true };
+    } catch {
+      return { type: "network", ip: "192.168.1.150", port: 5000, protocol: "mada_ecr", enabled: true };
+    }
+  });
+
+  const [terminalHealth, setTerminalHealth] = useState("checking");
+
+  const checkTerminalHealth = useCallback(async (cfg = null) => {
+    const activeCfg = cfg || terminalConfig;
+    if (!activeCfg || activeCfg.enabled === false) {
+      setTerminalHealth("disconnected");
+      return "disconnected";
+    }
+    if (activeCfg.type === "demo") {
+      setTerminalHealth("demo");
+      return "demo";
+    }
+    if (!activeCfg.ip || !activeCfg.ip.trim()) {
+      setTerminalHealth("disconnected");
+      return "disconnected";
+    }
+
+    setTerminalHealth("checking");
+    try {
+      const res = await api.post("/api/terminal/test-connection", {
+        ip: activeCfg.ip.trim(),
+        port: Number(activeCfg.port) || 5000,
+        terminalType: activeCfg.protocol || "mada_ecr"
+      }, { timeout: 3000 });
+
+      if (res.data?.success) {
+        setTerminalHealth("connected");
+        return "connected";
+      } else {
+        setTerminalHealth("disconnected");
+        return "disconnected";
+      }
+    } catch {
+      setTerminalHealth("disconnected");
+      return "disconnected";
+    }
+  }, [terminalConfig]);
+
+  useEffect(() => {
+    checkTerminalHealth();
+  }, [terminalConfig, checkTerminalHealth]);
+
+  useEffect(() => {
+    if (activeTab === "payment") {
+      checkTerminalHealth();
+    }
+  }, [activeTab, checkTerminalHealth]);
+
+  const [printerConfig, setPrinterConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cashier_printer_config");
+      return saved ? JSON.parse(saved) : { type: "system", ip: "", port: 9100, paperWidth: "80mm" };
+    } catch {
+      return { type: "system", ip: "", port: 9100, paperWidth: "80mm" };
+    }
+  });
+
+  const toggleAutoPrint = () => {
+    setAutoPrintEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem("cashier_auto_print", next.toString());
+      return next;
+    });
+  };
 
   const [customDishName, setCustomDishName] = useState("");
   const [customDishPrice, setCustomDishPrice] = useState("");
@@ -145,6 +242,14 @@ export function CashierProvider({ children }) {
   }, [orderDiscount]);
 
   useEffect(() => {
+    localStorage.setItem("cashier_discount_type", discountType);
+  }, [discountType]);
+
+  useEffect(() => {
+    localStorage.setItem("cashier_discount_reason", discountReason);
+  }, [discountReason]);
+
+  useEffect(() => {
     localStorage.setItem("cashier_placed_orders", JSON.stringify(placedOrders));
   }, [placedOrders]);
 
@@ -167,10 +272,78 @@ export function CashierProvider({ children }) {
 
   // Billing calculations (15% Saudi VAT included standard)
   const itemsSubtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const discountAmount = itemsSubtotal * (orderDiscount / 100);
+  const discountAmount = discountType === "fixed"
+    ? Math.min(itemsSubtotal, Math.max(0, Number(orderDiscount) || 0))
+    : itemsSubtotal * (Math.min(100, Math.max(0, Number(orderDiscount) || 0)) / 100);
   const netBeforeTax = (itemsSubtotal - discountAmount) / 1.15;
-  const taxAmount = itemsSubtotal - discountAmount - netBeforeTax;
+  const taxAmount = Math.max(0, (itemsSubtotal - discountAmount) - netBeforeTax);
   const grandTotal = Math.max(0, itemsSubtotal - discountAmount);
+
+  const handleApplyDiscount = (val, type = "percent", reason = "") => {
+    const numVal = Number(val) || 0;
+    setOrderDiscount(numVal);
+    setDiscountType(type);
+    setDiscountReason(reason);
+
+    if (activeEditingOrderId) {
+      setPlacedOrders((prev) =>
+        prev.map((o) =>
+          o._id === activeEditingOrderId
+            ? {
+                ...o,
+                discount: numVal,
+                discountValue: numVal,
+                discountType: type,
+                discountReason: reason
+              }
+            : o
+        )
+      );
+
+      if (!String(activeEditingOrderId).startsWith("order_")) {
+        api
+          .put(`/api/order/${activeEditingOrderId}`, {
+            discount: numVal,
+            discountType: type,
+            discountReason: reason
+          })
+          .catch((err) => console.warn("Failed to auto-sync discount:", err));
+      }
+    }
+  };
+
+  const handleClearDiscount = () => {
+    setOrderDiscount(0);
+    setDiscountType("percent");
+    setDiscountReason("");
+
+    if (activeEditingOrderId) {
+      setPlacedOrders((prev) =>
+        prev.map((o) =>
+          o._id === activeEditingOrderId
+            ? {
+                ...o,
+                discount: 0,
+                discountValue: 0,
+                discountType: "percent",
+                discountReason: ""
+              }
+            : o
+        )
+      );
+
+      if (!String(activeEditingOrderId).startsWith("order_")) {
+        api
+          .put(`/api/order/${activeEditingOrderId}`, {
+            discount: 0,
+            discountAmount: 0,
+            discountType: "percent",
+            discountReason: ""
+          })
+          .catch((err) => console.warn("Failed to auto-sync discount removal:", err));
+      }
+    }
+  };
 
   // ----------------------------------------------------
   // Initial URL Parameter Tenant Resolution
@@ -215,8 +388,9 @@ export function CashierProvider({ children }) {
         api.get("/api/order/all-orders", { headers }).catch(() => api.get("/api/order/active-orders", { headers })).catch(() => null)
       ]);
 
+      let dbCats = [];
       if (catRes?.data?.categories && Array.isArray(catRes.data.categories)) {
-        const dbCats = catRes.data.categories.map((c) => {
+        dbCats = catRes.data.categories.map((c) => {
           let nameEn = c.name;
           let nameAr = c.nameArabic || c.name || "تصنيف";
           if (c.name && c.name.includes(" / ")) {
@@ -224,10 +398,10 @@ export function CashierProvider({ children }) {
             nameEn = parts[0].trim();
             nameAr = parts[1].trim();
           }
-          return { id: c._id, nameEn, nameAr, slug: c.slug || "" };
+          return { id: String(c._id), nameEn, nameAr, slug: c.slug || "" };
         });
-        if (dbCats.length > 0) setCategories(dbCats);
       }
+      setCategories(dbCats);
 
       if (menuRes?.data?.MenuList && Array.isArray(menuRes.data.MenuList)) {
         const dbProds = menuRes.data.MenuList.map((m) => {
@@ -238,9 +412,21 @@ export function CashierProvider({ children }) {
             nameEn = parts[0].trim();
             nameAr = parts[1].trim();
           }
+
+          let catId = m.categoryId ? String(m.categoryId) : "";
+          if (!catId && m.category && dbCats.length > 0) {
+            const matchCat = dbCats.find(
+              (c) =>
+                c.nameEn?.toLowerCase() === String(m.category).toLowerCase() ||
+                c.nameAr === m.category ||
+                c.slug?.toLowerCase() === String(m.category).toLowerCase()
+            );
+            if (matchCat) catId = matchCat.id;
+          }
+
           return {
-            id: m._id,
-            categoryId: m.categoryId || m.category,
+            id: String(m._id),
+            categoryId: catId,
             nameEn,
             nameAr,
             price: Number(m.price) || 0,
@@ -248,7 +434,9 @@ export function CashierProvider({ children }) {
             image: m.image || ""
           };
         });
-        if (dbProds.length > 0) setProducts(dbProds);
+        setProducts(dbProds);
+      } else {
+        setProducts([]);
       }
 
       if (tablesRes?.data?.tables && Array.isArray(tablesRes.data.tables)) {
@@ -273,7 +461,8 @@ export function CashierProvider({ children }) {
   // Socket.io Real-Time Tenant Connection
   // ----------------------------------------------------
   useEffect(() => {
-    const socketUrl = getApiBaseUrl();
+    const dynamicBase = getApiBaseUrl();
+    const socketUrl = dynamicBase || (typeof window !== "undefined" ? window.location.origin : undefined);
     const socket = io(socketUrl, {
       transports: ["polling", "websocket"],
       reconnection: true,
@@ -321,6 +510,13 @@ export function CashierProvider({ children }) {
     socket.on("orderRemoved", (orderId) => {
       if (!orderId) return;
       setPlacedOrders((prev) => prev.filter((o) => o._id !== orderId));
+    });
+
+    socket.on("app:pwa-update", () => {
+      console.log("[Cashier] Remote PWA update requested via socket.");
+      if (typeof window !== "undefined" && window.__tabletab_force_pwa_update) {
+        window.__tabletab_force_pwa_update();
+      }
     });
 
     return () => {
@@ -430,6 +626,7 @@ export function CashierProvider({ children }) {
   const handleLockScreen = () => {
     setIsScreenLocked(true);
     localStorage.setItem("cashier_is_locked", "true");
+    localStorage.setItem("cashier_last_active_time", Date.now().toString());
   };
 
   const handleUnlockScreen = (enteredPin) => {
@@ -438,17 +635,131 @@ export function CashierProvider({ children }) {
       handleSetLockPin(enteredPin);
       setIsScreenLocked(false);
       localStorage.removeItem("cashier_is_locked");
+      localStorage.setItem("cashier_last_active_time", Date.now().toString());
       return { success: true };
     }
     if (enteredPin === activePin) {
       setIsScreenLocked(false);
       localStorage.removeItem("cashier_is_locked");
+      localStorage.setItem("cashier_last_active_time", Date.now().toString());
       return { success: true };
     }
     return { success: false, message: lang === "ar" ? "رمز القفل غير صحيح" : "Incorrect PIN" };
   };
 
-  const handleStaffLogout = () => {
+  // -------------------------------------------------------------------------
+  // 1. AUTO-LOCK IMMEDIATELY ON SCREEN OFF / TABLET SLEEP / TAB MINIMIZED
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!token || !currentUser) return;
+
+    const handleScreenOffOrHidden = () => {
+      if (document.visibilityState === "hidden") {
+        // Screen turned off, tablet locked, or app minimized/switched -> Lock immediately!
+        setIsScreenLocked(true);
+        localStorage.setItem("cashier_is_locked", "true");
+        localStorage.setItem("cashier_last_active_time", Date.now().toString());
+      } else if (document.visibilityState === "visible") {
+        // When waking up or becoming visible again, check lock state or inactivity
+        const isLocked = localStorage.getItem("cashier_is_locked") === "true";
+        const lastActive = Number(localStorage.getItem("cashier_last_active_time") || 0);
+        if (isLocked || (lastActive > 0 && Date.now() - lastActive >= 5 * 60 * 1000)) {
+          setIsScreenLocked(true);
+          localStorage.setItem("cashier_is_locked", "true");
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleScreenOffOrHidden);
+    window.addEventListener("pagehide", handleScreenOffOrHidden);
+    window.addEventListener("freeze", handleScreenOffOrHidden);
+
+    // Cross-tab lock synchronization
+    const handleStorageChange = (e) => {
+      if (e.key === "cashier_is_locked") {
+        setIsScreenLocked(e.newValue === "true");
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleScreenOffOrHidden);
+      window.removeEventListener("pagehide", handleScreenOffOrHidden);
+      window.removeEventListener("freeze", handleScreenOffOrHidden);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [token, currentUser]);
+
+  // -------------------------------------------------------------------------
+  // 2. AUTO-LOCK ON 5 MINUTES (300s) OF INACTIVITY (TOUCH / MOUSE / KEYBOARD)
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!token || !currentUser || isScreenLocked) return;
+
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes
+    let timer = null;
+
+    const triggerLock = () => {
+      setIsScreenLocked(true);
+      localStorage.setItem("cashier_is_locked", "true");
+    };
+
+    const resetInactivityTimer = () => {
+      localStorage.setItem("cashier_last_active_time", Date.now().toString());
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(triggerLock, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // Initialize timer and active timestamp
+    resetInactivityTimer();
+
+    // Heartbeat check every 5 seconds to catch system sleep or timer pauses
+    const heartbeatInterval = setInterval(() => {
+      const lastActive = Number(localStorage.getItem("cashier_last_active_time") || Date.now());
+      if (Date.now() - lastActive >= INACTIVITY_TIMEOUT_MS) {
+        triggerLock();
+      }
+    }, 5000);
+
+    // Comprehensive events across touchscreens, tablets, barcode scanners, and desktops
+    const interactionEvents = [
+      "touchstart",
+      "touchend",
+      "touchmove",
+      "mousedown",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "click",
+      "pointerdown",
+      "input"
+    ];
+
+    const throttledReset = (() => {
+      let lastCall = 0;
+      return () => {
+        const now = Date.now();
+        if (now - lastCall > 1000) {
+          lastCall = now;
+          resetInactivityTimer();
+        }
+      };
+    })();
+
+    interactionEvents.forEach((evt) => {
+      window.addEventListener(evt, throttledReset, { passive: true });
+    });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      clearInterval(heartbeatInterval);
+      interactionEvents.forEach((evt) => {
+        window.removeEventListener(evt, throttledReset);
+      });
+    };
+  }, [token, currentUser, isScreenLocked]);
+
+  const handleStaffLogout = async () => {
     setToken("");
     setCurrentUser(null);
     setIsScreenLocked(false);
@@ -456,17 +767,29 @@ export function CashierProvider({ children }) {
     localStorage.removeItem("cashier_token");
     localStorage.removeItem("cashier_user");
     localStorage.removeItem("cashier_is_locked");
+    // Reload server data without staff token
+    await loadServerData();
   };
 
   const handleSwitchTenantSlug = async (slug) => {
     try {
-      const res = await api.get(`/api/tenant/by-slug/${slug.trim()}`);
+      const cleanSlug = String(slug || "").trim().toLowerCase();
+      const res = await api.get(`/api/tenant/by-slug/${cleanSlug}`);
       if (res.data?.tenant) {
         const tObj = res.data.tenant;
         setCurrentTenant(tObj);
         localStorage.setItem("cashier_tenant", JSON.stringify(tObj));
         localStorage.setItem("cashier_tenant_id", tObj._id);
         localStorage.setItem("cashier_tenant_slug", tObj.slug);
+        
+        // Reset current catalog & cart state for new cafe
+        setCategories([]);
+        setProducts([]);
+        setSelectedCategory(null);
+        setCart([]);
+        setCustomerName("");
+        setActiveEditingOrderId(null);
+
         await loadServerData();
         return true;
       }
@@ -512,6 +835,8 @@ export function CashierProvider({ children }) {
     setCustomerName("");
     setSelectedTable(1);
     setOrderDiscount(0);
+    setDiscountType("percent");
+    setDiscountReason("");
     setActiveTab("home");
     setMobileView("catalog");
   };
@@ -521,7 +846,9 @@ export function CashierProvider({ children }) {
     setActiveEditingOrderId(order._id);
     setCustomerName(order.customerName || "");
     setSelectedTable(Number(order.tableId) || 1);
-    setOrderDiscount(order.discount || 0);
+    setOrderDiscount(Number(order.discount || order.discountValue || 0));
+    setDiscountType(order.discountType || "percent");
+    setDiscountReason(order.discountReason || "");
 
     const formattedCart = (order.items || []).map((it) => {
       const match = products.find(
@@ -548,12 +875,25 @@ export function CashierProvider({ children }) {
     setMobileView("catalog");
   };
 
+  const handlePayOrderDirect = (order) => {
+    if (!order) return;
+    handleOpenOrder(order);
+    setActiveTab("payment");
+    setMobileView("catalog");
+  };
+
   // ----------------------------------------------------
   // Send to Kitchen (Open Unpaid Tab)
   // ----------------------------------------------------
   const handleSendToKitchen = async () => {
     if (!cart.length) {
       alert(lang === "ar" ? "السلة فارغة، يرجى إضافة أطباق أولاً" : "Cart is empty, please add items first");
+      return;
+    }
+
+    if (!token) {
+      alert(lang === "ar" ? "يجب تسجيل دخول الكاشير أولاً" : "Cashier login required");
+      setShowAuthModal(true);
       return;
     }
 
@@ -574,6 +914,10 @@ export function CashierProvider({ children }) {
           tableId: selectedTable || 1,
           items: payloadItems,
           totalPrice: grandTotal,
+          discount: orderDiscount,
+          discountAmount: discountAmount,
+          discountType: discountType,
+          discountReason: discountReason,
           status: "In Progress",
           paymentStatus: "unpaid"
         });
@@ -596,6 +940,10 @@ export function CashierProvider({ children }) {
         tableId: selectedTable || 1,
         items: payloadItems,
         totalPrice: grandTotal,
+        discount: orderDiscount,
+        discountAmount: discountAmount,
+        discountType: discountType,
+        discountReason: discountReason,
         paymentMethod: "cash",
         cashAmount: 0,
         cardAmount: 0,
@@ -615,6 +963,16 @@ export function CashierProvider({ children }) {
       handleNewOrder(false);
     } catch (err) {
       console.error("Kitchen dispatch error:", err);
+      if (err.response?.status === 401) {
+        alert(
+          lang === "ar"
+            ? "انتهت صلاحية جلسة الكاشير، يرجى تسجيل الدخول مجدداً."
+            : "Cashier session expired. Please log in again."
+        );
+        handleStaffLogout();
+        setShowAuthModal(true);
+        return;
+      }
       alert(lang === "ar" ? `فشل إرسال الطلب: ${err.response?.data?.message || err.message}` : `Failed to send order: ${err.message}`);
     }
   };
@@ -638,8 +996,49 @@ export function CashierProvider({ children }) {
   // ----------------------------------------------------
   const [activePrintOrder, setActivePrintOrder] = useState(null);
 
+  const handlePrintReceipt = useCallback(async (orderToPrint) => {
+    if (!orderToPrint) return;
+    const bizName = currentTenant?.businessName || (lang === "ar" ? "مطعم تيبل تاب" : "TableTab POS");
+    const taxNum = currentTenant?.taxNumber || orderToPrint?.taxNumber || "";
+
+    // 1. If Network IP thermal printer is selected and configured, send to printer IP over TCP socket!
+    if (printerConfig?.type === "network" && printerConfig?.ip) {
+      try {
+        await api.post("/api/printer/print-order", {
+          ip: printerConfig.ip.trim(),
+          port: Number(printerConfig.port) || 9100,
+          order: orderToPrint,
+          businessName: bizName,
+          taxNumber: taxNum
+        });
+        return;
+      } catch (err) {
+        console.warn("Network IP print error, falling back to browser print:", err);
+      }
+    }
+
+    // 2. Default browser thermal printing (works with USB, Bluetooth, Kiosk mode)
+    try {
+      printOrderReceipt(orderToPrint, { businessName: bizName, taxNumber: taxNum });
+    } catch (err) {
+      console.warn("Direct receipt print error:", err);
+    }
+  }, [currentTenant, lang, printerConfig]);
+
   const handleSubmitOrder = async (method = "cash", splitDetails = { cash: 0, card: 0 }) => {
     if (!cart.length) return null;
+
+    if (!token) {
+      alert(
+        lang === "ar"
+          ? "يجب تسجيل دخول الكاشير لإتمام دفع الطلبات"
+          : "Cashier login required to process payment"
+      );
+      setShowAuthModal(true);
+      return null;
+    }
+
+    setIsPaymentProcessing(true);
 
     const cashAmt = splitDetails.cash !== undefined && splitDetails.cash > 0 ? splitDetails.cash : (method === "cash" ? grandTotal : 0);
     const cardAmt = splitDetails.card !== undefined && splitDetails.card > 0 ? splitDetails.card : (method === "card" ? grandTotal : 0);
@@ -662,6 +1061,10 @@ export function CashierProvider({ children }) {
           tableId: selectedTable || 1,
           items: payloadItems,
           totalPrice: grandTotal,
+          discount: orderDiscount,
+          discountAmount: discountAmount,
+          discountType: discountType,
+          discountReason: discountReason,
           paymentMethod: finalMethod,
           cashAmount: cashAmt,
           cardAmount: cardAmt,
@@ -687,7 +1090,17 @@ export function CashierProvider({ children }) {
         );
 
         setActivePrintOrder(completedOrder);
-        setShowPrintModal(completedOrder);
+        setPaymentSuccessData(completedOrder);
+
+        // Auto print thermal slip if enabled (or in kiosk printing mode)
+        if (autoPrintEnabled) {
+          try {
+            handlePrintReceipt(completedOrder);
+          } catch (pErr) {
+            console.warn("Auto-print on tablet caught:", pErr);
+          }
+        }
+
         handleNewOrder(false);
         return completedOrder;
       }
@@ -698,6 +1111,10 @@ export function CashierProvider({ children }) {
         tableId: selectedTable || 1,
         items: payloadItems,
         totalPrice: grandTotal,
+        discount: orderDiscount,
+        discountAmount: discountAmount,
+        discountType: discountType,
+        discountReason: discountReason,
         paymentMethod: finalMethod,
         cashAmount: cashAmt,
         cardAmount: cardAmt,
@@ -709,16 +1126,84 @@ export function CashierProvider({ children }) {
       if (serverOrder) {
         setPlacedOrders((prev) => [serverOrder, ...prev]);
         setActivePrintOrder(serverOrder);
-        setShowPrintModal(serverOrder);
+        setPaymentSuccessData(serverOrder);
+
+        // Auto print thermal slip if enabled (or in kiosk printing mode)
+        if (autoPrintEnabled) {
+          try {
+            handlePrintReceipt(serverOrder);
+          } catch (pErr) {
+            console.warn("Auto-print on tablet caught:", pErr);
+          }
+        }
       }
 
       handleNewOrder(false);
       return serverOrder;
     } catch (err) {
       console.error("Order payment error:", err);
+      if (err.response?.status === 401) {
+        alert(
+          lang === "ar"
+            ? "انتهت صلاحية جلسة الكاشير أو غير مصرح به. يرجى تسجيل الدخول مجدداً لإتمام الدفع."
+            : "Cashier session has expired. Please log in again to complete payment."
+        );
+        handleStaffLogout();
+        setShowAuthModal(true);
+        return null;
+      }
       alert(lang === "ar" ? `فشل إتمام الدفع: ${err.response?.data?.message || err.message}` : `Payment failed: ${err.message}`);
       return null;
+    } finally {
+      setIsPaymentProcessing(false);
     }
+  };
+
+  const handlePayWithTerminal = async (targetAmount = null) => {
+    const amt = targetAmount !== null && targetAmount > 0 ? targetAmount : grandTotal;
+    if (!amt || amt <= 0 || !cart.length) {
+      return null;
+    }
+
+    const isDemo = terminalConfig?.type === "demo" || !terminalConfig?.ip;
+
+    setTerminalActiveTransaction({
+      amount: amt,
+      ip: isDemo ? "DEMO" : terminalConfig?.ip,
+      isDemo
+    });
+
+    if (isDemo) {
+      return;
+    }
+
+    try {
+      const res = await api.post("/api/terminal/charge", {
+        ip: terminalConfig?.ip,
+        port: terminalConfig?.port || 5000,
+        amount: amt,
+        currency: "SAR"
+      });
+
+      if (res.data?.success && res.data?.status === "APPROVED") {
+        setTerminalActiveTransaction(null);
+        return await handleSubmitOrder("card", { cash: 0, card: amt });
+      }
+    } catch (err) {
+      console.warn("Terminal charge error:", err.message);
+      setTerminalActiveTransaction(null);
+      alert(lang === "ar" ? `فشلت عملية جهاز الدفع: ${err.message}` : `Terminal transaction failed: ${err.message}`);
+    }
+  };
+
+  const handleTerminalSuccess = async () => {
+    const amt = terminalActiveTransaction?.amount || grandTotal;
+    setTerminalActiveTransaction(null);
+    return await handleSubmitOrder("card", { cash: 0, card: amt });
+  };
+
+  const handleCancelTerminalPayment = () => {
+    setTerminalActiveTransaction(null);
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
@@ -731,13 +1216,23 @@ export function CashierProvider({ children }) {
       );
     } catch (err) {
       console.error("Failed to update status on server:", err);
+      if (err.response?.status === 401) {
+        alert(
+          lang === "ar"
+            ? "انتهت صلاحية جلسة الكاشير، يرجى تسجيل الدخول مجدداً."
+            : "Cashier session expired. Please log in again."
+        );
+        handleStaffLogout();
+        setShowAuthModal(true);
+        return;
+      }
       alert(err.response?.data?.message || err.message);
     }
   };
 
   // Filter products by category and search queries
   const filteredProducts = products.filter((p) => {
-    if (selectedCategory && p.categoryId !== selectedCategory.id) return false;
+    if (selectedCategory && String(p.categoryId) !== String(selectedCategory.id)) return false;
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
       const matchEn = (p.nameEn || "").toLowerCase().includes(q);
@@ -748,117 +1243,212 @@ export function CashierProvider({ children }) {
   });
 
   // ----------------------------------------------------
-  // Category CRUD Handlers (Server Backed)
+  // Category CRUD Handlers (Server Backed under Active Cafe)
   // ----------------------------------------------------
   const handleAddCategory = async (nameEn, nameAr) => {
-    const combinedName = `${nameEn} / ${nameAr}`;
+    const combinedName = nameEn && nameAr && nameEn !== nameAr ? `${nameEn} / ${nameAr}` : (nameAr || nameEn);
     try {
       const res = await api.post("/api/categories", { name: combinedName });
       const serverCat = res.data?.category;
       if (serverCat) {
         setCategories((prev) => [
           ...prev,
-          { id: serverCat._id, nameEn, nameAr, slug: serverCat.slug || "" }
+          { id: String(serverCat._id), nameEn: nameEn || nameAr, nameAr: nameAr || nameEn, slug: serverCat.slug || "" }
         ]);
+        await loadServerData();
       }
-      alert(lang === "ar" ? "تم إضافة التصنيف بنجاح!" : "Category added successfully!");
+      alert(lang === "ar" ? "تمت إضافة التصنيف وحفظه على الخادم بنجاح!" : "Category saved to server successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add category");
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول بحساب الكاشير أو المدير لحفظ التصنيفات على الخادم" : "Please log in to save categories to the server");
+      } else {
+        alert(err.response?.data?.message || "Failed to add category");
+      }
     }
   };
 
   const handleEditCategory = async (id, nameEn, nameAr) => {
-    const combinedName = `${nameEn} / ${nameAr}`;
+    const combinedName = nameEn && nameAr && nameEn !== nameAr ? `${nameEn} / ${nameAr}` : (nameAr || nameEn);
     try {
       await api.put(`/api/categories/${id}`, { name: combinedName });
       setCategories((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, nameEn, nameAr } : c))
+        prev.map((c) => (String(c.id) === String(id) ? { ...c, nameEn: nameEn || nameAr, nameAr: nameAr || nameEn } : c))
       );
-      alert(lang === "ar" ? "تم تعديل التصنيف بنجاح!" : "Category updated successfully!");
+      await loadServerData();
+      alert(lang === "ar" ? "تم تعديل التصنيف على الخادم بنجاح!" : "Category updated on server successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update category");
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول لتعديل التصنيفات على الخادم" : "Please log in to update categories on the server");
+      } else {
+        alert(err.response?.data?.message || "Failed to update category");
+      }
     }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm(lang === "ar" ? "هل أنت متأكد من حذف هذا التصنيف؟" : "Are you sure you want to delete this category?")) {
+    if (!window.confirm(lang === "ar" ? "هل أنت متأكد من حذف هذا التصنيف نهائياً من الخادم؟" : "Are you sure you want to delete this category from the server?")) {
       return;
     }
     try {
       await api.delete(`/api/categories/${id}`);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      setProducts((prev) => prev.filter((p) => p.categoryId !== id));
-      if (selectedCategory && selectedCategory.id === id) {
+      setCategories((prev) => prev.filter((c) => String(c.id) !== String(id)));
+      setProducts((prev) => prev.filter((p) => String(p.categoryId) !== String(id)));
+      if (selectedCategory && String(selectedCategory.id) === String(id)) {
         setSelectedCategory(null);
       }
-      alert(lang === "ar" ? "تم حذف التصنيف بنجاح!" : "Category deleted successfully!");
+      await loadServerData();
+      alert(lang === "ar" ? "تم حذف التصنيف من الخادم بنجاح!" : "Category deleted from server successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete category");
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول لحذف التصنيف من الخادم" : "Please log in to delete category from the server");
+      } else {
+        alert(err.response?.data?.message || "Failed to delete category");
+      }
     }
   };
 
   // ----------------------------------------------------
-  // Product CRUD Handlers (Server Backed)
+  // Product CRUD Handlers (Server Backed under Active Cafe)
   // ----------------------------------------------------
-  const handleAddProduct = async (nameEn, nameAr, price, categoryId) => {
-    const combinedName = `${nameEn} / ${nameAr}`;
+  const handleAddProduct = async (nameEn, nameAr, price, categoryId, imageFile = null) => {
+    const combinedName = nameEn && nameAr && nameEn !== nameAr ? `${nameEn} / ${nameAr}` : (nameAr || nameEn);
+    const matchedCat = categories.find((c) => String(c.id) === String(categoryId));
+    const catLabel = matchedCat?.nameEn || matchedCat?.nameAr || "Others";
+
     try {
-      const res = await api.post("/api/menu/add-menu", {
-        name: combinedName,
-        price: Number(price),
-        description: "POS item",
-        categoryId: categoryId
-      });
-      const serverProd = res.data?.newMenu;
+      let res;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("name", combinedName);
+        formData.append("price", Number(price));
+        formData.append("description", "POS item");
+        if (categoryId && categoryId !== "") {
+          formData.append("categoryId", categoryId);
+        }
+        formData.append("category", catLabel);
+        formData.append("image", imageFile);
+
+        res = await api.post("/api/menu/add-menu", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      } else {
+        res = await api.post("/api/menu/add-menu", {
+          name: combinedName,
+          price: Number(price),
+          description: "POS item",
+          categoryId: categoryId || undefined,
+          category: catLabel
+        });
+      }
+
+      const serverProd = res.data?.newMenu || res.data?.menu;
       if (serverProd) {
         setProducts((prev) => [
           ...prev,
           {
-            id: serverProd._id,
-            categoryId: categoryId,
-            nameEn,
-            nameAr,
+            id: String(serverProd._id),
+            categoryId: String(categoryId || ""),
+            nameEn: nameEn || nameAr,
+            nameAr: nameAr || nameEn,
             price: Number(price),
-            description: ""
+            description: "",
+            image: serverProd.image || ""
           }
         ]);
+        await loadServerData();
       }
-      alert(lang === "ar" ? "تم إضافة المنتج بنجاح!" : "Product added successfully!");
+      return { success: true };
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add product");
+      console.error("Add product error:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to add product";
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول بحساب الكاشير أو المدير لحفظ الأصناف على الخادم" : "Please log in to add items to the server");
+      } else {
+        alert(lang === "ar" ? `تعذر حفظ الصنف: ${errMsg}` : `Failed to add product: ${errMsg}`);
+      }
+      return { success: false, message: errMsg };
     }
   };
 
-  const handleEditProduct = async (id, nameEn, nameAr, price, categoryId) => {
-    const combinedName = `${nameEn} / ${nameAr}`;
+  const handleEditProduct = async (id, nameEn, nameAr, price, categoryId, imageFile = null) => {
+    const combinedName = nameEn && nameAr && nameEn !== nameAr ? `${nameEn} / ${nameAr}` : (nameAr || nameEn);
+    const matchedCat = categories.find((c) => String(c.id) === String(categoryId));
+    const catLabel = matchedCat?.nameEn || matchedCat?.nameAr || "Others";
+
     try {
-      await api.put(`/api/menu/update/${id}`, {
-        name: combinedName,
-        price: Number(price),
-        description: "POS item",
-        categoryId: categoryId
-      });
+      let res;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("name", combinedName);
+        formData.append("price", Number(price));
+        formData.append("description", "POS item");
+        if (categoryId && categoryId !== "") {
+          formData.append("categoryId", categoryId);
+        }
+        formData.append("category", catLabel);
+        formData.append("image", imageFile);
+
+        res = await api.put(`/api/menu/update/${id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      } else {
+        res = await api.put(`/api/menu/update/${id}`, {
+          name: combinedName,
+          price: Number(price),
+          description: "POS item",
+          categoryId: categoryId || undefined,
+          category: catLabel
+        });
+      }
+
+      const updated = res.data?.updatedMenu || res.data?.menu;
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === id ? { ...p, nameEn, nameAr, price: Number(price), categoryId } : p
+          String(p.id) === String(id) ? { 
+            ...p, 
+            nameEn: nameEn || nameAr, 
+            nameAr: nameAr || nameEn, 
+            price: Number(price), 
+            categoryId: String(categoryId || ""),
+            image: updated?.image || p.image || ""
+          } : p
         )
       );
-      alert(lang === "ar" ? "تم تعديل المنتج بنجاح!" : "Product updated successfully!");
+      await loadServerData();
+      return { success: true };
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update product");
+      console.error("Edit product error:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to update product";
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول لتعديل الأصناف على الخادم" : "Please log in to update items on the server");
+      } else {
+        alert(lang === "ar" ? `تعذر تعديل الصنف: ${errMsg}` : `Failed to update product: ${errMsg}`);
+      }
+      return { success: false, message: errMsg };
     }
   };
 
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm(lang === "ar" ? "هل أنت متأكد من حذف هذا المنتج؟" : "Are you sure you want to delete this product?")) {
+    if (!window.confirm(lang === "ar" ? "هل أنت متأكد من حذف هذا الصنف نهائياً من الخادم؟" : "Are you sure you want to delete this dish from the server?")) {
       return;
     }
     try {
       await api.delete(`/api/menu/delete/${id}`);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-      alert(lang === "ar" ? "تم حذف المنتج بنجاح!" : "Product deleted successfully!");
+      setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
+      await loadServerData();
+      alert(lang === "ar" ? "تم حذف الصنف من الخادم بنجاح!" : "Dish deleted from server successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete product");
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setShowAuthModal(true);
+        alert(lang === "ar" ? "يرجى تسجيل الدخول لحذف الأصناف من الخادم" : "Please log in to delete items from the server");
+      } else {
+        alert(err.response?.data?.message || "Failed to delete product");
+      }
     }
   };
 
@@ -888,6 +1478,14 @@ export function CashierProvider({ children }) {
         setSelectedTable,
         orderDiscount,
         setOrderDiscount,
+        discountType,
+        setDiscountType,
+        discountReason,
+        setDiscountReason,
+        discountAmount,
+        itemsSubtotal,
+        handleApplyDiscount,
+        handleClearDiscount,
         occupiedTables,
         placedOrders,
         setPlacedOrders,
@@ -912,8 +1510,30 @@ export function CashierProvider({ children }) {
         setShowProdModal,
         showMoreModal,
         setShowMoreModal,
+        showDailySalesModal,
+        setShowDailySalesModal,
         showAuthModal,
         setShowAuthModal,
+        showPrinterModal,
+        setShowPrinterModal,
+        printerConfig,
+        setPrinterConfig,
+        showTerminalModal,
+        setShowTerminalModal,
+        terminalConfig,
+        setTerminalConfig,
+        terminalHealth,
+        checkTerminalHealth,
+        terminalActiveTransaction,
+        handlePayWithTerminal,
+        handleTerminalSuccess,
+        handleCancelTerminalPayment,
+        paymentSuccessData,
+        setPaymentSuccessData,
+        isPaymentProcessing,
+        autoPrintEnabled,
+        setAutoPrintEnabled,
+        toggleAutoPrint,
         customDishName,
         setCustomDishName,
         customDishPrice,
@@ -924,10 +1544,12 @@ export function CashierProvider({ children }) {
         handleAddToCart,
         handleUpdateQuantity,
         handleClearCart,
+        handlePayOrderDirect,
         handleSubmitOrder,
         handleUpdateOrderStatus,
         filteredProducts,
         activePrintOrder,
+        handlePrintReceipt,
         handleAddCategory,
         handleEditCategory,
         handleDeleteCategory,
@@ -941,6 +1563,7 @@ export function CashierProvider({ children }) {
         // Multi-Tenant / Auth & PIN Lock exports
         currentUser,
         currentTenant,
+        isManagerOrOwner: currentUser?.role === "owner" || currentUser?.role === "manager" || currentUser?.role === "admin",
         token,
         socketConnected,
         handleStaffLogin,

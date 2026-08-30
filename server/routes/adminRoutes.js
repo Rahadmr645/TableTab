@@ -9,6 +9,7 @@ import {
   updateStaffStatus,
   deleteStaff,
   updateStripeSettings,
+  updateTaxSettings,
   updatePosPin,
 } from "../controllers/adminController.js";
 import uploadAdmin from "../middlewares/memoryMulter.js";
@@ -90,6 +91,24 @@ router.put(
   requireStaffAccount,
   requireRole(["owner"]),
   updateStripeSettings,
+);
+
+router.put(
+  "/tax-settings",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner"]),
+  updateTaxSettings,
+);
+
+router.put(
+  "/venue-settings",
+  authenticate,
+  requireActiveSubscription,
+  requireStaffAccount,
+  requireRole(["owner"]),
+  updateTaxSettings,
 );
 
 router.put(

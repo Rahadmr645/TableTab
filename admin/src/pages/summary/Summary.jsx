@@ -129,7 +129,7 @@ const Summary = () => {
             <strong className="summary-card-value">{o.total ?? 0}</strong>
           </article>
           <article className="summary-card summary-card--accent">
-            <span className="summary-card-currency">SAR</span>
+            <span className="summary-card-currency">﷼</span>
             <span className="summary-card-label">Total revenue</span>
             <strong className="summary-card-value">{fmtMoney(o.revenue)}</strong>
           </article>

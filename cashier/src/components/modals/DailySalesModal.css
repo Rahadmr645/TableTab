@@ -1,0 +1,395 @@
+/* Daily Sales Shift Report (Orders Summary Slip) Responsive Styles */
+
+.daily-sales-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: dsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.daily-sales-modal {
+  max-width: 490px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45), 0 0 1px rgba(0, 0, 0, 0.2);
+  color: #111827;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  animation: dsSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dsSlideUp {
+  from { transform: translateY(16px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Header Navigation Bar */
+.daily-sales-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.daily-sales-header .nav-btn {
+  background: transparent;
+  border: none;
+  color: #4f46e5;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  min-height: 36px;
+  touch-action: manipulation;
+}
+
+.daily-sales-header .nav-btn:hover {
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.daily-sales-header .nav-btn:active {
+  transform: scale(0.96);
+}
+
+.daily-sales-header .modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+/* Date Selector Controls Bar */
+.daily-sales-datebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.daily-sales-datebar .preset-group {
+  display: flex;
+  background: #e2e8f0;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.daily-sales-datebar .preset-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #475569;
+  transition: all 0.15s ease;
+  min-height: 32px;
+}
+
+.daily-sales-datebar .preset-btn.active {
+  background: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+}
+
+.daily-sales-datebar .date-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daily-sales-datebar .date-input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #1e293b;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  min-height: 32px;
+}
+
+.daily-sales-datebar .refresh-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.daily-sales-datebar .refresh-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+/* Tabs Navigation */
+.daily-sales-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.daily-sales-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.daily-sales-tabs .tab-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.15s ease;
+  min-height: 32px;
+}
+
+.daily-sales-tabs .tab-btn.active {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+/* Scrollable Content Body */
+.daily-sales-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  background: #ffffff;
+  color: #111827;
+  line-height: 1.5;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Slip Typography & Tables */
+.slip-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.slip-header .branch-code {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.slip-header .report-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  margin-top: 2px;
+}
+
+.slip-header .meta-row {
+  font-size: 13px;
+  color: #374151;
+  margin-top: 3px;
+}
+
+.slip-divider {
+  border: none;
+  border-top: 1px solid #111827;
+  margin: 12px 0;
+}
+
+.slip-section-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+  margin: 8px 0;
+}
+
+.slip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.slip-table th {
+  padding: 6px 0;
+  font-weight: 800;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.slip-table td {
+  padding: 6px 0;
+}
+
+.slip-table .col-name {
+  text-align: left;
+}
+
+.rtl .slip-table .col-name {
+  text-align: right;
+}
+
+.slip-table .col-qty {
+  text-align: center;
+  width: 65px;
+}
+
+.slip-table .col-amount {
+  text-align: right;
+  width: 95px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rtl .slip-table .col-amount {
+  text-align: left;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN FOR TABLET AND MOBILE
+========================================= */
+
+/* Tablets (landscape / portrait 640px to 900px) */
+@media (max-width: 900px) {
+  .daily-sales-modal {
+    max-width: 480px;
+    max-height: 94vh;
+  }
+}
+
+/* Mobile Screens (< 640px) */
+@media (max-width: 640px) {
+  .daily-sales-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .daily-sales-modal {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    animation: dsSlideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes dsSlideUpMobile {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .daily-sales-header {
+    padding: max(14px, env(safe-area-inset-top)) 16px 12px 16px;
+  }
+
+  .daily-sales-datebar {
+    padding: 8px 14px;
+    gap: 6px;
+  }
+
+  .daily-sales-datebar .preset-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .daily-sales-datebar .date-input {
+    width: 120px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+
+  .daily-sales-body {
+    padding: 16px 14px calc(24px + env(safe-area-inset-bottom)) 14px;
+  }
+
+  .slip-table {
+    font-size: 13px;
+  }
+
+  .slip-table .col-qty {
+    width: 55px;
+  }
+
+  .slip-table .col-amount {
+    width: 85px;
+  }
+
+  .daily-sales-tabs {
+    justify-content: flex-start;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+/* Very Small Mobile (< 380px) */
+@media (max-width: 380px) {
+  .daily-sales-datebar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-sales-datebar .preset-group {
+    width: 100%;
+  }
+
+  .daily-sales-datebar .preset-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .daily-sales-datebar .date-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .daily-sales-datebar .date-input {
+    flex: 1;
+  }
+
+  .slip-table {
+    font-size: 12px;
+  }
+}

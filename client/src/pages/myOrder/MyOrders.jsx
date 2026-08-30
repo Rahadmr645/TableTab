@@ -9,6 +9,7 @@ import {
 import SaudiRiyalSymbol from "../../components/currency/SaudiRiyalSymbol.jsx";
 import AsyncLoadingOverlay from "../../components/common/AsyncLoadingOverlay.jsx";
 import ReceiptPreviewModal from "@shared/ReceiptPreviewModal.jsx";
+import { useLanguage } from "../../context/LanguageContext.jsx";
 import { FaFilePdf, FaThumbsDown, FaThumbsUp } from "react-icons/fa6";
 import { FiShoppingBag, FiMessageCircle } from "react-icons/fi";
 import "../../components/menu/MenuList.css";
@@ -133,6 +134,7 @@ function OrderPrepWindow({ order, serverTimeOffset, formatTime }) {
 
 const MyOrders = () => {
   const { myOrders, setMyOrders, user } = useContext(AuthContext);
+  const { t, language } = useLanguage();
   const {
     formatTime,
     socket,
@@ -384,7 +386,9 @@ const MyOrders = () => {
 
     setSubmittingCancel(true);
     try {
-      const guestToken = localStorage.getItem("guestToken")?.trim();
+      const guestToken =
+        (cancellingOrder.guestToken || "").trim() ||
+        localStorage.getItem("guestToken")?.trim();
       const payload = {
         itemsToCancel: anySelected ? itemsToCancel : [],
         cancelReason: cancelReason || "Customer self-cancelled",
@@ -392,7 +396,7 @@ const MyOrders = () => {
       };
 
       const res = await api.post(`/api/order/${cancellingOrder._id}/request-cancel`, payload);
-      alert(res.data.message || "Cancellation request submitted!");
+      alert(res.data.message || "Order cancelled successfully!");
       setCancellingOrder(null);
       setQuantitiesToCancel({});
       setCancelReason("");
@@ -639,15 +643,8 @@ const MyOrders = () => {
         }
       />
       <header className="my-orders-hero">
-        <h1>My orders</h1>
-        <p>
-          Track preparation in real time. <strong>Order #</strong> is
-          today&apos;s restaurant serial—the same number the kitchen uses, not
-          “your 2nd order ever.” When your prep countdown ends (or when the
-          kitchen marks your order finished), you can like, comment, and
-          star-review only the dishes from that order—they show on the menu for
-          everyone.
-        </p>
+        <h1>{t("orders_hero_title")}</h1>
+        <p>{t("orders_hero_tagline")}</p>
       </header>
 
       <div className="my-orders-container">
@@ -673,7 +670,7 @@ const MyOrders = () => {
               <div className="order-ticket-strip">
                 <div className="order-serial-block">
                   <span className="order-serial-kicker">
-                    Today&apos;s restaurant order
+                    {t("todays_order_title")}
                   </span>
                   <span className="order-serial-value">
                     #
@@ -684,12 +681,9 @@ const MyOrders = () => {
                   {order.businessDay ? (
                     <span className="order-serial-day">{order.businessDay}</span>
                   ) : null}
-                  <p className="order-serial-hint">
-                    Same # as the kitchen queue and live board for today.
-                  </p>
                 </div>
                 <span className={statusPillClass(order.status)}>
-                  {order.status}
+                  {t(`status_${(order.status || "").toLowerCase()}`, order.status)}
                 </span>
               </div>
 
@@ -701,21 +695,21 @@ const MyOrders = () => {
                       ·
                     </span>
                     <span className="order-meta-table">
-                      Table{" "}
+                      {language === "ar" ? "طاولة" : "Table"}{" "}
                       <span className="meta-value">{order.tableId}</span>
                     </span>
                   </p>
                   {order.invoiceSerial ? (
                     <p className="my-order-nums">
-                      Invoice {order.invoiceSerial}
+                      {language === "ar" ? "فاتورة" : "Invoice"} {order.invoiceSerial}
                     </p>
                   ) : null}
                   <p className="order-meta-placed">
-                    {new Date(order.createdAt).toLocaleString()}
+                    {new Date(order.createdAt).toLocaleString(language === "ar" ? "ar-SA" : "en-US")}
                   </p>
                   {order.readyAt && (
                     <p className="order-meta-ready" style={{ fontSize: '0.875rem', color: '#10b981', marginTop: '2px' }}>
-                      Ready at: {new Date(order.readyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {language === "ar" ? "جاهز في:" : "Ready at:"} {new Date(order.readyAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
                   <p className="my-order-pdf-row">
@@ -728,7 +722,7 @@ const MyOrders = () => {
                       aria-label="Preview receipt slip"
                     >
                       <FaFilePdf aria-hidden />
-                      Preview slip
+                      {t("preview_slip_btn")}
                     </button>
                   </p>
                 </div>
@@ -741,7 +735,7 @@ const MyOrders = () => {
               </div>
 
               <div className="order-items">
-                <strong>Items</strong>
+                <strong>{t("summary_items")}</strong>
                 {order.items.map((item, i) => {
                   const isFullyCancelled = item.quantity === 0;
                   return (
@@ -752,7 +746,7 @@ const MyOrders = () => {
                           <span style={isFullyCancelled ? { opacity: 0.5 } : {}}>×{item.quantity}</span>
                           {item.cancelledQuantity > 0 && (
                             <span className="cancelled-qty-label" style={{ color: "#ef4444", fontSize: "0.78rem", fontWeight: "700" }}>
-                              ({item.cancelledQuantity} Cancelled)
+                              ({item.cancelledQuantity} {language === "ar" ? "ملغي" : "Cancelled"})
                             </span>
                           )}
                         </div>
@@ -766,7 +760,7 @@ const MyOrders = () => {
                 })}
                 <div className="total">
                   <strong className="order-total-sar">
-                    Total: {order.totalPrice}
+                    {t("col_total")}: {order.totalPrice}
                     <SaudiRiyalSymbol />
                   </strong>
                 </div>
@@ -825,7 +819,7 @@ const MyOrders = () => {
                             className="my-order-cancel-btn"
                             onClick={() => setCancellingOrder(order)}
                           >
-                            Cancel Order / Items
+                            {t("cancel_order_btn")}
                           </button>
                         </div>
                       )}
@@ -1255,7 +1249,12 @@ const MyOrders = () => {
         <div className="cancel-modal-overlay">
           <div className="cancel-modal-content">
             <header className="cancel-modal-header">
-              <h2>Cancel Order / Items</h2>
+              <div>
+                <h2>{t("cancel_modal_title")}</h2>
+                <p className="cancel-modal-subtitle">
+                  {t("cancel_modal_subtitle")}
+                </p>
+              </div>
               <button 
                 type="button" 
                 className="cancel-modal-close" 
@@ -1264,36 +1263,68 @@ const MyOrders = () => {
                   setQuantitiesToCancel({});
                   setCancelReason("");
                 }}
+                aria-label="Close"
               >
                 &times;
               </button>
             </header>
 
             <form onSubmit={handleCancelSubmit}>
-              <p className="cancel-modal-desc">
-                Select how many units of each item to cancel. Leave all at 0 to cancel the entire order.
-              </p>
+              <div className="cancel-modal-items-header">
+                <span>{t("items_in_order")}</span>
+                <div className="cancel-quick-actions">
+                  <button
+                    type="button"
+                    className="cancel-quick-btn"
+                    onClick={() => {
+                      const all = {};
+                      cancellingOrder.items.forEach((item, index) => {
+                        all[index] = item.quantity || 0;
+                      });
+                      setQuantitiesToCancel(all);
+                    }}
+                  >
+                    {t("select_all")}
+                  </button>
+                  <span className="cancel-quick-divider">|</span>
+                  <button
+                    type="button"
+                    className="cancel-quick-btn"
+                    onClick={() => setQuantitiesToCancel({})}
+                  >
+                    {t("reset")}
+                  </button>
+                </div>
+              </div>
 
               <div className="cancel-modal-items">
                 {cancellingOrder.items.map((item, index) => {
-                  const currentSelected = quantitiesToCancel[index] || 0;
+                  const currentSelected = quantitiesToCancel[index] ?? (item.quantity || 0);
+                  const maxAvail = item.quantity || 0;
+                  if (maxAvail <= 0) return null;
+
                   return (
                     <div className="cancel-modal-item-row" key={index}>
                       <div className="cancel-modal-item-info">
                         <span className="cancel-modal-item-name">{item.name}</span>
-                        <span className="cancel-modal-item-price">
-                          {item.price} <SaudiRiyalSymbol />
-                        </span>
+                        <div className="cancel-modal-item-meta">
+                          <span className="cancel-modal-item-price">
+                            {item.price} <SaudiRiyalSymbol />
+                          </span>
+                          <span className="cancel-modal-item-badge">
+                            {t("ordered_label")} {maxAvail} {maxAvail === 1 ? t("unit_pc") : t("unit_pcs")}
+                          </span>
+                        </div>
                       </div>
                       <div className="cancel-modal-item-controls">
-                        <span className="cancel-modal-item-avail">Max: {item.quantity}</span>
                         <div className="cancel-qty-stepper">
                           <button
                             type="button"
+                            aria-label="Decrease quantity"
                             disabled={currentSelected <= 0}
                             onClick={() => setQuantitiesToCancel(prev => ({
                               ...prev,
-                              [index]: Math.max(0, currentSelected - 1)
+                              [index]: Math.max(0, (prev[index] ?? maxAvail) - 1)
                             }))}
                           >
                             -
@@ -1301,10 +1332,11 @@ const MyOrders = () => {
                           <span className="cancel-qty-value">{currentSelected}</span>
                           <button
                             type="button"
-                            disabled={currentSelected >= item.quantity}
+                            aria-label="Increase quantity"
+                            disabled={currentSelected >= maxAvail}
                             onClick={() => setQuantitiesToCancel(prev => ({
                               ...prev,
-                              [index]: Math.min(item.quantity, currentSelected + 1)
+                              [index]: Math.min(maxAvail, (prev[index] ?? maxAvail) + 1)
                             }))}
                           >
                             +
@@ -1316,46 +1348,45 @@ const MyOrders = () => {
                 })}
               </div>
 
+              {/* Dynamic summary pill */}
+              {(() => {
+                let totalCancelledItems = 0;
+                let totalRefundAmount = 0;
+                cancellingOrder.items.forEach((item, index) => {
+                  const qty = quantitiesToCancel[index] ?? (item.quantity || 0);
+                  if (qty > 0) {
+                    totalCancelledItems += qty;
+                    totalRefundAmount += item.price * qty;
+                  }
+                });
+
+                return (
+                  <div className="cancel-summary-banner">
+                    <span className="cancel-summary-label">
+                      {totalCancelledItems === 0
+                        ? t("cancelling_no_items")
+                        : `${t("cancelling_label")} ${totalCancelledItems} ${totalCancelledItems === 1 ? t("unit_pc") : t("unit_pcs")}`}
+                    </span>
+                    {totalCancelledItems > 0 && (
+                      <span className="cancel-summary-amt">
+                        {totalRefundAmount.toFixed(2)} <SaudiRiyalSymbol />
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="cancel-modal-reason">
-                <label htmlFor="customer-cancel-reason">Reason for cancellation (optional):</label>
+                <label htmlFor="customer-cancel-reason">{t("cancel_reason_label")}</label>
                 <textarea
                   id="customer-cancel-reason"
                   rows={2}
                   maxLength={200}
-                  placeholder="e.g., Decided to change my order, ordered too many..."
+                  placeholder={t("cancel_reason_placeholder")}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                 />
               </div>
-
-              {cancellingOrder.paymentMethod === "card" && cancellingOrder.paymentStatus === "paid" && (
-                <div className="cancel-modal-refund-notice">
-                  <strong>💳 Card Refund Notice:</strong>
-                  <p>
-                    An automatic refund of{" "}
-                    <strong>
-                      {(() => {
-                        let totalRefund = 0;
-                        let anySelected = false;
-                        cancellingOrder.items.forEach((item, index) => {
-                          const qty = quantitiesToCancel[index] || 0;
-                          if (qty > 0) {
-                            anySelected = true;
-                            totalRefund += item.price * qty;
-                          }
-                        });
-                        if (!anySelected) {
-                          // Full refund if nothing selected
-                          return cancellingOrder.totalPrice;
-                        }
-                        return totalRefund.toFixed(2);
-                      })()}{" "}
-                      <SaudiRiyalSymbol />
-                    </strong>{" "}
-                    will be processed back to your card.
-                  </p>
-                </div>
-              )}
 
               <div className="cancel-modal-actions">
                 <button
@@ -1367,14 +1398,19 @@ const MyOrders = () => {
                     setCancelReason("");
                   }}
                 >
-                  Keep My Order
+                  {t("keep_order_btn")}
                 </button>
                 <button
                   type="submit"
                   className="cancel-modal-btn-primary"
-                  disabled={submittingCancel}
+                  disabled={
+                    submittingCancel ||
+                    !cancellingOrder.items.some(
+                      (it, idx) => (quantitiesToCancel[idx] ?? it.quantity) > 0
+                    )
+                  }
                 >
-                  {submittingCancel ? "Processing..." : "Confirm Cancellation"}
+                  {submittingCancel ? "Processing..." : t("confirm_cancel_btn")}
                 </button>
               </div>
             </form>
@@ -1385,6 +1421,15 @@ const MyOrders = () => {
         <ReceiptPreviewModal
           key={previewPack.k}
           order={previewPack.order}
+          businessName={
+            sessionStorage.getItem("tabletab_public_tenant_name") || undefined
+          }
+          taxNumber={
+            sessionStorage.getItem("tabletab_public_tenant_tax_number") || previewPack.order?.taxNumber || undefined
+          }
+          logoUrl={
+            sessionStorage.getItem("tabletab_public_tenant_logo") || undefined
+          }
           onClose={() => setPreviewPack(null)}
         />
       ) : null}

@@ -56,6 +56,7 @@ export const AuthContextProvider = ({ children }) => {
             a?.staffSinceAt ?? a?.createdAt ?? prev?.staffSince,
           subscriptionStatus: tenant?.subscriptionStatus ?? prev?.subscriptionStatus,
           expiresAt: tenant?.expiresAt ?? prev?.expiresAt,
+          taxNumber: tenant?.taxNumber ?? prev?.taxNumber ?? "",
           stripePublishableKey: tenant?.stripePublishableKey ?? prev?.stripePublishableKey ?? "",
           stripeSecretKey: tenant?.stripeSecretKey ?? prev?.stripeSecretKey ?? "",
         }));

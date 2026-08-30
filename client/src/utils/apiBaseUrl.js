@@ -18,14 +18,10 @@ function computeBase() {
     return "";
   }
   const base = normalizeBrowserApiUrl((fromEnv || "").replace(/\/$/, ""));
-  if (!base) {
-    // eslint-disable-next-line no-console
-    console.error(
-      "[TableTab] VITE_API_URL is missing. Rebuild the client with e.g. VITE_API_URL=https://your-service.up.railway.app",
-    );
-    return "";
+  if (base && !/^(https?:\/\/)?(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(base)) {
+    return base;
   }
-  return base;
+  return "https://tabletab-server.up.railway.app";
 }
 
 export const API_BASE_URL = computeBase();

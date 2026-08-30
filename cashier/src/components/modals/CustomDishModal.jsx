@@ -55,7 +55,7 @@ export default function CustomDishModal() {
             />
           </div>
           <div className="form-group">
-            <label>{lang === "ar" ? "السعر (ر.س)" : "Price (SAR)"}</label>
+            <label>{lang === "ar" ? "السعر (﷼)" : "Price (﷼)"}</label>
             <input 
               type="number" 
               className="form-input"

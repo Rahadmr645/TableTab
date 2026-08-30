@@ -1,12 +1,13 @@
 import { createRoot } from "react-dom/client";
-import { registerSW } from "virtual:pwa-register";
+import { initPwaAutoUpdater } from "@shared/pwaAutoUpdate.js";
 import "./index.css";
 import App from "./App.jsx";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthContextProvider } from "./context/AuthContext.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
 
-registerSW({ immediate: true });
+// Automatically detect, download, and activate new PWA versions across all admin devices
+initPwaAutoUpdater({ appName: "Admin" });
 
 /**
  * Eruda steals pointer events over forms. Enable only when explicitly requested:

@@ -1,11 +1,17 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import CartItem from "../../components/CartItem/CartItem.jsx";
 import { AuthContext } from "../../context/CartContext";
+import { useLanguage } from "../../context/LanguageContext.jsx";
 import "./Checkout.css";
 import { api } from "../../utils/api.js";
 import { useNavigate } from "react-router-dom";
-import { IoChevronBack, IoPersonOutline, IoRestaurantOutline } from "react-icons/io5";
-import StripePayment from "../payment/PaymentForm.jsx";
+import {
+  IoChevronBack,
+  IoPersonOutline,
+  IoRestaurantOutline,
+  IoCheckmarkCircleOutline,
+  IoReceiptOutline,
+} from "react-icons/io5";
 import {
   playOrderPlacedChime,
   requestNotificationPermissionIfNeeded,
@@ -18,16 +24,12 @@ const TABLE_PREFILL_KEY = "tabletab_prefill_table";
 
 const Checkout = () => {
   const { cart, setCart, setQuantities, user } = useContext(AuthContext);
+  const { t, language } = useLanguage();
 
   const [popup, setPopup] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [tableId, setTableId] = useState("");
-  const [payment, setPayment] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [onlineSubMethod, setOnlineSubMethod] = useState("card");
-  const [selectedMethodConfirm, setSelectedMethodConfirm] = useState(false);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [focusedFields, setFocusedFields] = useState({});
 
   const handleFocus = (name) => {
@@ -82,23 +84,40 @@ const Checkout = () => {
     0
   );
 
-  // Create order AFTER payment success
-  const createOrder = async (method = "card", paymentIntentId = null) => {
+  const totalItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  const handleConfirmOrder = async (e) => {
+    if (e) e.preventDefault();
+    const trimmedName = customerName.trim();
+    const trimmedTable = tableId.toString().trim();
+
+    if (!trimmedName || !trimmedTable) {
+      alert(
+        language === "ar"
+          ? "يرجى إدخال اسمك ورقم الطاولة لتأكيد الطلب."
+          : "Please enter your name and table number to confirm your order."
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       await requestNotificationPermissionIfNeeded();
 
-      const existingGuestToken = localStorage.getItem("guestToken")?.trim() || "";
+      // Remember table for future orders on this device
+      localStorage.setItem(TABLE_PREFILL_KEY, trimmedTable);
+
+      const existingGuestToken =
+        localStorage.getItem("guestToken")?.trim() || "";
 
       const res = await api.post("/api/order/create-order/", {
-        customerName,
-        tableId,
+        customerName: trimmedName,
+        tableId: trimmedTable,
         userID: user?._id || "",
         guestToken: existingGuestToken,
         items: cart,
         totalPrice: subTotal,
-        paymentMethod: method,
-        paymentIntentId,
+        paymentMethod: "cash",
       });
 
       const placed = res.data?.order;
@@ -115,13 +134,16 @@ const Checkout = () => {
       if (!notified) {
         if (n != null) {
           alert(
-            `Order placed! Today’s restaurant order number: #${n}` +
-              (inv ? `\nInvoice: ${inv}` : "") +
-              "\n\nThis is the same number the kitchen and order board use for your order.",
+            language === "ar"
+              ? `تم تأكيد الطلب! رقم طلبك اليوم: #${n}` +
+                (inv ? `\nرقم الفاتورة: ${inv}` : "")
+              : `Order placed! Today’s restaurant order number: #${n}` +
+                (inv ? `\nInvoice: ${inv}` : "") +
+                "\n\nThis is the same number the kitchen and order board use for your order."
           );
         } else {
           alert(
-            "Order placed successfully" + (inv ? `\nInvoice: ${inv}` : ""),
+            t("order_placed_success") + (inv ? `\nInvoice: ${inv}` : "")
           );
         }
       }
@@ -129,45 +151,19 @@ const Checkout = () => {
       setQuantities({});
       setCart([]);
       setPopup(false);
-      setPayment(false);
-      setSelectedMethodConfirm(false);
-      setPaymentProcessing(false);
 
       navigator("/myOrders");
     } catch (error) {
-      alert("Failed to place order");
+      alert(t("order_placed_error"));
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConfirmOrder = () => {
-    if (!customerName || !tableId) {
-      alert("Please enter your name and table number");
-      return;
-    }
-
-    setPayment(true);
-  };
-
-  const handleBackStep = () => {
-    if (selectedMethodConfirm) {
-      setSelectedMethodConfirm(false);
-      setPaymentProcessing(false);
-    } else if (payment) {
-      setPayment(false);
-    } else {
-      setPopup(false);
-    }
-  };
-
   return (
     <div className="checkout-page">
-      <AsyncLoadingOverlay
-        open={loading}
-        message="Placing your order…"
-      />
+      <AsyncLoadingOverlay open={loading} message={t("order_placing")} />
       <header className="checkout-hero">
         <button
           type="button"
@@ -182,20 +178,20 @@ const Checkout = () => {
         >
           <IoChevronBack aria-hidden />
         </button>
-        <h1>Your cart</h1>
+        <h1>{t("checkout_title")}</h1>
         <p className="checkout-hero-tagline">
-          Review items, then confirm details and pay securely.
+          {t("checkout_hero_tagline")}
         </p>
       </header>
 
       <div className="checkout-inner">
         <div className="checkout_nav">
           <ul>
-            <li>Image</li>
-            <li>Name</li>
-            <li>Qty</li>
-            <li>Price</li>
-            <li>Total</li>
+            <li>{t("col_image")}</li>
+            <li>{t("col_name")}</li>
+            <li>{t("col_qty")}</li>
+            <li>{t("col_price")}</li>
+            <li>{t("col_total")}</li>
             <li></li>
           </ul>
         </div>
@@ -216,12 +212,12 @@ const Checkout = () => {
             ))}
           </div>
         ) : (
-          <p className="checkout-empty">Your cart is empty. Add something delicious from the menu.</p>
+          <p className="checkout-empty">{t("checkout_empty")}</p>
         )}
 
         <div className="subtotal">
           <h3>
-            Subtotal:{" "}
+            {t("subtotal")}{" "}
             <span className="subtotal-amt-inline">
               <span className="subtotal-number">{subTotal.toFixed(2)}</span>
               <SaudiRiyalSymbol />
@@ -232,237 +228,133 @@ const Checkout = () => {
         {cart.length > 0 && (
           <div className="pobtn">
             <button type="button" onClick={() => setPopup(true)}>
-              Place order
+              {t("place_order_btn")}
             </button>
           </div>
         )}
       </div>
 
-      {/* POPUP */}
+      {/* CONFIRM ORDER POPUP */}
       {popup && (
-        <div className="popup" role="dialog" aria-modal="true" aria-labelledby="checkout-dialog-title">
-          <div className="popup-content">
-            <button
-              type="button"
-              className="popup-back-btn"
-              onClick={handleBackStep}
-              aria-label="Go back"
-              disabled={loading || paymentProcessing}
-            >
-              <IoChevronBack aria-hidden />
-            </button>
+        <div
+          className="popup"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-dialog-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loading) {
+              setPopup(false);
+            }
+          }}
+        >
+          <div className="popup-content order-confirm-dialog">
+            <div className="order-dialog-header">
+              <div className="order-dialog-icon">
+                <IoReceiptOutline />
+              </div>
+              <h3 id="checkout-dialog-title">{t("confirm_dialog_title")}</h3>
+              <p className="order-dialog-subtitle">
+                {t("confirm_dialog_sub")}
+              </p>
+            </div>
 
-            {/* Step Indicators */}
-            <div className="popup-steps-indicator">
-              <div 
-                className="popup-step-progress-line" 
-                style={{ 
-                  width: !payment 
-                    ? "0%" 
-                    : !selectedMethodConfirm 
-                      ? "50%" 
-                      : "100%" 
-                }} 
-              />
-              <div className={`step-dot ${!payment ? "active" : "completed"}`}>
-                <span className="step-number">{payment ? "✓" : "1"}</span>
-                <span className="step-label">Details</span>
+            {/* Quick Summary Pill */}
+            <div className="order-summary-card">
+              <div className="summary-item">
+                <span className="summary-label">{t("summary_items")}</span>
+                <span className="summary-val">
+                  {totalItemCount}{" "}
+                  {totalItemCount === 1
+                    ? t("summary_item_single")
+                    : t("summary_item_plural")}
+                </span>
               </div>
-              <div className={`step-dot ${payment && !selectedMethodConfirm ? "active" : selectedMethodConfirm ? "completed" : ""}`}>
-                <span className="step-number">{selectedMethodConfirm ? "✓" : "2"}</span>
-                <span className="step-label">Method</span>
-              </div>
-              <div className={`step-dot ${payment && selectedMethodConfirm ? "active" : ""}`}>
-                <span className="step-number">3</span>
-                <span className="step-label">Confirm</span>
+              <div className="summary-divider" />
+              <div className="summary-item">
+                <span className="summary-label">{t("summary_total_amt")}</span>
+                <span className="summary-val highlight">
+                  {subTotal.toFixed(2)} <SaudiRiyalSymbol />
+                </span>
               </div>
             </div>
 
-            <h3 id="checkout-dialog-title">
-              {!payment 
-                ? "Table & name" 
-                : !selectedMethodConfirm 
-                  ? "Select Payment Method" 
-                  : paymentMethod === "card" 
-                    ? "Secure payment" 
-                    : "Confirm cash order"}
-            </h3>
-
-            {!payment && (
-              <div className="checkout-details-form">
-                <div className="checkout-field-group">
-                  <div className={`checkout-input-wrapper ${focusedFields["customerName"] ? "checkout-input-wrapper--focused" : ""} ${customerName ? "checkout-input-wrapper--has-value" : ""}`}>
-                    <span className="checkout-input-icon">
-                      <IoPersonOutline />
-                    </span>
-                    <input
-                      type="text"
-                      id="customerNameInput"
-                      className="checkout-input"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      onFocus={() => handleFocus("customerName")}
-                      onBlur={() => handleBlur("customerName")}
-                      autoComplete="name"
-                      required
-                    />
-                    <label htmlFor="customerNameInput" className="checkout-label">
-                      Your name
-                    </label>
-                  </div>
+            <form onSubmit={handleConfirmOrder} className="checkout-details-form">
+              <div className="checkout-field-group">
+                <div
+                  className={`checkout-input-wrapper ${
+                    focusedFields["customerName"]
+                      ? "checkout-input-wrapper--focused"
+                      : ""
+                  } ${customerName ? "checkout-input-wrapper--has-value" : ""}`}
+                >
+                  <span className="checkout-input-icon">
+                    <IoPersonOutline />
+                  </span>
+                  <input
+                    type="text"
+                    id="customerNameInput"
+                    className="checkout-input"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    onFocus={() => handleFocus("customerName")}
+                    onBlur={() => handleBlur("customerName")}
+                    autoComplete="name"
+                    placeholder=" "
+                    required
+                  />
+                  <label htmlFor="customerNameInput" className="checkout-label">
+                    {t("field_name")}
+                  </label>
                 </div>
-
-                <div className="checkout-field-group">
-                  <div className={`checkout-input-wrapper ${focusedFields["tableId"] ? "checkout-input-wrapper--focused" : ""} ${tableId ? "checkout-input-wrapper--has-value" : ""}`}>
-                    <span className="checkout-input-icon">
-                      <IoRestaurantOutline />
-                    </span>
-                    <input
-                      type="number"
-                      id="tableIdInput"
-                      className="checkout-input"
-                      value={tableId}
-                      onChange={(e) => setTableId(e.target.value)}
-                      onFocus={() => handleFocus("tableId")}
-                      onBlur={() => handleBlur("tableId")}
-                      required
-                    />
-                    <label htmlFor="tableIdInput" className="checkout-label">
-                      Table number (on table sticker/stand)
-                    </label>
-                  </div>
-                </div>
-
-                <button type="button" className="checkout-primary-btn" onClick={handleConfirmOrder}>
-                  Continue to payment
-                </button>
               </div>
-            )}
 
-            {payment && !selectedMethodConfirm && (
-              <div className="payment-method-selector">
-                <p className="payment-selector-intro">
-                  Choose how you'd like to pay for your meal:
-                </p>
-                <div className="payment-main-options">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={`payment-main-btn ${paymentMethod === "card" ? "active" : ""}`}
-                  >
-                    <span className="payment-main-icon">💳</span>
-                    <span className="payment-main-text">Pay Online</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("cash")}
-                    className={`payment-main-btn ${paymentMethod === "cash" ? "active" : ""}`}
-                  >
-                    <span className="payment-main-icon">💵</span>
-                    <span className="payment-main-text">Pay at Table</span>
-                  </button>
+              <div className="checkout-field-group">
+                <div
+                  className={`checkout-input-wrapper ${
+                    focusedFields["tableId"]
+                      ? "checkout-input-wrapper--focused"
+                      : ""
+                  } ${tableId ? "checkout-input-wrapper--has-value" : ""}`}
+                >
+                  <span className="checkout-input-icon">
+                    <IoRestaurantOutline />
+                  </span>
+                  <input
+                    type="text"
+                    id="tableIdInput"
+                    className="checkout-input"
+                    value={tableId}
+                    onChange={(e) => setTableId(e.target.value)}
+                    onFocus={() => handleFocus("tableId")}
+                    onBlur={() => handleBlur("tableId")}
+                    placeholder=" "
+                    required
+                  />
+                  <label htmlFor="tableIdInput" className="checkout-label">
+                    {t("field_table")}
+                  </label>
                 </div>
+              </div>
 
-                {paymentMethod === "card" && (
-                  <div className="online-payment-options-container">
-                    <p className="online-payment-subtitle">
-                      Select online payment option:
-                    </p>
-                    <div className="online-payment-grid">
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("card")}
-                        className={`online-sub-btn ${onlineSubMethod === "card" ? "active" : ""}`}
-                      >
-                        <span>💳</span> Card
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("mada")}
-                        className={`online-sub-btn ${onlineSubMethod === "mada" ? "active" : ""}`}
-                      >
-                        <span>🇸🇦</span> Mada
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("apple_pay")}
-                        className={`online-sub-btn ${onlineSubMethod === "apple_pay" ? "active" : ""}`}
-                      >
-                        <span>🍏</span> Apple Pay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("samsung_pay")}
-                        className={`online-sub-btn ${onlineSubMethod === "samsung_pay" ? "active" : ""}`}
-                      >
-                        <span>📱</span> Samsung Pay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("google_pay")}
-                        className={`online-sub-btn ${onlineSubMethod === "google_pay" ? "active" : ""}`}
-                      >
-                        <span>🤖</span> Google Pay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOnlineSubMethod("stc_pay")}
-                        className={`online-sub-btn ${onlineSubMethod === "stc_pay" ? "active" : ""}`}
-                      >
-                        <span>🇸🇦</span> STC Pay
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
+              <div className="order-dialog-actions">
+                <button
+                  type="submit"
+                  className="checkout-primary-btn confirm-btn"
+                  disabled={loading}
+                >
+                  <IoCheckmarkCircleOutline className="btn-icon" />
+                  <span>{t("confirm_order_btn")}</span>
+                </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedMethodConfirm(true)}
-                  className="checkout-primary-btn accent"
+                  onClick={() => setPopup(false)}
+                  className="cancel-btn"
+                  disabled={loading}
                 >
-                  Continue
+                  {t("cancel_btn")}
                 </button>
               </div>
-            )}
-
-            {payment && selectedMethodConfirm && paymentMethod === "card" && (
-              <StripePayment
-                amount={subTotal * 100}
-                onSuccess={(piId) => createOrder("card", piId)}
-                onLoadingChange={setPaymentProcessing}
-                onlineSubMethod={onlineSubMethod}
-              />
-            )}
-
-            {payment && selectedMethodConfirm && paymentMethod === "cash" && (
-              <div className="cash-confirm-container">
-                <p className="cash-confirm-text">
-                  Confirm your order of <strong className="cash-accent-price">SAR {subTotal.toFixed(2)}</strong>. You will pay in cash or card at the table or counter once served.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => createOrder("cash")}
-                  className="checkout-primary-btn teal"
-                >
-                  Confirm & Place Order
-                </button>
-              </div>
-            )}
-            <div className="popup-buttons">
-              <button
-                type="button"
-                onClick={() => {
-                  setPopup(false);
-                  setPayment(false);
-                  setSelectedMethodConfirm(false);
-                  setPaymentProcessing(false);
-                }}
-                className="cancel-btn"
-                disabled={loading || paymentProcessing}
-              >
-                Cancel
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}

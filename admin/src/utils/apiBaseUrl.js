@@ -31,22 +31,18 @@ function computeBase() {
   const base = normalizeBrowserApiUrl(fromEnv);
 
   if (import.meta.env.DEV) {
-    // In DEV, if VITE_API_URL is local or empty, we use Vite's proxy ("")
-    // This allows LAN testing (e.g., opening 192.168.x.x:5173 on a phone) to work.
     if (!base || isLoopbackApiUrl(base)) {
       return ""; 
     }
     return base;
   }
 
-  // In PROD, we must have a valid external URL.
-  if (!base) {
-    throw new Error(
-      "[Config] VITE_API_URL is missing! Production builds require an absolute API URL."
-    );
+  // In PROD: Use provided valid external URL or default to live Railway backend
+  if (base && !isLoopbackApiUrl(base)) {
+    return base;
   }
 
-  return base;
+  return "https://tabletab-server.up.railway.app";
 }
 
 export const API_BASE_URL = computeBase();

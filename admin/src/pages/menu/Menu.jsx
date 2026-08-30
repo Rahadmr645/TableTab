@@ -138,7 +138,7 @@ const Menu = () => {
                     )}
                     <div className="menu-item-details">
                       <h4 className="menu-item-name">{item.name}</h4>
-                      <p className="menu-item-price">SAR {item.price}</p>
+                      <p className="menu-item-price">﷼ {item.price}</p>
                       <p className="menu-item-category">{item.category}</p>
                     </div>
                     <button className="menu-edit-btn" onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}>Edit</button>

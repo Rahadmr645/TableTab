@@ -83,7 +83,14 @@ export const SocketContextProvider = ({ children }) => {
     });
 
 
-    newSocket.on('orderRemoved', (id) => {
+    newSocket.on("app:pwa-update", () => {
+      console.log("Remote PWA update requested via socket.");
+      if (typeof window !== "undefined" && window.__tabletab_force_pwa_update) {
+        window.__tabletab_force_pwa_update();
+      }
+    });
+
+    newSocket.on("orderRemoved", (id) => {
       setOrderBox((prev) => prev.filter((o) => o._id !== id));
     });
 
@@ -97,31 +104,26 @@ export const SocketContextProvider = ({ children }) => {
   // fetch all active order
   useEffect(() => {
     const syncServerTime = async () => {
-      const res = await api.get("/api/order/active-orders");
+      try {
+        const res = await api.get("/api/order/active-orders");
+        if (!res) return;
 
-      if (!res) return console.log("active order not found");
+        const serverDateHeader = res.headers?.date
+          ? new Date(res.headers.date).getTime()
+          : Date.now();
 
-      const serverDateHeader = res.headers.date ?
-        new Date(res.headers.date).getTime() : Date.now();
+        // diff server and local time
+        const offset = serverDateHeader - Date.now();
+        setServerTimeOffset(offset);
 
-
-      // deff server and local time
-      const offset = serverDateHeader - Date.now();
-      setServerTimeOffset(offset);
-
-
-      console.log('server time offset', offset, 'ms');
-
-
-
-      console.log('these all are the active orders:', res.data)
-
-      setOrderBox(sortOrdersNewestFirst(res.data.activeOrders || []));
-
-    }
+        setOrderBox(sortOrdersNewestFirst(res.data?.activeOrders || []));
+      } catch (e) {
+        console.warn("initial active-orders sync:", e?.message || e);
+      }
+    };
 
     syncServerTime();
-  }, [])
+  }, []);
 
 
 

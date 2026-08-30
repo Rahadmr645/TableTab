@@ -44,13 +44,31 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.rcp-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rcp-pdf-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #ef4444;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 5px;
+  text-transform: uppercase;
 }
 
 .rcp-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #f4f4f5;
 }
@@ -58,20 +76,23 @@
 .rcp-close {
   margin: 0;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 8px 14px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(244, 244, 245, 0.9);
+  color: rgba(244, 244, 245, 0.85);
   background: rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
 .rcp-close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
 
 .rcp-scroll-wrap {
@@ -83,7 +104,7 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  background: #2a2f38;
+  background: #181b20;
 }
 
 .rcp-receipt-mount {
@@ -94,8 +115,8 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 18px clamp(10px, 4vw, 14px) 28px;
-  min-height: 200px;
+  padding: 24px clamp(12px, 4vw, 20px) 32px;
+  min-height: 240px;
 }
 
 /* Receipt mounts inside `.rcp-receipt-mount`: keep thermal width cap but shrink on narrow phones */
@@ -111,47 +132,81 @@
 
 .rcp-receipt-mount .tt-r {
   width: 100%;
-  max-width: 280px;
+  max-width: 290px;
   box-sizing: border-box;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
 }
 
 .rcp-loading {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   font-size: 0.9rem;
-  color: rgba(244, 244, 245, 0.75);
+  color: rgba(244, 244, 245, 0.85);
   pointer-events: none;
-  background: rgba(42, 47, 56, 0.45);
+  background: rgba(24, 27, 32, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+.rcp-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #f0b429;
+  border-radius: 50%;
+  animation: rcpSpin 0.75s linear infinite;
+}
+
+@keyframes rcpSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .rcp-actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
   gap: 10px;
-  padding: 14px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 18px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.rcp-actions-top-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .rcp-actions button {
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 10px 18px;
-  border-radius: 11px;
+  letter-spacing: 0.02em;
+  padding: 10px 20px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(244, 244, 245, 0.9);
   background: rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .rcp-actions button:hover:not(:disabled) {
-  filter: brightness(1.12);
+  filter: brightness(1.15);
+  transform: translateY(-1px);
 }
 
 .rcp-actions button:disabled {
@@ -159,24 +214,48 @@
   cursor: wait;
 }
 
-.rcp-actions button.rcp-btn-primary {
-  border-color: rgba(250, 204, 21, 0.45);
-  color: #fde047;
-  background: rgba(250, 204, 21, 0.1);
+.rcp-actions button.rcp-btn-cancel {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(244, 244, 245, 0.85);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-@media (max-width: 380px) {
-  .rcp-header {
-    flex-wrap: wrap;
+.rcp-actions button.rcp-btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.rcp-actions button.rcp-btn-print {
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.rcp-actions button.rcp-btn-print:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.rcp-actions button.rcp-btn-download {
+  width: 100%;
+  padding: 12px 18px;
+  font-size: 0.9rem;
+  border-color: rgba(240, 180, 41, 0.45);
+  color: #1a1204;
+  background: linear-gradient(135deg, #f0b429, #eab308);
+  box-shadow: 0 4px 16px rgba(240, 180, 41, 0.25);
+}
+
+.rcp-actions button.rcp-btn-download:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f5bc33, #f0b429);
+  box-shadow: 0 6px 20px rgba(240, 180, 41, 0.35);
+}
+
+@media (max-width: 480px) {
+  .rcp-actions-top-row {
+    flex-direction: row;
   }
 
-  .rcp-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .rcp-actions button {
-    width: 100%;
-    justify-content: center;
+  .rcp-actions-top-row button {
+    flex: 1;
   }
 }

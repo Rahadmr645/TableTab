@@ -16,8 +16,13 @@ import CustomDishModal from "./components/modals/CustomDishModal.jsx";
 import CategoryModal from "./components/modals/CategoryModal.jsx";
 import ProductModal from "./components/modals/ProductModal.jsx";
 import MoreModal from "./components/modals/MoreModal.jsx";
+import DailySalesModal from "./components/modals/DailySalesModal.jsx";
 import StaffLoginModal from "./components/modals/StaffLoginModal.jsx";
 import LockPinModal from "./components/modals/LockPinModal.jsx";
+import PaymentSuccessModal from "./components/modals/PaymentSuccessModal.jsx";
+import PrinterSettingsModal from "./components/modals/PrinterSettingsModal.jsx";
+import TerminalSettingsModal from "./components/modals/TerminalSettingsModal.jsx";
+import LiveTerminalPaymentModal from "./components/modals/LiveTerminalPaymentModal.jsx";
 
 import "./App.css";
 
@@ -60,14 +65,20 @@ function CashierDashboard() {
       <CategoryModal />
       <ProductModal />
       <MoreModal />
+      <DailySalesModal />
       <StaffLoginModal />
       <LockPinModal />
+      <PaymentSuccessModal />
+      <PrinterSettingsModal />
+      <TerminalSettingsModal />
+      <LiveTerminalPaymentModal />
 
       {/* 4. SHARED RECEIPT GENERATOR */}
       {showPrintModal && (
         <ReceiptPreviewModal
           order={showPrintModal === true ? activePrintOrder : showPrintModal}
           businessName={currentTenant?.businessName || (lang === "ar" ? "مطعم تيبل تاب" : "TableTab POS")}
+          taxNumber={currentTenant?.taxNumber}
           logoUrl=""
           onClose={() => setShowPrintModal(false)}
         />

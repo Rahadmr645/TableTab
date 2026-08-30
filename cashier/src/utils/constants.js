@@ -1,38 +1,6 @@
-// High-fidelity categories matching the reference picture exactly
-export const FALLBACK_CATEGORIES = [
-  { id: "sweets", nameEn: "Sweets", nameAr: "الحلويات" },
-  { id: "cold_coffee", nameEn: "Cold Coffee", nameAr: "القهوة الباردة" },
-  { id: "hot_coffee", nameEn: "Hot Coffee", nameAr: "القهوة الساخنة" },
-  { id: "cake_share", nameEn: "Cake Share", nameAr: "كيك شير" },
-  { id: "breakfast", nameEn: "Breakfast", nameAr: "فطور" },
-  { id: "juice", nameEn: "Juice", nameAr: "عصيرات" },
-  { id: "cold_drinks", nameEn: "Cold Drinks", nameAr: "المشروبات الباردة" },
-  { id: "turkish_coffee", nameEn: "Turkish Coffee", nameAr: "القهوة التركية" },
-  { id: "tea", nameEn: "Tea", nameAr: "الشاي" },
-  { id: "saudi_coffee", nameEn: "Saudi Coffee", nameAr: "القهوة السعودية" },
-  { id: "cake", nameEn: "Cake", nameAr: "الكيك" },
-  { id: "dessert", nameEn: "Dessert", nameAr: "الحلا" },
-  { id: "party", nameEn: "Party", nameAr: "حفلات" },
-  { id: "snacks", nameEn: "Snacks", nameAr: "وجبات خفيفة" },
-  { id: "ice_cream", nameEn: "Ice Cream", nameAr: "آيس كريم" }
-];
-
-// Fallback products matching categories
-export const FALLBACK_PRODUCTS = [
-  { id: "p1", categoryId: "hot_coffee", nameEn: "V60 Hot", nameAr: "V60 حار", price: 19.0 },
-  { id: "p2", categoryId: "hot_coffee", nameEn: "Flat White", nameAr: "فلات وايت", price: 16.0 },
-  { id: "p3", categoryId: "hot_coffee", nameEn: "Cortado", nameAr: "كورتادو", price: 14.0 },
-  { id: "p4", categoryId: "cold_coffee", nameEn: "Iced Spanish Latte", nameAr: "سبانش لاتيه بارد", price: 22.0 },
-  { id: "p5", categoryId: "cold_coffee", nameEn: "Iced Americano", nameAr: "أمريكانو بارد", price: 14.0 },
-  { id: "p6", categoryId: "saudi_coffee", nameEn: "Saudi Dallah Small", nameAr: "دلة سعودية صغيرة", price: 25.0 },
-  { id: "p7", categoryId: "saudi_coffee", nameEn: "Saudi Dallah Large", nameAr: "دلة سعودية كبيرة", price: 40.0 },
-  { id: "p8", categoryId: "breakfast", nameEn: "Halloumi Wrap", nameAr: "ساندوتش حلومي", price: 18.0 },
-  { id: "p9", categoryId: "breakfast", nameEn: "Pancakes Maple", nameAr: "بان كيك عسل", price: 22.0 },
-  { id: "p10", categoryId: "tea", nameEn: "Red Tea", nameAr: "كوب شاي أحمر", price: 6.0 },
-  { id: "p11", categoryId: "tea", nameEn: "Karak Pot", nameAr: "شاي كرك دلة", price: 18.0 },
-  { id: "p12", categoryId: "dessert", nameEn: "Saffron Cake", nameAr: "كيكة الزعفران", price: 24.0 },
-  { id: "p13", categoryId: "dessert", nameEn: "San Sebastian", nameAr: "سان سيباستيان", price: 28.0 }
-];
+// Empty defaults — all categories and items come from server for the active cafe
+export const FALLBACK_CATEGORIES = [];
+export const FALLBACK_PRODUCTS = [];
 
 // Bilingual vocabulary mappings
 export const VOCAB = {

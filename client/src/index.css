@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap");
 
 :root {
   --bg-deep: #07090e;
@@ -128,3 +128,53 @@ button {
     display: none;
   }
 }
+
+/* RTL Support for Arabic */
+html[dir="rtl"],
+body.rtl {
+  font-family: "Cairo", "DM Sans", system-ui, sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+body.rtl h1,
+body.rtl h2,
+body.rtl h3,
+body.rtl h4 {
+  font-family: "Cairo", sans-serif;
+  letter-spacing: 0;
+}
+
+body.rtl .checkout-label {
+  left: auto;
+  right: 44px;
+  transform-origin: right top;
+}
+
+body.rtl .checkout-input-icon {
+  left: auto;
+  right: 14px;
+}
+
+body.rtl .popup-content .checkout-input {
+  padding: 20px 44px 8px 16px;
+}
+
+body.rtl .popup-back-btn {
+  left: auto;
+  right: 20px;
+}
+
+body.rtl .subtotal {
+  text-align: left;
+}
+
+body.rtl .my-orders-container {
+  direction: rtl;
+}
+
+body.rtl .order-header {
+  direction: rtl;
+}
+
+

@@ -65,19 +65,23 @@ export const addMenu = async (req, res) => {
     let catOid = null;
     let legacyCat = null;
 
-    if (categoryId) {
-      if (!mongoose.Types.ObjectId.isValid(String(categoryId))) {
-        return res.status(400).json({ message: "Invalid categoryId" });
-      }
+    if (categoryId && mongoose.Types.ObjectId.isValid(String(categoryId))) {
       catOid = new mongoose.Types.ObjectId(String(categoryId));
-      const cat = await Category.findOne({ _id: catOid, tenantId: req.tenantId })
-        .select("_id")
-        .lean();
-      if (!cat) return res.status(400).json({ message: "categoryId not found for this tenant" });
-    } else if (category) {
+      const cat = await Category.findOne({
+        _id: catOid,
+        $or: [{ tenantId: req.tenantId }, { tenantId: null }, { tenantId: { $exists: false } }]
+      }).select("name").lean() || await Category.findById(catOid).select("name").lean();
+      if (cat) {
+        legacyCat = normalizeCategory(cat.name);
+      }
+    }
+
+    if (!legacyCat && category) {
       legacyCat = normalizeCategory(category);
-    } else {
-      return res.status(400).json({ message: "Provide categoryId (preferred) or legacy category label" });
+    }
+
+    if (!legacyCat && !catOid) {
+      legacyCat = "Others";
     }
 
     let imageUrl = "";
@@ -211,13 +215,17 @@ export const menuUpdate = async (req, res) => {
     if (b.description !== undefined) menu.description = b.description;
     if (b.category !== undefined) menu.category = normalizeCategory(b.category);
     if (b.categoryId !== undefined && b.categoryId !== "") {
-      if (!mongoose.Types.ObjectId.isValid(String(b.categoryId))) {
-        return res.status(400).json({ message: "Invalid categoryId" });
+      if (mongoose.Types.ObjectId.isValid(String(b.categoryId))) {
+        const cid = new mongoose.Types.ObjectId(String(b.categoryId));
+        const cat = await Category.findOne({
+          _id: cid,
+          $or: [{ tenantId: req.tenantId }, { tenantId: null }, { tenantId: { $exists: false } }]
+        }).select("name").lean() || await Category.findById(cid).select("name").lean();
+        if (cat) {
+          menu.categoryId = cid;
+          menu.category = normalizeCategory(cat.name);
+        }
       }
-      const cid = new mongoose.Types.ObjectId(String(b.categoryId));
-      const cat = await Category.findOne({ _id: cid, tenantId: req.tenantId }).select("_id").lean();
-      if (!cat) return res.status(400).json({ message: "categoryId not found for this tenant" });
-      menu.categoryId = cid;
     }
     if (b.options !== undefined) {
       const parsed = parseOptionsField(b.options);

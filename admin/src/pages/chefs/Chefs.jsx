@@ -242,7 +242,7 @@ const Chefs = () => {
                         </span>
                         <span className="chef-meta-chip chef-meta-chip--total">
                           <FaUtensils aria-hidden />
-                          <strong>Total</strong> SAR {Number(order.totalPrice || 0).toLocaleString()}
+                          <strong>Total</strong> ﷼ {Number(order.totalPrice || 0).toLocaleString()}
                         </span>
                       </div>
 
@@ -381,7 +381,7 @@ const Chefs = () => {
                               <div className="chef-co-meta">
                                 <span><strong>Guest:</strong> {order.customerName || "Guest"}</span>
                                 <span><strong>Table:</strong> {order.tableId}</span>
-                                <span className="price">SAR {Number(order.totalPrice || 0).toLocaleString()}</span>
+                                <span className="price">﷼ {Number(order.totalPrice || 0).toLocaleString()}</span>
                               </div>
                               <div className="chef-co-items">
                                 {order.items.map((it) => (

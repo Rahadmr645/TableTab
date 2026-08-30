@@ -3,6 +3,8 @@ import { API_BASE_URL } from "./apiBaseUrl.js";
 
 const ID_KEY = "tabletab_public_tenant_id";
 const SLUG_KEY = "tabletab_public_tenant_slug";
+const TAX_KEY = "tabletab_public_tenant_tax_number";
+const NAME_KEY = "tabletab_public_tenant_name";
 
 const base = (API_BASE_URL || "").replace(/\/$/, "");
 
@@ -57,6 +59,14 @@ export function setStoredTenantSlug(slug) {
   if (slug) sessionStorage.setItem(SLUG_KEY, String(slug));
 }
 
+export function getStoredTenantTaxNumber() {
+  return sessionStorage.getItem(TAX_KEY)?.trim() || "";
+}
+
+export function setStoredTenantTaxNumber(tax) {
+  if (tax) sessionStorage.setItem(TAX_KEY, String(tax));
+}
+
 /** Headers for public menu/order APIs (`resolvePublicTenant`). */
 export function getPublicTenantHeaders() {
   const id = getStoredTenantId();
@@ -97,12 +107,18 @@ export async function bootstrapPublicTenant() {
       return;
     }
 
-    if (slug && !getStoredTenantId()) {
+    if (slug) {
       const url = `${base}/api/tenant/resolve/${encodeURIComponent(slug)}`;
       const res = await axios.get(url);
       const tid = res.data?.tenantId;
       if (tid) {
         setStoredTenantId(String(tid));
+      }
+      if (res.data?.businessName) {
+        sessionStorage.setItem(NAME_KEY, String(res.data.businessName));
+      }
+      if (res.data?.taxNumber) {
+        sessionStorage.setItem(TAX_KEY, String(res.data.taxNumber));
       }
     }
   } catch (e) {

@@ -260,7 +260,8 @@
 
 /* Top white action row */
 .action-row {
-  background-color: #ffffff; /* White background */
+  background-color: #ffffff;
+  /* White background */
   padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px 16px;
   display: flex;
   gap: 12px;
@@ -270,10 +271,12 @@
 }
 
 .action-btn {
-  background: rgba(52, 211, 153, 0.12); /* Soft translucent green */
+  background: rgba(52, 211, 153, 0.12);
+  /* Soft translucent green */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #065f46; /* Deep forest green for high readability */
+  color: #065f46;
+  /* Deep forest green for high readability */
   border: 1px solid rgba(16, 185, 129, 0.3);
   flex: 1;
   height: 60px;
@@ -352,9 +355,9 @@
   overflow-y: auto;
   padding: 16px;
   background: radial-gradient(at 0% 0%, rgba(236, 235, 250, 0.6) 0px, transparent 50%),
-              radial-gradient(at 100% 0%, rgba(240, 180, 41, 0.12) 0px, transparent 50%),
-              radial-gradient(at 50% 100%, rgba(255, 255, 255, 0.6) 0px, transparent 50%),
-              var(--bg-primary);
+    radial-gradient(at 100% 0%, rgba(240, 180, 41, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(255, 255, 255, 0.6) 0px, transparent 50%),
+    var(--bg-primary);
 }
 
 .catalog-grid {
@@ -364,10 +367,12 @@
 }
 
 .grid-item {
-  background: rgba(255, 255, 255, 0.7); /* Translucent white background */
+  background: rgba(255, 255, 255, 0.7);
+  /* Translucent white background */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(255, 255, 255, 0.6); /* Soft translucent border */
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  /* Soft translucent border */
   border-radius: 12px;
   padding: 16px;
   text-align: center;
@@ -455,7 +460,8 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   align-items: center;
-  direction: ltr !important; /* Keep order LTR: Home on Left, New on Right */
+  direction: ltr !important;
+  /* Keep order LTR: Home on Left, New on Right */
   width: 100%;
   box-sizing: border-box;
 }
@@ -604,7 +610,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pos-order-info {
@@ -715,7 +721,7 @@
   justify-content: center;
   font-size: 12px;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.15s ease;
 }
 
@@ -821,7 +827,8 @@
   color: #059669;
 }
 
-.status-badge.finished, .status-badge.finised {
+.status-badge.finished,
+.status-badge.finised {
   background-color: #ece9fc;
   color: var(--accent);
 }
@@ -866,13 +873,16 @@
 
 /* 2. Mobile & Small Tablets (< 992px) */
 @media (max-width: 991px) {
+
   /* Dynamic visibility based on show-* state class on container */
   .pos-container.show-catalog .cart-panel {
     display: none !important;
   }
+
   .pos-container.show-cart .catalog-panel {
     display: none !important;
   }
+
   .pos-container.show-cart .cart-panel {
     width: 100vw;
     max-width: 100vw;
@@ -900,21 +910,28 @@
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Hide scrollbar on Firefox */
+    scrollbar-width: none;
+    /* Hide scrollbar on Firefox */
     padding: 12px;
     gap: 8px;
   }
+
   .action-row::-webkit-scrollbar {
-    display: none; /* Hide scrollbar on Chrome/Safari/Webkit */
+    display: none;
+    /* Hide scrollbar on Chrome/Safari/Webkit */
   }
+
   .action-btn {
-    flex: 0 0 85px; /* Maintain fixed width when scrolling horizontally */
+    flex: 0 0 85px;
+    /* Maintain fixed width when scrolling horizontally */
     height: 54px;
     padding: 4px;
   }
+
   .action-btn-icon {
     font-size: 16px;
   }
+
   .action-btn-label {
     font-size: 10px;
   }
@@ -936,7 +953,7 @@
     animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transition: background-color 0.2s, transform 0.2s;
   }
-  
+
   .mobile-cart-summary-bar:active {
     transform: scale(0.98);
     background-color: var(--accent-hover);
@@ -968,6 +985,7 @@
       transform: translateY(20px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -977,6 +995,7 @@
 
 /* 3. Small phones / lists layout (< 600px) */
 @media (max-width: 600px) {
+
   /* Orders Card Stacking */
   .pos-order-card {
     flex-direction: column;
@@ -984,7 +1003,7 @@
     gap: 12px;
     padding: 12px;
   }
-  
+
   .pos-order-info {
     text-align: inherit;
   }
@@ -997,11 +1016,11 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  
+
   .pos-order-actions .status-badge {
     margin: 0 !important;
   }
-  
+
   .pos-order-actions .item-action-btn {
     flex: 1;
     text-align: center;
@@ -1033,12 +1052,12 @@
   .grid-item-price {
     font-size: 10px;
   }
-  
+
   .tables-grid-view {
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 8px;
   }
-  
+
   .table-grid-cell {
     height: 65px;
     font-size: 12px;
@@ -1103,7 +1122,8 @@
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  margin-inline-start: auto; /* Push to the end of row */
+  margin-inline-start: auto;
+  /* Push to the end of row */
   transition: all 0.2s ease;
 }
 
@@ -1227,7 +1247,8 @@
   flex-direction: column;
   height: 100%;
   padding: 16px 20px;
-  background-color: #eff3f6; /* Matching tablet POS soft background */
+  background-color: #eff3f6;
+  /* Matching tablet POS soft background */
   box-sizing: border-box;
 }
 
@@ -1415,8 +1436,9 @@
   font-size: 15px;
   font-weight: 700;
   width: fit-content;
-  align-self: flex-start; /* In RTL aligns to right */
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  align-self: flex-start;
+  /* In RTL aligns to right */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
 }
 
@@ -1752,7 +1774,8 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
-  direction: ltr !important; /* Keep bill ordering numbers standard LTR direction */
+  direction: ltr !important;
+  /* Keep bill ordering numbers standard LTR direction */
   justify-content: flex-start;
 }
 
@@ -2020,7 +2043,8 @@
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px;
-    padding: 10px 10px 80px 10px; /* space for mobile summary bar */
+    padding: 10px 10px 80px 10px;
+    /* space for mobile summary bar */
   }
 
   .grid-item {

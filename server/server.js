@@ -23,6 +23,8 @@ import tableRoutes from "./routes/tableRoutes.js";
 import platformRoutes from "./routes/platformRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import subscriptionBillingRoutes from "./routes/subscriptionBillingRoutes.js";
+import printerRoutes from "./routes/printerRoutes.js";
+import terminalRoutes from "./routes/terminalRoutes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +62,8 @@ app.use("/api/payment/", paymentRoutes);
 app.use("/api/platform", platformRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/subscription", subscriptionBillingRoutes);
+app.use("/api/printer", printerRoutes);
+app.use("/api/terminal", terminalRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello user");

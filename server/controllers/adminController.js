@@ -221,7 +221,7 @@ export const adminLogin = async (req, res) => {
     }
 
     const tenant = await Tenant.findById(user.tenantId)
-      .select("slug businessName plan subscriptionStatus accountStatus")
+      .select("slug businessName plan subscriptionStatus accountStatus taxNumber")
       .lean();
 
     if (!tenant) {
@@ -256,6 +256,7 @@ export const adminLogin = async (req, res) => {
         name: tenant.businessName,
         plan: tenant.plan,
         subscriptionStatus: tenant.subscriptionStatus,
+        taxNumber: tenant.taxNumber || "",
       },
     });
   } catch (error) {
@@ -317,7 +318,7 @@ export const fetchAdmin = async (req, res) => {
     delete safe.password;
 
     const tenant = await Tenant.findById(doc.tenantId)
-      .select("businessName slug subscriptionStatus plan expiresAt stripePublishableKey stripeSecretKey")
+      .select("businessName slug subscriptionStatus plan expiresAt stripePublishableKey stripeSecretKey taxNumber")
       .lean();
 
     res.status(200).json({
@@ -330,6 +331,7 @@ export const fetchAdmin = async (req, res) => {
             subscriptionStatus: tenant.subscriptionStatus,
             plan: tenant.plan,
             expiresAt: tenant.expiresAt,
+            taxNumber: tenant.taxNumber || "",
             stripePublishableKey: tenant.stripePublishableKey || "",
             stripeSecretKey: tenant.stripeSecretKey ? "••••••••••••••••" : ""
           }
@@ -517,6 +519,39 @@ export const updateStripeSettings = async (req, res) => {
     res.status(500).json({ message: "Failed to update Stripe settings", error: error.message });
   }
 };
+
+export const updateTaxSettings = async (req, res) => {
+  try {
+    const { taxNumber, businessName, cafeName } = req.body || {};
+
+    if (req.user.role !== "owner") {
+      return res.status(403).json({ message: "Only the venue owner can configure venue settings" });
+    }
+
+    const updateObj = {};
+    if (typeof taxNumber === "string") updateObj.taxNumber = taxNumber.trim();
+    const nameToUpdate = businessName || cafeName;
+    if (typeof nameToUpdate === "string" && nameToUpdate.trim() !== "") {
+      updateObj.businessName = nameToUpdate.trim();
+    }
+
+    const tenant = await Tenant.findByIdAndUpdate(
+      req.user.tenantId,
+      updateObj,
+      { new: true }
+    ).select("businessName slug taxNumber");
+
+    res.status(200).json({
+      message: "Venue settings updated successfully",
+      businessName: tenant.businessName || "",
+      taxNumber: tenant.taxNumber || "",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update tax settings", error: error.message });
+  }
+};
+
+export const updateVenueSettings = updateTaxSettings;
 
 export const updatePosPin = async (req, res) => {
   try {

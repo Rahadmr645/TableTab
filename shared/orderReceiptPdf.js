@@ -123,13 +123,18 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     }
   } catch (e) {}
 
-  const businessName = opts.businessName || readEnv("VITE_RECEIPT_BUSINESS_NAME", fallbackBizName);
+  const businessName =
+    opts.businessName ||
+    opts.cafeName ||
+    order?.businessName ||
+    order?.cafeName ||
+    readEnv("VITE_RECEIPT_BUSINESS_NAME", fallbackBizName);
   const logoUrl = opts.logoUrl || null;
   const branchLine = readEnv(
     "VITE_RECEIPT_BRANCH_LINE",
     "Branch 1 · Main location",
   );
-  const taxId = readEnv("VITE_RECEIPT_TAX_ID", "");
+  const taxId = opts.taxNumber || opts.taxId || order?.taxNumber || order?.taxId || readEnv("VITE_RECEIPT_TAX_ID", "");
   const addressLine = readEnv("VITE_RECEIPT_ADDRESS", "");
 
   const orderedAt = order.createdAt ? new Date(order.createdAt) : printTime;
@@ -150,6 +155,9 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     ? `Invoice: ${escapeHtml(order.invoiceSerial)}`
     : "Invoice: —";
 
+  const discountAmt = Number(order.discountAmount || (order.discountType === "fixed" ? order.discount : 0) || 0);
+  const displaySubtotal = linesTotal > 0 ? linesTotal : total;
+
   const rows = (order.items || [])
     .map((it) => {
       const q = Number(it?.quantity) || 0;
@@ -164,7 +172,7 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     .join("");
 
   const mismatch =
-    Math.abs(linesTotal - total) > 0.05
+    Math.abs(linesTotal - total) > 0.05 && discountAmt <= 0
       ? `<div class="tt-r-note">Line items subtotal ${fmtMoney(linesTotal)} · Amount charged ${fmtMoney(total)}</div>`
       : "";
 
@@ -172,7 +180,7 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
   styleEl.textContent = RECEIPT_CSS;
 
   const bizHeader = logoUrl
-    ? `<div class="tt-r-logo" style="text-align:center; margin-bottom: 6px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(businessName)}" style="max-width: 120px; max-height: 80px; display: inline-block; filter: grayscale(100%);" /></div>`
+    ? `<div class="tt-r-logo" style="text-align:center; margin-bottom: 6px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(businessName)}" style="max-width: 120px; max-height: 80px; display: inline-block; filter: grayscale(100%);" /><div class="tt-r-biz" style="margin-top: 4px;">${escapeHtml(businessName)}</div></div>`
     : `<div class="tt-r-biz">${escapeHtml(businessName)}</div>`;
 
   const wrap = document.createElement("div");
@@ -182,7 +190,7 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     <div class="tt-r-sub">${escapeHtml(branchLine)}</div>
     ${
       taxId
-        ? `<div class="tt-r-taxid">VAT registration no.: ${escapeHtml(taxId)}</div>`
+        ? `<div class="tt-r-taxid">VAT Reg / Tax No.: ${escapeHtml(taxId)}</div>`
         : ""
     }
     <div class="tt-r-simp">Simplified tax invoice</div>
@@ -204,14 +212,18 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
       <thead><tr>
         <th class="tt-r-q">Qty</th>
         <th class="tt-r-it">Item</th>
-        <th class="tt-r-pr">SAR</th>
+        <th class="tt-r-pr">Price</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="tt-r-sep"></div>
-    <div class="tt-r-totrow"><span>Subtotal (excl. VAT)</span><span>${fmtMoney(net)}</span></div>
-    <div class="tt-r-totrow"><span>VAT 15%</span><span>${fmtMoney(vat)}</span></div>
-    <div class="tt-r-totrow tt-r-grand"><span>Total</span><span>${fmtMoney(total)}</span></div>
+    <div class="tt-r-totrow"><span>Subtotal</span><span>${fmtMoney(displaySubtotal)} ﷼</span></div>
+    ${
+      discountAmt > 0
+        ? `<div class="tt-r-totrow" style="color: #16a34a;"><span>Discount</span><span>-${fmtMoney(discountAmt)} ﷼</span></div>`
+        : ""
+    }
+    <div class="tt-r-totrow tt-r-grand"><span>Total</span><span>${fmtMoney(total)} ﷼</span></div>
     ${
       isSplit
         ? `
@@ -296,5 +308,103 @@ export async function downloadOrderReceiptPdf(order, opts = {}) {
     await html2pdf().set(opt).from(wrap).save();
   } finally {
     document.body.removeChild(host);
+  }
+}
+
+/**
+ * Direct thermal printer / browser slip printing via hidden iframe.
+ * Prints only the formatted 80mm receipt without UI elements.
+ * @param {Record<string, unknown>} order
+ * @param {{ printTime?: Date, businessName?: string, logoUrl?: string }} [opts]
+ */
+export async function printOrderReceipt(order, opts = {}) {
+  if (!order || typeof order !== "object") return;
+  const printTime = opts.printTime instanceof Date ? opts.printTime : new Date();
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.visibility = "hidden";
+  iframe.setAttribute("aria-hidden", "true");
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    const { wrap, root } = await buildReceiptRoot(order, printTime, opts);
+
+    const printStyles = `
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 100%;
+        max-width: 80mm;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+      .tt-receipt-root {
+        width: 100%;
+        max-width: 80mm;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+      }
+      .tt-r {
+        width: 100% !important;
+        max-width: 80mm !important;
+        padding: 6mm 3mm 10mm !important;
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
+        font-size: 11px !important;
+      }
+      .tt-r-biz {
+        font-size: 16px !important;
+      }
+      .tt-r-ordno {
+        font-size: 24px !important;
+      }
+      .tt-r-qr img {
+        width: 140px !important;
+        height: 140px !important;
+      }
+    `;
+
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Receipt #${orderDisplayNo(order)}</title><style>${printStyles}</style></head><body></body></html>`);
+    doc.close();
+
+    doc.body.appendChild(root);
+
+    // Wait briefly for fonts and images (QR code) to render
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  } catch (err) {
+    console.error("Print error:", err);
+    window.print();
+  } finally {
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 4000);
   }
 }

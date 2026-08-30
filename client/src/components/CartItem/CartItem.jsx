@@ -23,6 +23,7 @@ const CartItem = ({ name, id, price, quantity, image }) => {
                 src={resolveAssetUrl(URL, image)}
                 alt=""
                 draggable={false}
+                crossOrigin="anonymous"
               />
             </button>
           </div>

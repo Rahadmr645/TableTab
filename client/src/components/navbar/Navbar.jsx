@@ -3,10 +3,11 @@ import "./Navbar.css";
 import logo from "../../assets/icons/logo.png";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import { MdCoffeeMaker } from "react-icons/md";
-import { IoCart, IoClose, IoMenu, IoPersonCircle } from "react-icons/io5";
+import { IoCart, IoClose, IoMenu, IoPersonCircle, IoGlobeOutline } from "react-icons/io5";
 import { PiReadCvLogo } from "react-icons/pi";
 import { TbBrandApplePodcast } from "react-icons/tb";
 import { AuthContext } from "../../context/CartContext";
+import { useLanguage } from "../../context/LanguageContext.jsx";
 import {
   loadGuestOrdersForNav,
   MY_ORDERS_EMPTY_MSG,
@@ -18,6 +19,7 @@ const MOBILE_BREAKPOINT = 768;
 
 const Navbar = () => {
   const { cart, setMyOrders, user } = useContext(AuthContext);
+  const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const cartCount = cart.reduce((n, i) => n + (i.quantity || 0), 0);
@@ -72,7 +74,7 @@ const Navbar = () => {
   const cartClick = (e) => {
     if (cart.length === 0) {
       e.preventDefault();
-      alert("You need to add something in your card");
+      alert(t("cart_empty_alert"));
     }
     closeMenu();
   };
@@ -107,7 +109,7 @@ const Navbar = () => {
     >
       <AsyncLoadingOverlay
         open={myOrdersNavBusy}
-        message="Loading your orders…"
+        message={language === "ar" ? "جاري تحميل طلباتك…" : "Loading your orders…"}
       />
       <Link to="/menu" className="left-side brand-link" aria-label={`${restaurantName || "TableTab"} menu`}>
         <img src={logo} alt="" />
@@ -127,7 +129,7 @@ const Navbar = () => {
             to="/menu"
             onClick={closeMenu}
           >
-            <span>Menu</span>
+            <span>{t("nav_menu")}</span>
             <MdCoffeeMaker />
           </NavLink>
         </div>
@@ -139,7 +141,7 @@ const Navbar = () => {
             to="/about"
             onClick={closeMenu}
           >
-            <span>About</span>
+            <span>{t("nav_about")}</span>
             <TbBrandApplePodcast />
           </NavLink>
         </div>
@@ -158,11 +160,11 @@ const Navbar = () => {
               onClick={cartClick}
               aria-label={
                 cart.length > 0
-                  ? `Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`
-                  : "Cart, empty"
+                  ? `${t("nav_cart")}, ${cartCount}`
+                  : `${t("nav_cart")}, empty`
               }
             >
-              <span className="cart-span">Cart</span>
+              <span className="cart-span">{t("nav_cart")}</span>
               <IoCart className="icon" />
               {cart.length > 0 && (
                 <span className="cart-badge" aria-label={`${cartCount} items`}>
@@ -178,62 +180,75 @@ const Navbar = () => {
               }
               to="/myOrders"
               onClick={myOrdersClick}
-              aria-label="My orders"
+              aria-label={t("nav_orders")}
             >
-              <span className="orders-label">My Orders</span>
+              <span className="orders-label">{t("nav_orders")}</span>
               <PiReadCvLogo className="icon" />
             </NavLink>
           </div>
         </nav>
 
         <div className="right-side">
-        {user ? (
-          <Link
-            to="/profile"
-            state={{ background: routerLocation }}
-            className="navbar-profile"
-            onClick={closeMenu}
-            aria-label={`Open profile, signed in as ${user.username ?? "user"}`}
-            title={user.username ?? ""}
+          {/* Language Switcher Pill */}
+          <button
+            type="button"
+            className="navbar-lang-btn"
+            onClick={toggleLanguage}
+            title={language === "en" ? "تغيير اللغة إلى العربية" : "Switch language to English"}
+            aria-label={language === "en" ? "Switch to Arabic" : "Switch to English"}
           >
-            {typeof user.profilePic === "string" &&
-            user.profilePic.trim() &&
-            !profilePicFailed ? (
-              <img
-                src={user.profilePic.trim()}
-                alt=""
-                className="navbar-profile__img"
-                referrerPolicy="no-referrer"
-                onError={() => setProfilePicFailed(true)}
-              />
-            ) : (
-              <IoPersonCircle
-                className="navbar-profile__fallback"
-                aria-hidden
-              />
-            )}
-          </Link>
-        ) : (
-          <Link
-            to="/signup"
-            state={{ background: routerLocation }}
-            className="navbar-signup-btn"
-            onClick={closeMenu}
-            aria-label="Sign in or create an account"
+            <IoGlobeOutline className="lang-icon" />
+            <span className="lang-text-desktop">{language === "en" ? "العربية" : "English"}</span>
+            <span className="lang-text-mobile">{language === "en" ? "ع" : "EN"}</span>
+          </button>
+
+          {user ? (
+            <Link
+              to="/profile"
+              state={{ background: routerLocation }}
+              className="navbar-profile"
+              onClick={closeMenu}
+              aria-label={`Open profile, signed in as ${user.username ?? "user"}`}
+              title={user.username ?? ""}
+            >
+              {typeof user.profilePic === "string" &&
+              user.profilePic.trim() &&
+              !profilePicFailed ? (
+                <img
+                  src={user.profilePic.trim()}
+                  alt=""
+                  className="navbar-profile__img"
+                  referrerPolicy="no-referrer"
+                  onError={() => setProfilePicFailed(true)}
+                />
+              ) : (
+                <IoPersonCircle
+                  className="navbar-profile__fallback"
+                  aria-hidden
+                />
+              )}
+            </Link>
+          ) : (
+            <Link
+              to="/signup"
+              state={{ background: routerLocation }}
+              className="navbar-signup-btn"
+              onClick={closeMenu}
+              aria-label="Sign in or create an account"
+            >
+              {t("nav_signin")}
+            </Link>
+          )}
+          <button
+            type="button"
+            className="navbar-menu-toggle"
+            aria-expanded={menuOpen}
+            aria-controls="navbar-primary-nav"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen((o) => !o)}
           >
-            Sign in
-          </Link>
-        )}
-        <button
-          type="button"
-          className="navbar-menu-toggle"
-          aria-expanded={menuOpen}
-          aria-controls="navbar-primary-nav"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          {menuOpen ? <IoClose /> : <IoMenu />}
-        </button>
+            {menuOpen ? <IoClose /> : <IoMenu />}
+          </button>
         </div>
       </div>
     </div>

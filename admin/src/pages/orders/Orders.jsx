@@ -338,7 +338,7 @@ const Orders = () => {
                     <div className="order-row-col">
                       <span className="order-row-label">Total</span>
                       <strong className="order-row-value" style={{ color: "#a5f3fc" }}>
-                        SAR {Number(order.totalPrice || 0).toFixed(2)}
+                        ﷼ {Number(order.totalPrice || 0).toFixed(2)}
                       </strong>
                     </div>
 
@@ -621,7 +621,7 @@ const Orders = () => {
                           )}
                           {order.refundedAmount > 0 && (
                             <div style={{ marginTop: "8px", fontSize: "0.85rem", color: "#34d399" }}>
-                              <strong>Refunded:</strong> SAR {Number(order.refundedAmount || 0).toFixed(2)}
+                              <strong>Refunded:</strong> ﷼ {Number(order.refundedAmount || 0).toFixed(2)}
                             </div>
                           )}
                           <div style={{ marginTop: "12px", fontSize: "0.85rem", color: "#e2e8f0" }}>
@@ -732,7 +732,7 @@ const Orders = () => {
                       <div className="cancel-modal-item-info">
                         <span className="cancel-modal-item-name">{item.name}</span>
                         <span className="cancel-modal-item-price">
-                          SAR {Number(item.price || 0).toFixed(2)}
+                          ﷼ {Number(item.price || 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="cancel-modal-item-controls">
@@ -792,7 +792,7 @@ const Orders = () => {
                   <p style={{ margin: "6px 0 0 22px", fontSize: "0.78rem", color: "#cbd5e1" }}>
                     Est. refund:{" "}
                     <strong>
-                      SAR{" "}
+                      ﷼{" "}
                       {(() => {
                         let totalRefund = 0;
                         let anySelected = false;
@@ -842,6 +842,7 @@ const Orders = () => {
         <ReceiptPreviewModal
           order={previewOrder}
           businessName={admin?.companyName}
+          taxNumber={admin?.taxNumber || previewOrder?.taxNumber}
           onClose={() => setPreviewOrder(null)}
         />
       )}

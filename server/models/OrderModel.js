@@ -52,6 +52,10 @@ const orderSchema = new mongoose.Schema({
   ],
 
   totalPrice: { type: Number, required: true },
+  discount: { type: Number, default: 0 },
+  discountAmount: { type: Number, default: 0 },
+  discountType: { type: String, enum: ["percent", "fixed"], default: "percent" },
+  discountReason: { type: String, default: "" },
   status: {
     type: String,
     enum: ["pending", "In Progress", "Ready", "Finised", "Finished", "Cancelled"],
@@ -140,6 +144,11 @@ const orderSchema = new mongoose.Schema({
   dailyOrderNumber: { type: Number, min: 1 },
   /** Global invoice-style id per tenant — indexed via schema.index() below */
   invoiceSerial: { type: String, trim: true },
+  /** Official Tax / VAT Registration Number snapshot */
+  taxNumber: { type: String, default: "", trim: true },
+  /** Cafe / Business name snapshot at order creation */
+  businessName: { type: String, default: "", trim: true },
+  cafeName: { type: String, default: "", trim: true },
 
   createdAt: {
     type: Date,

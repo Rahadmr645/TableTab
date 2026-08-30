@@ -135,7 +135,7 @@ const PaymentFormInner = ({ amount, onSuccess, onLoadingChange, onlineSubMethod,
           disabled={!stripe || loading}
           className="pay-btn"
         >
-          {loading ? "Processing..." : `Pay SAR ${(amount / 100).toFixed(2)}`}
+          {loading ? "Processing..." : `Pay ﷼ ${(amount / 100).toFixed(2)}`}
         </button>
       </form>
     </div>

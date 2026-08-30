@@ -7,6 +7,7 @@ import {
   readMenuCatalogCache,
   writeMenuCatalogCache,
 } from "../../utils/menuCatalogCache.js";
+import { useLanguage } from "../../context/LanguageContext.jsx";
 import SaudiRiyalSymbol from "../currency/SaudiRiyalSymbol.jsx";
 import "./MenuList.css";
 import { IoAddCircleOutline } from "react-icons/io5";
@@ -28,6 +29,7 @@ function canonCategory(label) {
 }
 
 const MenuList = () => {
+  const { t, language, translateCat } = useLanguage();
   const location = useLocation();
   const { tenantSlug } = useParams();
   const { URL, quantities, setQuantities, setCart, handleRemove } = useContext(AuthContext);
@@ -377,7 +379,7 @@ const MenuList = () => {
                 }`}
                 onClick={() => setSelectedCategory(cat)}
               >
-                {cat}
+                {translateCat(cat)}
               </button>
             ))}
           </div>
@@ -436,6 +438,7 @@ const MenuList = () => {
                       draggable={false}
                       loading="lazy"
                       decoding="async"
+                      crossOrigin="anonymous"
                     />
                   </button>
 
@@ -535,7 +538,7 @@ const MenuList = () => {
                       <ul className="menu-comment-list">
                         {(commentsByItem[id] || []).length === 0 ? (
                           <li className="menu-comment-empty">
-                            No comments yet.
+                            {t("menu_no_comments")}
                           </li>
                         ) : (
                           (commentsByItem[id] || []).map((c) => (
@@ -549,12 +552,12 @@ const MenuList = () => {
                                   </span>
                                 )}
                                 <time dateTime={c.createdAt}>
-                                  {new Date(c.createdAt).toLocaleDateString()}
+                                  {new Date(c.createdAt).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US")}
                                 </time>
                               </div>
                               <p>{c.text || "—"}</p>
                               {c.kind === "review" && (
-                                <span className="menu-comment-badge">Order review</span>
+                                <span className="menu-comment-badge">{t("menu_order_review")}</span>
                               )}
                             </li>
                           ))
@@ -568,17 +571,17 @@ const MenuList = () => {
                     <SaudiRiyalSymbol />
                   </p>
                   <span className="menu-category">
-                    {canonCategory(item.category)}
+                    {translateCat(canonCategory(item.category))}
                   </span>
                 </div>
               </div>
             );
           })
           ) : (
-            <p className="menu-empty">No items in this category.</p>
+            <p className="menu-empty">{t("menu_no_items_cat")}</p>
           )
         ) : (
-          <p className="menu-empty">No menu items yet.</p>
+          <p className="menu-empty">{t("menu_no_items_yet")}</p>
         )}
       </div>
     </div>

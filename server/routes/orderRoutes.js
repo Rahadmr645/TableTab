@@ -48,7 +48,7 @@ router.get("/summary-stats", ...staffBase, getSummaryStats);
 router.put(
   "/:id",
   ...staffBase,
-  requireRole(["owner", "manager", "cashier"]),
+  requireRole(["owner", "manager", "cashier", "barista", "chef"]),
   updateOrder,
 );
 router.delete(
@@ -81,7 +81,7 @@ router.post(
   ...publicTenant,
   resolveCancellationRequest,
 );
-router.get("/active-orders", ...staffBase, activeOrders);
+router.get("/active-orders", optionalAuthenticate, ...publicTenant, activeOrders);
 router.get("/server-clock", getServerClock);
 
 router.get("/my-orders-for-account", requireCustomerAuth, getOrdersByCustomerAccount);
