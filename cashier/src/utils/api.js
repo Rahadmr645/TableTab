@@ -1,28 +1,19 @@
 import axios from "axios";
 
 export function getApiBaseUrl() {
-  // In development, use same-origin relative URLs ("") to route through Vite's proxy.
+  // 1. In Vite local dev mode (npm run dev), use same-origin relative URLs ("")
+  // to route through Vite's local dev proxy (/api, /uploads, /socket.io).
   if (import.meta.env.DEV) {
     return "";
   }
 
+  // 2. If VITE_API_URL is configured at build time, use it
   const envUrl = (import.meta.env.VITE_API_URL || "").trim();
-
-  // If a valid remote cloud API URL was provided at build time (e.g. https://...railway.app), use it.
   if (envUrl && !/^(https?:\/\/)?(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(envUrl)) {
     return envUrl.replace(/\/$/, "");
   }
 
-  // If accessed from a local server / LAN IP in production
-  if (typeof window !== "undefined" && window.location?.hostname) {
-    const host = window.location.hostname;
-    const protocol = window.location.protocol || "http:";
-    if (/^(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/i.test(host)) {
-      return `${protocol}//${host}:5000`;
-    }
-  }
-
-  // Cloud production default (e.g. Vercel / Netlify / Custom Domain)
+  // 3. Cloud production default
   return "https://tabletab-server.up.railway.app";
 }
 
