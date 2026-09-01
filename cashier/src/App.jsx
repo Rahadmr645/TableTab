@@ -7,6 +7,7 @@ import CartPanel from "./components/CartPanel.jsx";
 import CatalogPanel from "./components/CatalogPanel.jsx";
 import CashierLogin from "./pages/login/CashierLogin.jsx";
 import CashierLockScreen from "./pages/lock/CashierLockScreen.jsx";
+import CashierSuspendedScreen from "./pages/suspended/CashierSuspendedScreen.jsx";
 
 // Import modular modals
 import CustomerModal from "./components/modals/CustomerModal.jsx";
@@ -23,6 +24,7 @@ import PaymentSuccessModal from "./components/modals/PaymentSuccessModal.jsx";
 import PrinterSettingsModal from "./components/modals/PrinterSettingsModal.jsx";
 import TerminalSettingsModal from "./components/modals/TerminalSettingsModal.jsx";
 import LiveTerminalPaymentModal from "./components/modals/LiveTerminalPaymentModal.jsx";
+import RefundOrderModal from "./components/modals/RefundOrderModal.jsx";
 
 import "./App.css";
 
@@ -44,7 +46,12 @@ function CashierDashboard() {
     return <CashierLogin />;
   }
 
-  // 2. If screen is locked with PIN, show PIN unlock screen
+  // 2. If the cashier account is suspended by the restaurant owner, show dedicated Blocked screen
+  if (currentUser?.staffStatus === "suspended") {
+    return <CashierSuspendedScreen />;
+  }
+
+  // 3. If screen is locked with PIN, show PIN unlock screen
   if (isScreenLocked) {
     return <CashierLockScreen />;
   }
@@ -72,6 +79,7 @@ function CashierDashboard() {
       <PrinterSettingsModal />
       <TerminalSettingsModal />
       <LiveTerminalPaymentModal />
+      <RefundOrderModal />
 
       {/* 4. SHARED RECEIPT GENERATOR */}
       {showPrintModal && (

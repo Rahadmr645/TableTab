@@ -5,6 +5,7 @@ import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import CreateStaffModal from "../../components/createStaff/CreateStaffModal.jsx";
 import { FaCashRegister, FaUserPlus, FaCheckCircle, FaBan, FaTrash, FaExternalLinkAlt, FaCopy } from "react-icons/fa";
 import { MdPointOfSale } from "react-icons/md";
+import { copyToClipboard } from "../../utils/clipboard.js";
 import "./Cashiers.css";
 
 export default function Cashiers() {
@@ -82,13 +83,24 @@ export default function Cashiers() {
   // Determine Cashier POS URL
   const tenantSlug = admin?.tenantSlug || localStorage.getItem("tenantSlug") || "";
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  const posPort = "5173"; // default cashier vite dev port or custom
-  const cashierPosUrl = `http://${host}:5173/?tenant=${tenantSlug}`;
+  const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+  const cashierBase =
+    import.meta.env.VITE_CASHIER_URL ||
+    (typeof window !== "undefined" && window.location.port === "5173"
+      ? `${protocol}//${host}:5174`
+      : typeof window !== "undefined" && window.location.port === "5174"
+      ? `${protocol}//${window.location.host}`
+      : `${protocol}//${host}:5174`);
+  const cashierPosUrl = `${cashierBase}/?tenant=${encodeURIComponent(tenantSlug)}`;
 
-  const copyPosLink = () => {
-    navigator.clipboard.writeText(cashierPosUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const copyPosLink = async () => {
+    const ok = await copyToClipboard(cashierPosUrl);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } else {
+      window.prompt("Copy link:", cashierPosUrl);
+    }
   };
 
   const activeCount = cashiers.filter((c) => c.staffStatus !== "suspended").length;

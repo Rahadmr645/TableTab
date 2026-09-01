@@ -53,21 +53,24 @@ const Summary = () => {
     }
   }, [URL]);
 
+  const canViewSummary =
+    admin && (admin.role === "admin" || admin.role === "owner" || admin.role === "manager");
+
   useEffect(() => {
-    if (admin?.role === "admin") load();
+    if (canViewSummary) load();
     else {
       setLoading(false);
       setData(null);
       setError(null);
     }
-  }, [admin, load]);
+  }, [canViewSummary, load]);
 
-  if (!admin || admin.role !== "admin") {
+  if (!admin || !canViewSummary) {
     return (
       <div className="summary-page">
         <div className="summary-container summary-container--narrow">
           <p className="summary-gate">
-            Summary is available to administrators only.
+            Summary is available to administrators and owners only.
           </p>
         </div>
       </div>

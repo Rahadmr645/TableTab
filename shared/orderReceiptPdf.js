@@ -116,10 +116,13 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
   );
 
   let fallbackBizName = "TableTab";
+  let fallbackTaxNumber = "";
   try {
     if (typeof sessionStorage !== "undefined") {
       const stored = sessionStorage.getItem("tabletab_public_tenant_name");
       if (stored) fallbackBizName = stored;
+      const storedTax = sessionStorage.getItem("tabletab_public_tenant_tax_number");
+      if (storedTax) fallbackTaxNumber = storedTax;
     }
   } catch (e) {}
 
@@ -134,7 +137,13 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     "VITE_RECEIPT_BRANCH_LINE",
     "Branch 1 · Main location",
   );
-  const taxId = opts.taxNumber || opts.taxId || order?.taxNumber || order?.taxId || readEnv("VITE_RECEIPT_TAX_ID", "");
+  const taxId =
+    opts.taxNumber ||
+    opts.taxId ||
+    order?.taxNumber ||
+    order?.taxId ||
+    fallbackTaxNumber ||
+    readEnv("VITE_RECEIPT_TAX_ID", "");
   const addressLine = readEnv("VITE_RECEIPT_ADDRESS", "");
 
   const orderedAt = order.createdAt ? new Date(order.createdAt) : printTime;

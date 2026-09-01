@@ -17,7 +17,12 @@ export default function ReceiptPreviewModal({ order, businessName, logoUrl, taxN
   const [downloadBusy, setDownloadBusy] = useState(false);
   const [printBusy, setPrintBusy] = useState(false);
 
-  const resolvedTaxNumber = taxNumber || order?.taxNumber || undefined;
+  const resolvedTaxNumber =
+    taxNumber ||
+    order?.taxNumber ||
+    order?.taxId ||
+    (typeof sessionStorage !== "undefined" && sessionStorage.getItem("tabletab_public_tenant_tax_number")) ||
+    undefined;
   const resolvedBizName = businessName || order?.businessName || order?.cafeName || undefined;
 
   useLayoutEffect(() => {

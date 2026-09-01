@@ -157,7 +157,7 @@ const VerifyOtp = () => {
       localStorage.removeItem("otpFormData");
       localStorage.removeItem("otpExpiresAt");
 
-      navigate("/", { replace: true });
+      navigate("/orders", { replace: true });
       window.location.reload();
     } catch (error) {
       const msg =

@@ -130,6 +130,8 @@ export function CashierProvider({ children }) {
   const [showProdModal, setShowProdModal] = useState(false);
   const [showMoreModal, setShowMoreModal] = useState(false);
   const [showDailySalesModal, setShowDailySalesModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [activeRefundOrder, setActiveRefundOrder] = useState(null);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [showTerminalModal, setShowTerminalModal] = useState(false);
   const [paymentSuccessData, setPaymentSuccessData] = useState(null);
@@ -495,9 +497,13 @@ export function CashierProvider({ children }) {
 
     socket.on("orderUpdated", (updatedOrderDoc) => {
       if (!updatedOrderDoc || !updatedOrderDoc._id) return;
-      setPlacedOrders((prev) =>
-        prev.map((o) => (o._id === updatedOrderDoc._id ? { ...o, ...updatedOrderDoc } : o))
-      );
+      setPlacedOrders((prev) => {
+        const exists = prev.some((o) => o._id === updatedOrderDoc._id);
+        if (exists) {
+          return prev.map((o) => (o._id === updatedOrderDoc._id ? { ...o, ...updatedOrderDoc } : o));
+        }
+        return [updatedOrderDoc, ...prev];
+      });
     });
 
     socket.on("statusUpdate", ({ orderId, status }) => {
@@ -510,6 +516,21 @@ export function CashierProvider({ children }) {
     socket.on("orderRemoved", (orderId) => {
       if (!orderId) return;
       setPlacedOrders((prev) => prev.filter((o) => o._id !== orderId));
+    });
+
+    socket.on("staffStatusChanged", ({ staffId, staffStatus }) => {
+      if (!staffId) return;
+      setCurrentUser((prevUser) => {
+        const uid = prevUser?._id || prevUser?.id || prevUser?.userId;
+        if (uid && String(uid) === String(staffId)) {
+          const updated = { ...prevUser, staffStatus };
+          try {
+            localStorage.setItem("cashier_user", JSON.stringify(updated));
+          } catch {}
+          return updated;
+        }
+        return prevUser;
+      });
     });
 
     socket.on("app:pwa-update", () => {
@@ -537,6 +558,26 @@ export function CashierProvider({ children }) {
   // ----------------------------------------------------
   // Authentication & Tenant Switch Handlers
   // ----------------------------------------------------
+  const checkStaffStatus = async () => {
+    const uid = currentUser?._id || currentUser?.id || currentUser?.userId;
+    if (!uid) return { active: false };
+    try {
+      const res = await api.get(`/api/admin/fetchAdmin/${uid}`);
+      const updatedStaff = res.data?.admin;
+      if (updatedStaff) {
+        setCurrentUser(updatedStaff);
+        localStorage.setItem("cashier_user", JSON.stringify(updatedStaff));
+        if (updatedStaff.staffStatus !== "suspended") {
+          loadServerData();
+        }
+        return { active: updatedStaff.staffStatus !== "suspended", staff: updatedStaff };
+      }
+    } catch (err) {
+      console.warn("Failed to check staff status:", err);
+    }
+    return { active: currentUser?.staffStatus !== "suspended" };
+  };
+
   const handleStaffLogin = async (email, password, tenantSlug) => {
     try {
       const res = await api.post("/api/admin/login", {
@@ -563,8 +604,10 @@ export function CashierProvider({ children }) {
           localStorage.setItem("cashier_tenant_slug", tenantData.slug);
         }
 
-        await loadServerData();
-        return { success: true };
+        if (staffUser?.staffStatus !== "suspended") {
+          await loadServerData();
+        }
+        return { success: true, isSuspended: staffUser?.staffStatus === "suspended" };
       }
       return { success: false, message: res.data?.message || "Login failed" };
     } catch (err) {
@@ -804,6 +847,24 @@ export function CashierProvider({ children }) {
   // Cart Actions
   // ----------------------------------------------------
   const handleAddToCart = (product) => {
+    const editingOrder = placedOrders.find((ord) => ord._id === activeEditingOrderId);
+    const isOrderPaid =
+      editingOrder &&
+      (editingOrder.paymentStatus === "paid" ||
+        editingOrder.paymentStatus === "refunded" ||
+        editingOrder.status === "Finished" ||
+        editingOrder.status === "Finised" ||
+        editingOrder.status === "Cancelled");
+
+    if (isOrderPaid) {
+      alert(
+        lang === "ar"
+          ? "الطلب الحالي مدفوع ومكتمل. لا يمكن إضافة أصناف على طلب مدفوع. يرجى الضغط على (+ طلب جديد) لإنشاء طلب جديد."
+          : "The active order is paid/completed. Items cannot be added to a paid order. Please click (+ New Order) to start a new order."
+      );
+      return;
+    }
+
     setCart((prev) => {
       const match = prev.find((item) => item.product.id === product.id);
       if (match) {
@@ -816,6 +877,19 @@ export function CashierProvider({ children }) {
   };
 
   const handleUpdateQuantity = (productId, amt) => {
+    const editingOrder = placedOrders.find((ord) => ord._id === activeEditingOrderId);
+    const isOrderPaid =
+      editingOrder &&
+      (editingOrder.paymentStatus === "paid" ||
+        editingOrder.paymentStatus === "refunded" ||
+        editingOrder.status === "Finished" ||
+        editingOrder.status === "Finised" ||
+        editingOrder.status === "Cancelled");
+
+    if (isOrderPaid) {
+      return;
+    }
+
     setCart((prev) => {
       return prev
         .map((item) => {
@@ -877,6 +951,19 @@ export function CashierProvider({ children }) {
 
   const handlePayOrderDirect = (order) => {
     if (!order) return;
+    const isRefunded = order.paymentStatus === "refunded" || (Number(order.refundedAmount) > 0 && order.status === "Cancelled");
+    const isCancelled = order.status === "Cancelled";
+    const isPaid = order.paymentStatus === "paid" || order.status === "Finished" || order.status === "Finised";
+
+    if (isRefunded || isCancelled || isPaid) {
+      alert(
+        lang === "ar"
+          ? "لا يمكن سداد طلب مسترجع أو ملغي أو مدفوع مسبقاً"
+          : "A refunded, cancelled, or settled order cannot be paid again"
+      );
+      return;
+    }
+
     handleOpenOrder(order);
     setActiveTab("payment");
     setMobileView("catalog");
@@ -977,7 +1064,67 @@ export function CashierProvider({ children }) {
     }
   };
 
+  const handleOpenRefundModal = (order = null) => {
+    const target = order || placedOrders.find((ord) => ord._id === activeEditingOrderId);
+    if (!target) return;
+    setActiveRefundOrder(target);
+    setShowRefundModal(true);
+  };
+
+  const handleRefundOrder = async (orderId, refundMethod, refundAmount, reason, refundedItems = []) => {
+    if (!orderId) return false;
+    try {
+      const res = await api.post(`/api/order/${orderId}/refund`, {
+        refundMethod,
+        refundAmount,
+        refundedItems,
+        reason
+      });
+
+      const updatedOrder = res.data?.order;
+      if (updatedOrder) {
+        setPlacedOrders((prev) =>
+          prev.map((o) => (o._id === orderId ? updatedOrder : o))
+        );
+      }
+
+      // If active order was this refunded order, reset to clean state
+      if (activeEditingOrderId === orderId) {
+        handleNewOrder(false);
+      }
+
+      alert(
+        lang === "ar"
+          ? `تم استرجاع مبلغ (${Number(refundAmount || updatedOrder?.refundedAmount || 0).toFixed(2)} ﷼) للطلب #${updatedOrder?.dailyOrderNumber || ""} بنجاح (${refundMethod === "cash" ? "نقدي / كاش" : "شبكة / بطاقة"}) وتم خصمه من مبيعات اليوم.`
+          : `Order #${updatedOrder?.dailyOrderNumber || ""} refunded (${Number(refundAmount || updatedOrder?.refundedAmount || 0).toFixed(2)} SAR) successfully (${refundMethod.toUpperCase()}) and deducted from today's sales.`
+      );
+      return true;
+    } catch (err) {
+      console.error("Refund error:", err);
+      alert(
+        lang === "ar"
+          ? `فشل استرجاع الطلب: ${err.response?.data?.message || err.message}`
+          : `Failed to refund order: ${err.response?.data?.message || err.message}`
+      );
+      return false;
+    }
+  };
+
   const handleClearCart = (promptConfirm = true) => {
+    const editingOrder = placedOrders.find((ord) => ord._id === activeEditingOrderId);
+    const isOrderPaid =
+      editingOrder &&
+      (editingOrder.paymentStatus === "paid" ||
+        editingOrder.paymentStatus === "refunded" ||
+        editingOrder.status === "Finished" ||
+        editingOrder.status === "Finised");
+
+    if (isOrderPaid) {
+      // If paid, trigger refund and cancel modal
+      handleOpenRefundModal(editingOrder);
+      return;
+    }
+
     if (!promptConfirm) {
       handleNewOrder(false);
       return;
@@ -1512,6 +1659,12 @@ export function CashierProvider({ children }) {
         setShowMoreModal,
         showDailySalesModal,
         setShowDailySalesModal,
+        showRefundModal,
+        setShowRefundModal,
+        activeRefundOrder,
+        setActiveRefundOrder,
+        handleOpenRefundModal,
+        handleRefundOrder,
         showAuthModal,
         setShowAuthModal,
         showPrinterModal,
@@ -1568,6 +1721,7 @@ export function CashierProvider({ children }) {
         socketConnected,
         handleStaffLogin,
         handleStaffLogout,
+        checkStaffStatus,
         handleSwitchTenantSlug,
         loadServerData,
         isScreenLocked,

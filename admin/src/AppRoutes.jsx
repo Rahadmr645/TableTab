@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Dashbord from "./pages/deshboard/Dashbord";
 import Login from "./pages/login/Login";
 
@@ -67,6 +67,7 @@ const AppRoutes = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile-pic" element={<UpdateProfilePic />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

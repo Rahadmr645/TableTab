@@ -51,7 +51,8 @@ export default function CatalogPanel() {
     autoPrintEnabled,
     toggleAutoPrint,
     setShowPrinterModal,
-    printerConfig
+    printerConfig,
+    handleOpenRefundModal
   } = useCashier();
 
   const [activeHoldId, setActiveHoldId] = useState(null);
@@ -123,15 +124,7 @@ export default function CatalogPanel() {
   return (
     <div className="catalog-panel">
       {/* Multi-Tenant Restaurant Brand & Status Header */}
-      <div className="pos-brand-header-bar" style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "8px 14px",
-        background: "var(--bg-secondary, #1a202c)",
-        borderBottom: "1px solid var(--border-color, #2d3748)",
-        fontSize: "13px"
-      }}>
+      <div className="pos-brand-header-bar">
         <div
           onClick={() => setShowAuthModal(true)}
           style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
@@ -175,40 +168,20 @@ export default function CatalogPanel() {
             type="button"
             onClick={() => setShowAuthModal(true)}
             style={{
-              border: "1px solid var(--border-color, #374151)",
-              background: "var(--bg-card, #2d3748)",
-              color: "var(--text-primary, #ffffff)",
-              padding: "4px 10px",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              background: "#1e293b",
+              color: "#ffffff",
+              padding: "5px 12px",
               borderRadius: "8px",
               fontSize: "12px",
+              fontWeight: "700",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "5px"
+              gap: "6px"
             }}
           >
-            👤 {currentUser ? (currentUser.username || currentUser.email) : (lang === "ar" ? "دخول الكاشير" : "Staff Login")}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLockScreen}
-            title={lang === "ar" ? "قفل الشاشة برمز PIN السريع" : "Lock Terminal with PIN"}
-            style={{
-              border: "1px solid rgba(239, 68, 68, 0.3)",
-              background: "rgba(239, 68, 68, 0.12)",
-              color: "#f87171",
-              padding: "4px 10px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontWeight: "600"
-            }}
-          >
-            🔒 {lang === "ar" ? "قفل" : "Lock"}
+            👤 <span style={{ color: "#ffffff", fontWeight: "700" }}>{currentUser ? (currentUser.username || currentUser.email) : (lang === "ar" ? "دخول الكاشير" : "Staff Login")}</span>
           </button>
         </div>
       </div>
@@ -242,10 +215,6 @@ export default function CatalogPanel() {
             <span className="action-btn-label">
               {t.discount} {orderDiscount > 0 ? `(${discountType === "fixed" ? orderDiscount + " ﷼" : orderDiscount + "%"})` : ""}
             </span>
-          </button>
-          <button className="action-btn">
-            <span className="action-btn-icon">📝</span>
-            <span className="action-btn-label">{t.notes}</span>
           </button>
           <button className="action-btn" onClick={() => setShowMoreModal(true)}>
             <span className="action-btn-icon">⋯</span>
@@ -477,89 +446,148 @@ export default function CatalogPanel() {
                   {lang === "ar" ? "لا توجد طلبات لعرضها" : "No orders found"}
                 </div>
               ) : (
-                filteredOrders.map((ord, idx) => (
-                  <div
-                    className={`pos-order-card ${activeEditingOrderId === ord._id ? "active-editing-card" : ""}`}
-                    key={ord._id || idx}
-                    onClick={() => handleOpenOrder(ord)}
-                    title={lang === "ar" ? "انقر لفتح الطلب في الكاشير والتعديل عليه أو دفعه" : "Click to open order in register to edit or pay"}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className="pos-order-info">
-                      <div className="pos-order-title">
-                        #{ord.dailyOrderNumber} - {ord.customerName}
-                        {activeEditingOrderId === ord._id && (
-                          <span className="editing-tag-badge">
-                            {lang === "ar" ? "قيد التعديل" : "Editing"}
+                filteredOrders.map((ord, idx) => {
+                  const isRefunded = ord.paymentStatus === "refunded" || (Number(ord.refundedAmount) > 0 && ord.status === "Cancelled");
+                  const isPartialRefund = !isRefunded && Number(ord.refundedAmount) > 0;
+                  const isPaid = ord.paymentStatus === "paid" || String(ord.status || "").toLowerCase() === "finished" || String(ord.status || "").toLowerCase() === "finised";
+                  const isCancelled = String(ord.status || "").toLowerCase() === "cancelled";
+                  const refMethod = (ord.refundMethod || ord.paymentMethod || "cash").toUpperCase();
+
+                  return (
+                    <div
+                      className={`pos-order-card ${activeEditingOrderId === ord._id ? "active-editing-card" : ""} ${isRefunded ? "pos-order-refunded-card" : ""}`}
+                      key={ord._id || idx}
+                      onClick={() => handleOpenOrder(ord)}
+                      title={lang === "ar" ? "انقر لفتح الطلب في الكاشير" : "Click to open order in register"}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <div className="pos-order-info">
+                        <div className="pos-order-title">
+                          #{ord.dailyOrderNumber} - {ord.customerName}
+                          {activeEditingOrderId === ord._id && (
+                            <span className="editing-tag-badge">
+                              {lang === "ar" ? "قيد التعديل" : "Editing"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="pos-order-meta">
+                          {t.table} {ord.tableId} · {ord.items.length} {lang === "ar" ? "أصناف" : "items"} · {new Date(ord.createdAt).toLocaleTimeString()}
+                        </div>
+                      </div>
+                      <div className="pos-order-actions" onClick={(e) => e.stopPropagation()}>
+                        {/* Status Badge */}
+                        {isRefunded ? (
+                          <span className="status-badge refunded" style={{ margin: "0 4px" }}>
+                            ↩️ {lang === "ar" ? `مسترجع (${refMethod === "CASH" ? "كاش" : "شبكة"})` : `REFUNDED (${refMethod})`}
+                          </span>
+                        ) : isCancelled ? (
+                          <span className="status-badge cancelled" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "ملغي" : "CANCELLED"}
+                          </span>
+                        ) : isPartialRefund ? (
+                          <span className="status-badge partial-refund" style={{ margin: "0 4px" }}>
+                            ↩️ {lang === "ar" ? "مسترجع جزئياً" : "PARTIAL REFUND"}
+                          </span>
+                        ) : (
+                          <span className={`status-badge ${String(ord.status || "pending").toLowerCase().replace(/\s+/g, "")}`} style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? getStatusAr(ord.status) : getStatusEn(ord.status)}
                           </span>
                         )}
-                      </div>
-                      <div className="pos-order-meta">
-                        {t.table} {ord.tableId} · {ord.items.length} {lang === "ar" ? "أصناف" : "items"} · {new Date(ord.createdAt).toLocaleTimeString()}
-                      </div>
-                    </div>
-                    <div className="pos-order-actions" onClick={(e) => e.stopPropagation()}>
-                      <span className={`status-badge ${String(ord.status || "pending").toLowerCase().replace(/\s+/g, "")}`} style={{ margin: "0 4px" }}>
-                        {lang === "ar" ? getStatusAr(ord.status) : getStatusEn(ord.status)}
-                      </span>
 
-                      <span className={`payment-pill-tag ${ord.paymentStatus === "paid" ? "paid" : "unpaid"}`} style={{ margin: "0 4px" }}>
-                        {ord.paymentStatus === "paid"
-                          ? (lang === "ar" ? "مدفوع" : "PAID")
-                          : (lang === "ar" ? "غير مدفوع" : "UNPAID")}
-                      </span>
+                        {/* Payment Pill Tag */}
+                        {isRefunded ? (
+                          <span className="payment-pill-tag refunded" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "مسترجع" : "REFUNDED"}
+                          </span>
+                        ) : isPartialRefund ? (
+                          <span className="payment-pill-tag partial-refund" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "مدفوع (استرجاع جزئي)" : "PAID (PARTIAL)"}
+                          </span>
+                        ) : isPaid ? (
+                          <span className="payment-pill-tag paid" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "مدفوع" : "PAID"}
+                          </span>
+                        ) : isCancelled ? (
+                          <span className="payment-pill-tag cancelled" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "ملغي" : "CANCELLED"}
+                          </span>
+                        ) : (
+                          <span className="payment-pill-tag unpaid" style={{ margin: "0 4px" }}>
+                            {lang === "ar" ? "غير مدفوع" : "UNPAID"}
+                          </span>
+                        )}
 
-                      <span style={{ fontWeight: "700", color: "var(--accent)", margin: "0 10px" }}>
-                        {ord.totalPrice.toFixed(2)} ﷼
-                      </span>
+                        <span style={{ fontWeight: "700", color: isRefunded ? "#ef4444" : "var(--accent)", margin: "0 10px", textDecoration: isRefunded ? "line-through" : "none" }}>
+                          {ord.totalPrice.toFixed(2)} ﷼
+                        </span>
 
-                      {ord.paymentStatus !== "paid" && (
+                        {/* Pay Button: Only for active unpaid orders that are NOT cancelled/refunded */}
+                        {!isPaid && !isCancelled && !isRefunded && ord.paymentStatus === "unpaid" && (
+                          <button
+                            className="item-action-btn pay-btn"
+                            onClick={() => handlePayOrderDirect(ord)}
+                            style={{
+                              margin: "0 4px",
+                              backgroundColor: "#10b981",
+                              color: "#ffffff",
+                              border: "none",
+                              fontWeight: "700",
+                              padding: "4px 10px",
+                              borderRadius: "6px"
+                            }}
+                            title={lang === "ar" ? "سداد قيمة الطلب فوراً" : "Pay Order Now"}
+                          >
+                            💳 {lang === "ar" ? "سداد" : "Pay"}
+                          </button>
+                        )}
+
                         <button
-                          className="item-action-btn pay-btn"
-                          onClick={() => handlePayOrderDirect(ord)}
-                          style={{
-                            margin: "0 4px",
-                            backgroundColor: "#10b981",
-                            color: "#ffffff",
-                            border: "none",
-                            fontWeight: "700",
-                            padding: "4px 10px",
-                            borderRadius: "6px"
-                          }}
-                          title={lang === "ar" ? "سداد قيمة الطلب فوراً" : "Pay Order Now"}
+                          className="item-action-btn open-btn"
+                          onClick={() => handleOpenOrder(ord)}
+                          style={{ margin: "0 4px", backgroundColor: "#7065db", color: "#ffffff", border: "none" }}
                         >
-                          💳 {lang === "ar" ? "سداد" : "Pay"}
+                          📂 {lang === "ar" ? "فتح الطلب" : "Open"}
                         </button>
-                      )}
 
-                      <button
-                        className="item-action-btn open-btn"
-                        onClick={() => handleOpenOrder(ord)}
-                        style={{ margin: "0 4px", backgroundColor: "#7065db", color: "#ffffff", border: "none" }}
-                      >
-                        📂 {lang === "ar" ? "فتح الطلب" : "Open"}
-                      </button>
+                        {isOrderUncompleted(ord) && !isCancelled && !isRefunded && (
+                          <button
+                            className="item-action-btn complete-btn"
+                            onClick={() => handleUpdateOrderStatus(ord._id, "Finished")}
+                            style={{ margin: "0 4px" }}
+                          >
+                            ✔️ {t.complete}
+                          </button>
+                        )}
 
-                      {isOrderUncompleted(ord) && (
+                        {/* Refund Button: For paid orders that have NOT yet been fully refunded or cancelled */}
+                        {(isPaid || isPartialRefund) && !isRefunded && !isCancelled && (
+                          <button
+                            className="item-action-btn"
+                            onClick={() => handleOpenRefundModal(ord)}
+                            style={{
+                              margin: "0 4px",
+                              backgroundColor: "rgba(239, 68, 68, 0.15)",
+                              color: "#ef4444",
+                              border: "1px solid rgba(239, 68, 68, 0.35)",
+                              fontWeight: "700"
+                            }}
+                            title={lang === "ar" ? "استرجاع وإلغاء الطلب (كاش أو شبكة)" : "Refund & Cancel Order (Cash or Card)"}
+                          >
+                            ↩️ {lang === "ar" ? "استرجاع" : "Refund"}
+                          </button>
+                        )}
+
                         <button
-                          className="item-action-btn complete-btn"
-                          onClick={() => handleUpdateOrderStatus(ord._id, "Finished")}
+                          className="item-action-btn"
+                          onClick={() => handlePrintReceipt(ord)}
                           style={{ margin: "0 4px" }}
                         >
-                          ✔️ {t.complete}
+                          🖨️ {t.print}
                         </button>
-                      )}
-
-                      <button
-                        className="item-action-btn"
-                        onClick={() => handlePrintReceipt(ord)}
-                        style={{ margin: "0 4px" }}
-                      >
-                        🖨️ {t.print}
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           );
@@ -704,12 +732,38 @@ function PaymentMethodsView() {
   } = useCashier();
 
   const editingOrder = placedOrders.find(ord => ord._id === activeEditingOrderId);
-  const isOrderPaid = editingOrder && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
+  const isOrderRefunded = editingOrder && (editingOrder.paymentStatus === "refunded" || (Number(editingOrder.refundedAmount) > 0 && editingOrder.status === "Cancelled"));
+  const isOrderPaid = editingOrder && !isOrderRefunded && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
+  const isOrderCancelled = editingOrder && editingOrder.status === "Cancelled";
 
   const [paidCash, setPaidCash] = useState(0);
   const [paidCard, setPaidCard] = useState(0);
   const [activeModal, setActiveModal] = useState(null); // "cash" | "card" | null
   const [modalInput, setModalInput] = useState("");
+
+  if (isOrderRefunded || isOrderCancelled) {
+    return (
+      <div className="payment-screen-container" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "350px", textAlign: "center", padding: "24px" }}>
+        <div style={{ background: "#ffffff", padding: "32px", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "420px", width: "100%", border: "1px solid #fecaca" }}>
+          <span style={{ fontSize: "48px", display: "block", marginBottom: "12px" }}>↩️</span>
+          <h2 style={{ color: "#dc2626", marginBottom: "8px" }}>{lang === "ar" ? "الطلب مسترجع وملغي" : "Order Fully Refunded"}</h2>
+          <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>
+            {lang === "ar"
+              ? `تم استرجاع قيمة هذا الطلب #${editingOrder?.dailyOrderNumber || ""} وإلغاؤه، ولا يمكن سداده ثانية.`
+              : `Order #${editingOrder?.dailyOrderNumber || ""} is refunded & closed and cannot be paid again.`}
+          </p>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button className="payment-purple-btn" onClick={() => handlePrintReceipt(editingOrder)}>
+              🖨️ {lang === "ar" ? "طباعة الفاتورة" : "Print Receipt"}
+            </button>
+            <button className="payment-purple-btn" onClick={() => setActiveTab("home")}>
+              ← {lang === "ar" ? "العودة للرئيسية" : "Back to Home"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isOrderPaid) {
     return (
@@ -787,26 +841,15 @@ function PaymentMethodsView() {
   };
 
   const handlePay = async () => {
-    if (!cart.length || isPaymentProcessing) {
-      if (!cart.length) alert(lang === "ar" ? "السلة فارغة" : "Cart is empty");
+    if (!cart.length || isPaymentProcessing || !isFullyPaid || remaining > 0) {
+      if (remaining > 0) {
+        alert(lang === "ar" ? `يرجى تغطية كامل المبلغ المتبقي (${remaining.toFixed(2)} ﷼) لتفعيل الدفع` : `Please cover the remaining amount (${remaining.toFixed(2)} ﷼) to complete payment`);
+      }
       return;
     }
 
-    let finalCash = paidCash;
-    let finalCard = paidCard;
-
-    // If no payment method amount was explicitly entered, default to full cash
-    if (finalCash === 0 && finalCard === 0) {
-      finalCash = grandTotal;
-    } else if (remaining > 0) {
-      // Cover the remaining balance with the active method
-      if (finalCard > 0) {
-        finalCard = parseFloat((finalCard + remaining).toFixed(2));
-      } else {
-        finalCash = parseFloat((finalCash + remaining).toFixed(2));
-      }
-    }
-
+    const finalCash = paidCash;
+    const finalCard = paidCard;
     const finalMethod = (finalCash > 0 && finalCard > 0) ? "split" : (finalCard > 0 ? "card" : "cash");
     try {
       await handleSubmitOrder(finalMethod, { cash: finalCash, card: finalCard });
@@ -965,20 +1008,16 @@ function PaymentMethodsView() {
           </div>
           <div className="payment-action-row">
             <button
-              className={`payment-submit-btn ${isFullyPaid ? "ready-to-pay active-ready" : ""}`}
+              className={`payment-submit-btn ${isFullyPaid && remaining === 0 ? "ready-to-pay active-ready" : "disabled-remaining"}`}
               onClick={handlePay}
-              disabled={!cart.length || isPaymentProcessing}
-              style={{
-                opacity: isPaymentProcessing ? 0.75 : 1,
-                cursor: isPaymentProcessing ? "wait" : "pointer"
-              }}
+              disabled={!cart.length || isPaymentProcessing || !isFullyPaid || remaining > 0}
             >
               {isPaymentProcessing ? (
                 <span>⏳ {lang === "ar" ? "جاري الدفع..." : "Processing..."}</span>
-              ) : isFullyPaid ? (
+              ) : isFullyPaid && remaining === 0 ? (
                 lang === "ar" ? `دفع ${grandTotal.toFixed(2)} ﷼` : `Pay ${grandTotal.toFixed(2)} ﷼`
               ) : (
-                t.payText
+                lang === "ar" ? `دفع (${remaining.toFixed(2)} ﷼ متبقي)` : `Pay (${remaining.toFixed(2)} ﷼ remaining)`
               )}
             </button>
             <button className="payment-more-options-btn" onClick={() => setShowMoreModal(true)}>

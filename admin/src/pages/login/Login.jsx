@@ -214,7 +214,7 @@ const Login = () => {
       localStorage.removeItem("otpFormData");
       localStorage.removeItem("otpExpiresAt");
 
-      navigate("/", { replace: true });
+      navigate("/orders", { replace: true });
       window.location.reload();
     } catch (error) {
       const code = error.response?.data?.code;
@@ -238,7 +238,7 @@ const Login = () => {
   const handleClose = () => {
     setShowLogin(false);
     if (location.pathname === "/login") {
-      navigate("/", { replace: true });
+      navigate("/orders", { replace: true });
     }
   };
 

@@ -8,12 +8,13 @@ const Dashbord = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login", { replace: true });
+      return;
+    }
     if (admin) {
-      if (admin.role === "chef" || admin.role === "barista") {
-        navigate("/orders", { replace: true });
-      } else {
-        navigate("/summary", { replace: true });
-      }
+      navigate("/orders", { replace: true });
     }
   }, [admin, navigate]);
 

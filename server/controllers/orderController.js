@@ -267,8 +267,22 @@ export const createOrder = async (req, res) => {
         ? req.body.status
         : (resolvedPaymentStatus === "paid" && (finalPaymentMethod === "cash" || finalPaymentMethod === "split") ? "Finished" : "pending");
 
-    let orderCafeName = req.tenantRecord?.businessName || "TableTab";
-    let orderTaxNumber = req.tenantRecord?.taxNumber || "";
+    let orderCafeName = req.tenantRecord?.businessName;
+    let orderTaxNumber = req.tenantRecord?.taxNumber;
+
+    if (!orderTaxNumber || !orderCafeName) {
+      try {
+        const tDoc = await Tenant.findById(req.tenantId).select("businessName taxNumber").lean();
+        if (tDoc) {
+          orderCafeName = orderCafeName || tDoc.businessName || "TableTab";
+          orderTaxNumber = orderTaxNumber || tDoc.taxNumber || "";
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    orderCafeName = orderCafeName || "TableTab";
+    orderTaxNumber = orderTaxNumber || "";
 
     let savedOrder = null;
     let saveError = null;
@@ -481,7 +495,25 @@ export const getAllOrders = async (req, res) => {
     const q = { tenantId: req.tenantId };
     if (req.branchId) q.branchId = req.branchId;
 
-    const orders = await Order.find(q).sort({ createdAt: -1 }).lean();
+    const [orders, tenantDoc] = await Promise.all([
+      Order.find(q).sort({ createdAt: -1 }).lean(),
+      Tenant.findById(req.tenantId).select("businessName taxNumber").lean(),
+    ]);
+
+    if (tenantDoc) {
+      for (const o of orders) {
+        if (!o.taxNumber && tenantDoc.taxNumber) {
+          o.taxNumber = tenantDoc.taxNumber;
+        }
+        if (!o.businessName && tenantDoc.businessName) {
+          o.businessName = tenantDoc.businessName;
+        }
+        if (!o.cafeName && tenantDoc.businessName) {
+          o.cafeName = tenantDoc.businessName;
+        }
+      }
+    }
+
     await attachEngagementToOrders(orders, req.tenantId, req.branchId || null);
     res.status(200).json({ message: "All orders", orders });
   } catch (error) {
@@ -516,7 +548,11 @@ export const activeOrders = async (req, res) => {
     };
     if (req.branchId) q.branchId = req.branchId;
 
-    const activeOrder = await Order.find(q).sort({ createdAt: -1 }).lean();
+    const [activeOrder, tenantDoc] = await Promise.all([
+      Order.find(q).sort({ createdAt: -1 }).lean(),
+      Tenant.findById(req.tenantId).select("businessName taxNumber").lean(),
+    ]);
+
     const activeOrdersList = activeOrder.map((order) => {
       const createdMs = new Date(order.createdAt).getTime();
       const countdownEndsAt = Number.isFinite(createdMs)
@@ -525,6 +561,13 @@ export const activeOrders = async (req, res) => {
       const remainingSeconds = Number.isFinite(createdMs)
         ? Math.max(0, Math.floor((createdMs + prepWindowSeconds * 1000 - serverNow) / 1000))
         : 0;
+
+      if (tenantDoc) {
+        if (!order.taxNumber && tenantDoc.taxNumber) order.taxNumber = tenantDoc.taxNumber;
+        if (!order.businessName && tenantDoc.businessName) order.businessName = tenantDoc.businessName;
+        if (!order.cafeName && tenantDoc.businessName) order.cafeName = tenantDoc.businessName;
+      }
+
       return {
         ...order,
         countdownEndsAt,
@@ -557,9 +600,17 @@ export const getServerClock = async (_req, res) => {
 };
 
 async function enrichMyOrdersDocuments(orders, tenantId, branchHint) {
-  const nameMap = await getMenuNameToIdMap(tenantId, branchHint);
+  const [nameMap, tenantDoc] = await Promise.all([
+    getMenuNameToIdMap(tenantId, branchHint),
+    tenantId ? Tenant.findById(tenantId).select("businessName taxNumber").lean() : null,
+  ]);
   return orders.map((order) => {
     const obj = typeof order.toObject === "function" ? order.toObject() : { ...order };
+    if (tenantDoc) {
+      if (!obj.taxNumber && tenantDoc.taxNumber) obj.taxNumber = tenantDoc.taxNumber;
+      if (!obj.businessName && tenantDoc.businessName) obj.businessName = tenantDoc.businessName;
+      if (!obj.cafeName && tenantDoc.businessName) obj.cafeName = tenantDoc.businessName;
+    }
     obj.items = (obj.items || []).map((it) => {
       const resolved = resolveLineMenuId(it, nameMap);
       return {
@@ -744,6 +795,96 @@ export const markOrderAsPaid = async (req, res) => {
     res.status(200).json({ message: "Order marked as paid", order });
   } catch (error) {
     res.status(500).json({ message: "Failed to update payment status", error: error.message });
+  }
+};
+
+export const refundOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      refundMethod = "cash",
+      refundAmount,
+      refundedItems = [],
+      reason = "Cashier refund & cancel"
+    } = req.body;
+
+    const order = await Order.findOne({ _id: id, tenantId: req.tenantId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const currentRefunded = Number(order.refundedAmount) || 0;
+    const maxRefundable = Math.max(0, (Number(order.totalPrice) || 0) - currentRefunded);
+
+    const effectiveRefundAmount =
+      Number(refundAmount) > 0
+        ? Math.min(Number(refundAmount), maxRefundable || Number(order.totalPrice) || 0)
+        : Number(order.totalPrice) || 0;
+
+    const method = ["cash", "card"].includes(String(refundMethod).toLowerCase())
+      ? String(refundMethod).toLowerCase()
+      : (order.paymentMethod === "card" ? "card" : "cash");
+
+    const newTotalRefunded = currentRefunded + effectiveRefundAmount;
+    const isFullRefund = newTotalRefunded >= (Number(order.totalPrice) || 0);
+
+    if (isFullRefund) {
+      order.status = "Cancelled";
+      order.paymentStatus = "refunded";
+    }
+    order.refundStatus = "succeeded";
+    order.refundMethod = method;
+    order.refundedAmount = newTotalRefunded;
+
+    if (method === "cash") {
+      order.refundCashAmount = (Number(order.refundCashAmount) || 0) + effectiveRefundAmount;
+    } else {
+      order.refundCardAmount = (Number(order.refundCardAmount) || 0) + effectiveRefundAmount;
+    }
+
+    if (Array.isArray(refundedItems) && refundedItems.length > 0) {
+      order.refundedItems = [
+        ...(order.refundedItems || []),
+        ...refundedItems.map(it => ({
+          name: it.name || it.nameAr || it.nameEn || "Item",
+          quantity: Number(it.quantity) || 1,
+          price: Number(it.price) || 0
+        }))
+      ];
+    }
+
+    order.cancelledAt = new Date();
+    order.cancelledBy = req.user?.userId || null;
+    order.cancelReason = reason;
+
+    // Trigger Stripe refund if paid by card and paymentIntentId exists
+    if (method === "card" && order.paymentIntentId) {
+      try {
+        const { stripe } = await getTenantStripe(req.tenantId);
+        if (stripe) {
+          await stripe.refunds.create({
+            payment_intent: order.paymentIntentId,
+            amount: Math.round(effectiveRefundAmount * 100),
+          });
+        }
+      } catch (stripeErr) {
+        console.warn("[refundOrder] Stripe refund notice:", stripeErr.message);
+      }
+    }
+
+    const savedOrder = await order.save();
+    await clearMenuCache(req.tenantId, order.branchId || null);
+
+    const io = getIo();
+    const tid = String(req.tenantId);
+    io.to(`tenant:${tid}`).emit("orderUpdated", savedOrder.toObject());
+
+    res.status(200).json({
+      message: "Order refunded and cancelled successfully",
+      order: savedOrder,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to refund order", error: error.message });
   }
 };
 

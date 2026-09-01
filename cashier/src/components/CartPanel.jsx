@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useCashier } from "../context/CashierContext.jsx";
 
 export default function CartPanel() {
@@ -29,11 +29,37 @@ export default function CartPanel() {
     handleNewOrder,
     placedOrders,
     setShowPrintModal,
-    handlePrintReceipt
+    handlePrintReceipt,
+    handleOpenRefundModal,
+    handleClearCart
   } = useCashier();
 
+  const [showOrderMenu, setShowOrderMenu] = useState(false);
+  const orderMenuRef = useRef(null);
+
   const editingOrder = placedOrders.find(ord => ord._id === activeEditingOrderId);
-  const isOrderPaid = editingOrder && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
+  const isOrderRefunded = editingOrder && (editingOrder.paymentStatus === "refunded" || (Number(editingOrder.refundedAmount) > 0 && editingOrder.status === "Cancelled"));
+  const isOrderPaid = editingOrder && !isOrderRefunded && (editingOrder.paymentStatus === "paid" || editingOrder.status === "Finished" || editingOrder.status === "Finised");
+  const isOrderCancelled = editingOrder && editingOrder.status === "Cancelled";
+  const isOrderLocked = isOrderPaid || isOrderRefunded || isOrderCancelled;
+  const refMethod = (editingOrder?.refundMethod || editingOrder?.paymentMethod || "cash").toUpperCase();
+
+  // Close 3-dot dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (orderMenuRef.current && !orderMenuRef.current.contains(e.target)) {
+        setShowOrderMenu(false);
+      }
+    };
+    if (showOrderMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showOrderMenu]);
 
   return (
     <div className="cart-panel">
@@ -43,44 +69,145 @@ export default function CartPanel() {
         </button>
 
         {activeEditingOrderId && (
-          <div className={`active-editing-order-banner ${isOrderPaid ? "paid-banner" : ""}`}>
-            <span>{isOrderPaid ? "✅ " : "📝 "}{lang === "ar" ? `طلب #${editingOrder?.dailyOrderNumber || ""}${isOrderPaid ? " (مدفوع)" : " (قيد التعديل)"}` : `Order #${editingOrder?.dailyOrderNumber || ""}${isOrderPaid ? " (PAID)" : " (Editing)"}`}</span>
+          <div className={`active-editing-order-banner ${isOrderRefunded ? "refunded-banner" : isOrderPaid ? "paid-banner" : ""}`}>
+            <span>
+              {isOrderRefunded ? "↩️ " : isOrderPaid ? "✅ " : "📝 "}
+              {lang === "ar"
+                ? `طلب #${editingOrder?.dailyOrderNumber || ""}${isOrderRefunded ? ` (مسترجع - ${refMethod === "CASH" ? "كاش" : "شبكة"})` : isOrderPaid ? " (مدفوع)" : " (قيد التعديل)"}`
+                : `Order #${editingOrder?.dailyOrderNumber || ""}${isOrderRefunded ? ` (REFUNDED - ${refMethod})` : isOrderPaid ? " (PAID)" : " (Editing)"}`}
+            </span>
             <button className="new-order-chip-btn" onClick={handleNewOrder}>
               + {lang === "ar" ? "طلب جديد" : "New Order"}
             </button>
           </div>
         )}
         
-        {/* Header Top Controls as shown in the screenshot */}
+        {/* Header Top Controls */}
         <div className="cart-header-top-controls">
-          <span className="status-pill active-status">
-            {isOrderPaid ? (lang === "ar" ? "مدفوع" : "PAID") : (t.active || "نشط")}
+          <span className={`status-pill ${isOrderRefunded ? "refunded-status" : isOrderPaid ? "paid-status" : "active-status"}`}>
+            {isOrderRefunded
+              ? (lang === "ar" ? "مسترجع" : "REFUNDED")
+              : isOrderPaid
+              ? (lang === "ar" ? "مدفوع" : "PAID")
+              : (t.active || "نشط")}
           </span>
-          <span className="order-num-box" onClick={() => !isOrderPaid && setShowTableModal(true)}>
+          <span className="order-num-box" onClick={() => !isOrderLocked && setShowTableModal(true)}>
             {selectedTable || 25}
           </span>
-          <button className="order-type-btn-pill" onClick={() => !isOrderPaid && setShowTableModal(true)}>
+          <button className="order-type-btn-pill" onClick={() => !isOrderLocked && setShowTableModal(true)}>
             {t.dineIn}
           </button>
-          <button className="manual-mode-btn">
-            {lang === "ar" ? "يدوي" : "Manual"}
-          </button>
-        </div>
-
-        {/* Customer section */}
-        <div className="customer-selection-area">
-          {customerName ? (
-            <div className="selected-customer-badge">
-              <span>👤 {customerName}</span>
-              {!isOrderPaid && (
-                <button className="clear-customer-btn" onClick={() => setCustomerName("")}>✕</button>
-              )}
-            </div>
-          ) : (
-            <button className="add-customer-dashed-btn" onClick={() => setShowCustModal(true)}>
-              + {t.addCustomer}
+          
+          {/* Three-dots order actions dropdown menu */}
+          <div className="order-more-menu-wrapper" ref={orderMenuRef}>
+            <button
+              type="button"
+              className={`order-dots-menu-btn ${showOrderMenu ? "active" : ""}`}
+              onClick={() => setShowOrderMenu(!showOrderMenu)}
+              title={lang === "ar" ? "خيارات الطلب" : "Order Options"}
+            >
+              ⋯
             </button>
-          )}
+
+            {showOrderMenu && (
+              <div className="order-dropdown-menu" dir={lang === "ar" ? "rtl" : "ltr"}>
+                {/* 1. Customer Name option */}
+                <div
+                  className="order-dropdown-item"
+                  onClick={() => {
+                    setShowOrderMenu(false);
+                    if (!isOrderLocked) setShowCustModal(true);
+                  }}
+                >
+                  <span className="dropdown-item-icon">👤</span>
+                  <div className="dropdown-item-info">
+                    <span className="dropdown-item-title">
+                      {customerName ? customerName : (lang === "ar" ? "إضافة اسم العميل" : "Add Customer Name")}
+                    </span>
+                    <span className="dropdown-item-sub">
+                      {lang === "ar" ? "اسم العميل المسجل" : "Customer name"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Preview Slip / Print Receipt option */}
+                <div
+                  className="order-dropdown-item"
+                  onClick={() => {
+                    setShowOrderMenu(false);
+                    if (editingOrder) {
+                      handlePrintReceipt(editingOrder);
+                    } else if (cart.length > 0) {
+                      setShowPrintModal(true);
+                    } else {
+                      setShowPrintModal(true);
+                    }
+                  }}
+                >
+                  <span className="dropdown-item-icon">🖨️</span>
+                  <div className="dropdown-item-info">
+                    <span className="dropdown-item-title">
+                      {lang === "ar" ? "معاينة وطباعة الفاتورة" : "Preview Slip / Print"}
+                    </span>
+                    <span className="dropdown-item-sub">
+                      {lang === "ar" ? "إيصال الدفع والطباعة" : "Receipt preview & print"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Refund and Cancel Order (or Void if unpaid) */}
+                {isOrderRefunded ? (
+                  <div className="order-dropdown-item disabled">
+                    <span className="dropdown-item-icon">↩️</span>
+                    <div className="dropdown-item-info">
+                      <span className="dropdown-item-title" style={{ color: "#ef4444" }}>
+                        {lang === "ar" ? `تم الاسترجاع (${refMethod === "CASH" ? "كاش" : "شبكة"})` : `Refunded (${refMethod})`}
+                      </span>
+                      <span className="dropdown-item-sub">
+                        {lang === "ar" ? "تم استرجاع وإلغاء الطلب" : "Order already refunded"}
+                      </span>
+                    </div>
+                  </div>
+                ) : isOrderPaid ? (
+                  <div
+                    className="order-dropdown-item danger"
+                    onClick={() => {
+                      setShowOrderMenu(false);
+                      handleOpenRefundModal(editingOrder);
+                    }}
+                  >
+                    <span className="dropdown-item-icon">↩️</span>
+                    <div className="dropdown-item-info">
+                      <span className="dropdown-item-title">
+                        {lang === "ar" ? "استرجاع وإلغاء الطلب" : "Refund & Cancel Order"}
+                      </span>
+                      <span className="dropdown-item-sub">
+                        {lang === "ar" ? "استرجاع كاش أو شبكة وخصم من المبيعات" : "Cash/Card refund & sales deduction"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="order-dropdown-item danger"
+                    onClick={() => {
+                      setShowOrderMenu(false);
+                      handleClearCart(true);
+                    }}
+                  >
+                    <span className="dropdown-item-icon">🚫</span>
+                    <div className="dropdown-item-info">
+                      <span className="dropdown-item-title">
+                        {lang === "ar" ? "إلغاء الطلب (Void)" : "Void / Cancel Order"}
+                      </span>
+                      <span className="dropdown-item-sub">
+                        {lang === "ar" ? "إلغاء وتفريغ الطلب الحالي" : "Cancel & clear this order"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -95,30 +222,23 @@ export default function CartPanel() {
               <div className="cart-item-row">
                 <div className="cart-item-title">
                   <span className="cart-item-name">{lang === "ar" ? item.product.nameAr : item.product.nameEn}</span>
-                  {/* Table Tag under the item name */}
-                  <span className="item-table-tag" onClick={() => !isOrderPaid && setShowTableModal(true)}>
-                    {t.table} {selectedTable}
-                  </span>
+                  {!isOrderLocked && activeTab !== "payment" ? (
+                    <div className="qty-counter cart-inline-stepper">
+                      <button type="button" className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, -1)} aria-label="Decrease">−</button>
+                      <span className="qty-val">{item.quantity}</span>
+                      <button type="button" className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, 1)} aria-label="Increase">+</button>
+                    </div>
+                  ) : (
+                    <span className="cart-item-qty-badge">{item.quantity}x</span>
+                  )}
                 </div>
                 <div className="cart-item-price-qty-section">
                   <div className="cart-item-price-val">
                     {(item.product.price * item.quantity).toFixed(2)} ﷼
                   </div>
-                  <span className="cart-item-unit-price">{item.quantity} x {item.product.price.toFixed(2)}</span>
+                  <span className="cart-item-unit-price">{item.quantity} × {item.product.price.toFixed(2)}</span>
                 </div>
               </div>
-              {!isOrderPaid && activeTab !== "payment" && (
-                <div className="cart-item-note-row">
-                  <button className="item-action-btn-note">
-                    💬 {t.notes}
-                  </button>
-                  <div className="qty-counter">
-                    <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, -1)}>-</button>
-                    <span className="qty-val">{item.quantity}</span>
-                    <button className="qty-btn" onClick={() => handleUpdateQuantity(item.product.id, 1)}>+</button>
-                  </div>
-                </div>
-              )}
             </div>
           ))
         )}
@@ -184,34 +304,25 @@ export default function CartPanel() {
           <span>{grandTotal.toFixed(2)} ﷼</span>
         </div>
         
-        {isOrderPaid ? (
-          <div className="paid-order-action-container">
-            <button 
-              className="print-paid-order-btn"
-              onClick={() => handlePrintReceipt(editingOrder)}
-            >
-              🖨️ {lang === "ar" ? "طباعة الفاتورة (مدفوع)" : "Print Receipt (PAID)"}
-            </button>
-            <button 
-              className="start-new-from-paid-btn"
-              onClick={handleNewOrder}
-            >
-              + {lang === "ar" ? "طلب جديد" : "New Order"}
-            </button>
+        {isOrderRefunded ? (
+          <div className="refunded-order-locked-notice">
+            <span>↩️ {lang === "ar" ? `هذا الطلب مسترجع بالكامل (${refMethod === "CASH" ? "كاش" : "شبكة"}) ولا يمكن سداده ثانية` : `Order fully refunded (${refMethod}) — cannot be paid again`}</span>
           </div>
-        ) : (
-          activeTab !== "payment" && (
-            <button 
-              className="pay-action-btn" 
-              disabled={cart.length === 0} 
-              onClick={() => {
-                setActiveTab("payment");
-                setMobileView("catalog");
-              }}
-            >
-              {t.pay}
-            </button>
-          )
+        ) : isOrderCancelled ? (
+          <div className="refunded-order-locked-notice">
+            <span>🚫 {lang === "ar" ? "هذا الطلب ملغي" : "This order is cancelled"}</span>
+          </div>
+        ) : !isOrderLocked && activeTab !== "payment" && (
+          <button 
+            className="pay-action-btn" 
+            disabled={cart.length === 0} 
+            onClick={() => {
+              setActiveTab("payment");
+              setMobileView("catalog");
+            }}
+          >
+            {t.pay}
+          </button>
         )}
       </div>
     </div>

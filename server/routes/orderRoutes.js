@@ -12,6 +12,7 @@ import {
   getSummaryStats,
   updateOrderStatus,
   markOrderAsPaid,
+  refundOrder,
   requestCancellation,
   resolveCancellationRequest,
 } from "../controllers/orderController.js";
@@ -68,6 +69,12 @@ router.put(
   ...staffBase,
   requireRole(["owner", "manager", "cashier"]),
   markOrderAsPaid,
+);
+router.post(
+  "/:id/refund",
+  ...staffBase,
+  requireRole(["owner", "manager", "cashier"]),
+  refundOrder,
 );
 router.post(
   "/:id/request-cancel",

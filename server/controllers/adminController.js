@@ -9,6 +9,7 @@ import {
   isCloudinaryConfigured,
 } from "../utils/cloudinaryUpload.js";
 import { signUserToken } from "../middlewares/authMiddleware.js";
+import { getIo } from "../socket/socket.js";
 
 const SECTRATE_KEY = process.env.SECTRATE_KEY;
 
@@ -234,12 +235,7 @@ export const adminLogin = async (req, res) => {
       });
     }
 
-    if (user.staffStatus === "suspended") {
-      return res.status(403).json({
-        message: "This account has been suspended. Contact your restaurant owner.",
-      });
-    }
-
+    // Return token and safe user payload (frontend will display professional suspended screen if staffStatus === 'suspended')
     const token = signUserToken(buildStaffTokenPayload(user));
 
     const safe = user.toObject();
@@ -445,6 +441,19 @@ export const updateStaffStatus = async (req, res) => {
 
     staffMember.staffStatus = status;
     await staffMember.save();
+
+    try {
+      const io = getIo();
+      if (io && tenantId) {
+        io.to(`tenant:${String(tenantId)}`).emit("staffStatusChanged", {
+          staffId: String(staffMember._id),
+          role: staffMember.role,
+          staffStatus: status,
+        });
+      }
+    } catch (e) {
+      console.warn("Socket broadcast staffStatusChanged failed:", e?.message);
+    }
 
     res.status(200).json({
       message: `Staff member is now ${status}`,

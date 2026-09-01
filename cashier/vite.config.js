@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       // basicSsl(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["pwa-192.png", "pwa-512.png"],
+        includeAssets: ["pwa-192.png", "pwa-512.png", "apple-touch-icon.png", "favicon.png", "favicon.svg"],
         devOptions: {
           enabled: true,
           type: "module",

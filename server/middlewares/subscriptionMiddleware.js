@@ -13,7 +13,7 @@ export async function requireActiveSubscription(req, res, next) {
     }
 
     const tenant = await Tenant.findById(tenantId)
-      .select("subscriptionStatus expiresAt accountStatus")
+      .select("subscriptionStatus expiresAt accountStatus businessName taxNumber slug")
       .lean();
     if (!tenant) {
       return res.status(404).json({ message: "Tenant not found" });

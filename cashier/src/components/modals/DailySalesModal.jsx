@@ -98,65 +98,123 @@ export default function DailySalesModal() {
   // ----------------------------------------------------
   // Financial Calculations (Foodics Orders Summary Standards)
   // ----------------------------------------------------
-  const isPaid = (ord) => {
+  const isPaidOrRefunded = (ord) => {
     const pStatus = String(ord.paymentStatus || "").toLowerCase();
     const status = String(ord.status || "").toLowerCase().replace(/\s+/g, "");
-    if (status === "cancelled") return false;
+    if (status === "cancelled" && (!ord.refundedAmount || ord.refundedAmount === 0) && pStatus !== "refunded") {
+      return false;
+    }
+    return (
+      pStatus === "paid" ||
+      pStatus === "refunded" ||
+      status === "finished" ||
+      status === "finised" ||
+      Number(ord.refundedAmount) > 0
+    );
+  };
+
+  const isCurrentlyPaid = (ord) => {
+    const pStatus = String(ord.paymentStatus || "").toLowerCase();
+    const status = String(ord.status || "").toLowerCase().replace(/\s+/g, "");
+    if (status === "cancelled" || pStatus === "refunded") return false;
     return pStatus === "paid" || status === "finished" || status === "finised";
   };
 
-  const paidOrders = useMemo(() => dayOrders.filter(isPaid), [dayOrders]);
-  
-  // Total quantity of paid orders / items
-  const grossQuantity = paidOrders.length;
-  const grossSales = useMemo(() => paidOrders.reduce((sum, ord) => sum + (Number(ord.totalPrice) || 0), 0), [paidOrders]);
-  
+  // Gross orders (all orders that were paid/completed during this shift, before any refund was issued)
+  const grossOrders = useMemo(() => dayOrders.filter(isPaidOrRefunded), [dayOrders]);
+  const currentlyPaidOrders = useMemo(() => dayOrders.filter(isCurrentlyPaid), [dayOrders]);
+
+  // Gross Sales (Total value of all orders before refunds)
+  const grossQuantity = grossOrders.length;
+  const grossSales = useMemo(
+    () => grossOrders.reduce((sum, ord) => sum + (Number(ord.totalPrice) || 0), 0),
+    [grossOrders]
+  );
+
   // VAT 15% separation
   const grossSalesWithoutTax = grossSales / 1.15;
   const totalTaxes = grossSales - grossSalesWithoutTax;
 
   // Discounts
   const totalDiscounts = useMemo(() => {
-    return paidOrders.reduce((sum, ord) => sum + (Number(ord.discountAmount) || 0), 0);
-  }, [paidOrders]);
-  const discountCount = paidOrders.filter((ord) => (Number(ord.discountAmount) || 0) > 0).length;
+    return grossOrders.reduce((sum, ord) => sum + (Number(ord.discountAmount) || 0), 0);
+  }, [grossOrders]);
+  const discountCount = grossOrders.filter((ord) => (Number(ord.discountAmount) || 0) > 0).length;
 
   // Charges
   const totalCharges = 0;
 
-  // Refunds
-  const refundedAmount = useMemo(() => dayOrders.reduce((sum, ord) => sum + (Number(ord.refundedAmount) || 0), 0), [dayOrders]);
+  // Refunds Breakdown (Cash vs Card)
+  const refundedOrders = useMemo(() => {
+    return dayOrders.filter(
+      (ord) =>
+        Number(ord.refundedAmount) > 0 ||
+        ord.paymentStatus === "refunded" ||
+        ord.refundStatus === "succeeded"
+    );
+  }, [dayOrders]);
 
-  // Net Sales
-  const netSales = Math.max(0, grossSales - refundedAmount - totalDiscounts);
-  const netQuantity = grossQuantity;
+  const cashRefunds = useMemo(() => {
+    return refundedOrders.reduce((sum, ord) => {
+      const refMethod = (ord.refundMethod || "").toLowerCase();
+      const payMethod = (ord.paymentMethod || "").toLowerCase();
+      if (Number(ord.refundCashAmount) > 0) return sum + Number(ord.refundCashAmount);
+      if (refMethod === "cash" || (!refMethod && payMethod === "cash")) {
+        return sum + (Number(ord.refundedAmount) || Number(ord.totalPrice) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [refundedOrders]);
 
-  // Payments Breakdown
-  const cashSales = useMemo(() => {
-    return paidOrders.reduce((sum, ord) => {
+  const cardRefunds = useMemo(() => {
+    return refundedOrders.reduce((sum, ord) => {
+      const refMethod = (ord.refundMethod || "").toLowerCase();
+      const payMethod = (ord.paymentMethod || "").toLowerCase();
+      if (Number(ord.refundCardAmount) > 0) return sum + Number(ord.refundCardAmount);
+      if (refMethod === "card" || (!refMethod && payMethod === "card")) {
+        return sum + (Number(ord.refundedAmount) || Number(ord.totalPrice) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [refundedOrders]);
+
+  const totalRefunds = cashRefunds + cardRefunds;
+  const refundsCount = refundedOrders.length;
+
+  // Net Sales (Gross - Total Refunds - Total Discounts)
+  const netSales = Math.max(0, grossSales - totalRefunds - totalDiscounts);
+  const netQuantity = Math.max(0, grossQuantity - refundsCount);
+
+  // Payments Breakdown (Gross & Net after deducting respective cash/card refunds)
+  const grossCashSales = useMemo(() => {
+    return grossOrders.reduce((sum, ord) => {
       const method = String(ord.paymentMethod || "").toLowerCase();
       if (method === "cash") return sum + (Number(ord.cashAmount) || Number(ord.totalPrice) || 0);
       if (method === "split") return sum + (Number(ord.cashAmount) || 0);
       return sum;
     }, 0);
-  }, [paidOrders]);
+  }, [grossOrders]);
 
-  const cardSales = useMemo(() => {
-    return paidOrders.reduce((sum, ord) => {
+  const grossCardSales = useMemo(() => {
+    return grossOrders.reduce((sum, ord) => {
       const method = String(ord.paymentMethod || "").toLowerCase();
       if (method === "card") return sum + (Number(ord.cardAmount) || Number(ord.totalPrice) || 0);
       if (method === "split") return sum + (Number(ord.cardAmount) || 0);
       return sum;
     }, 0);
-  }, [paidOrders]);
+  }, [grossOrders]);
 
-  const cashOrdersCount = paidOrders.filter((o) => (o.paymentMethod || "").toLowerCase() === "cash").length;
-  const cardOrdersCount = paidOrders.filter((o) => (o.paymentMethod || "").toLowerCase() === "card").length;
+  // Net Cash (in Drawer) and Net Card Sales
+  const netCashSales = Math.max(0, grossCashSales - cashRefunds);
+  const netCardSales = Math.max(0, grossCardSales - cardRefunds);
+
+  const cashOrdersCount = grossOrders.filter((o) => (o.paymentMethod || "").toLowerCase() === "cash").length;
+  const cardOrdersCount = grossOrders.filter((o) => (o.paymentMethod || "").toLowerCase() === "card").length;
 
   // Product breakdown calculation
   const productSalesMap = useMemo(() => {
     const map = {};
-    for (const ord of paidOrders) {
+    for (const ord of currentlyPaidOrders) {
       const items = ord.items || [];
       for (const it of items) {
         const name = it.name || it.nameAr || it.nameEn || "Custom Item";
@@ -177,7 +235,7 @@ export default function DailySalesModal() {
       }
     }
     return Object.values(map).sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [paidOrders]);
+  }, [currentlyPaidOrders]);
 
   // Refresh data handler
   const handleRefresh = async () => {
@@ -268,6 +326,13 @@ export default function DailySalesModal() {
               <td class="text-center">${discountCount}</td>
               <td class="text-right">﷼ ${fmtCurrency(totalDiscounts)}</td>
             </tr>
+            ${totalRefunds > 0 ? `
+            <tr style="color: #b91c1c; font-weight: 600;">
+              <td class="text-left">Total Returns (Refunds)</td>
+              <td class="text-center">${refundsCount}</td>
+              <td class="text-right">-﷼ ${fmtCurrency(totalRefunds)}</td>
+            </tr>
+            ` : ""}
             <tr>
               <td class="text-left">Total Charges</td>
               <td class="text-center">0</td>
@@ -298,15 +363,29 @@ export default function DailySalesModal() {
           </thead>
           <tbody>
             <tr>
-              <td class="text-left">Cash</td>
+              <td class="text-left">Cash (Net in Drawer)</td>
               <td class="text-center">${cashOrdersCount}</td>
-              <td class="text-right">﷼ ${fmtCurrency(cashSales)}</td>
+              <td class="text-right">﷼ ${fmtCurrency(netCashSales)}</td>
             </tr>
             <tr>
-              <td class="text-left">Card / POS</td>
+              <td class="text-left">Card / POS (Net)</td>
               <td class="text-center">${cardOrdersCount}</td>
-              <td class="text-right">﷼ ${fmtCurrency(cardSales)}</td>
+              <td class="text-right">﷼ ${fmtCurrency(netCardSales)}</td>
             </tr>
+            ${cashRefunds > 0 ? `
+            <tr style="font-size: 11px; color: #b91c1c;">
+              <td class="text-left" style="padding-left: 8px;">↳ Cash Refunds Out</td>
+              <td class="text-center">-</td>
+              <td class="text-right">-﷼ ${fmtCurrency(cashRefunds)}</td>
+            </tr>
+            ` : ""}
+            ${cardRefunds > 0 ? `
+            <tr style="font-size: 11px; color: #b91c1c;">
+              <td class="text-left" style="padding-left: 8px;">↳ Card Refunds Out</td>
+              <td class="text-center">-</td>
+              <td class="text-right">-﷼ ${fmtCurrency(cardRefunds)}</td>
+            </tr>
+            ` : ""}
           </tbody>
         </table>
 
@@ -482,6 +561,13 @@ export default function DailySalesModal() {
                     <td className="col-qty">{discountCount}</td>
                     <td className="col-amount">﷼ {fmtCurrency(totalDiscounts)}</td>
                   </tr>
+                  {totalRefunds > 0 && (
+                    <tr style={{ color: "#ef4444", fontWeight: "600" }}>
+                      <td className="col-name">Total Returns (Refunds)</td>
+                      <td className="col-qty">{refundsCount}</td>
+                      <td className="col-amount">-﷼ {fmtCurrency(totalRefunds)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td className="col-name">Total Charges</td>
                     <td className="col-qty">0</td>
@@ -514,15 +600,29 @@ export default function DailySalesModal() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="col-name">Cash</td>
+                    <td className="col-name">Cash (Net in Drawer)</td>
                     <td className="col-qty">{cashOrdersCount}</td>
-                    <td className="col-amount">﷼ {fmtCurrency(cashSales)}</td>
+                    <td className="col-amount">﷼ {fmtCurrency(netCashSales)}</td>
                   </tr>
                   <tr>
-                    <td className="col-name">Card / POS</td>
+                    <td className="col-name">Card / POS (Net)</td>
                     <td className="col-qty">{cardOrdersCount}</td>
-                    <td className="col-amount">﷼ {fmtCurrency(cardSales)}</td>
+                    <td className="col-amount">﷼ {fmtCurrency(netCardSales)}</td>
                   </tr>
+                  {cashRefunds > 0 && (
+                    <tr style={{ fontSize: "11px", color: "#ef4444" }}>
+                      <td className="col-name" style={{ paddingLeft: "10px" }}>↳ Cash Refunds Out</td>
+                      <td className="col-qty">-</td>
+                      <td className="col-amount">-﷼ {fmtCurrency(cashRefunds)}</td>
+                    </tr>
+                  )}
+                  {cardRefunds > 0 && (
+                    <tr style={{ fontSize: "11px", color: "#ef4444" }}>
+                      <td className="col-name" style={{ paddingLeft: "10px" }}>↳ Card Refunds Out</td>
+                      <td className="col-qty">-</td>
+                      <td className="col-amount">-﷼ {fmtCurrency(cardRefunds)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
 
@@ -635,10 +735,23 @@ export default function DailySalesModal() {
                       })
                       .map((ord) => {
                         const timeStr = ord.createdAt ? new Date(ord.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+                        const isRefunded = ord.paymentStatus === "refunded" || Number(ord.refundedAmount) > 0 || ord.status === "Cancelled";
+                        const refMethod = (ord.refundMethod || ord.paymentMethod || "cash").toUpperCase();
                         return (
-                          <tr key={ord._id || Math.random()} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <tr key={ord._id || Math.random()} style={{ borderBottom: "1px solid #f1f5f9", background: isRefunded ? "rgba(239, 68, 68, 0.04)" : "transparent" }}>
                             <td style={{ padding: "8px 4px", fontWeight: "700", color: "#4f46e5" }}>
                               #{ord.dailyOrderNumber || String(ord._id || "").slice(-4).toUpperCase()}
+                              {isRefunded && (
+                                <span style={{
+                                  display: "block",
+                                  fontSize: "9px",
+                                  fontWeight: "800",
+                                  color: "#ef4444",
+                                  marginTop: "2px"
+                                }}>
+                                  ↩️ {lang === "ar" ? `مسترجع (${refMethod === "CASH" ? "كاش" : "شبكة"})` : `REFUNDED (${refMethod})`}
+                                </span>
+                              )}
                             </td>
                             <td style={{ padding: "8px 4px", color: "#64748b" }}>{timeStr}</td>
                             <td style={{ padding: "8px 4px", textAlign: "center" }}>
@@ -653,8 +766,8 @@ export default function DailySalesModal() {
                                 {(ord.paymentMethod || "").toUpperCase()}
                               </span>
                             </td>
-                            <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap" }}>
-                              ﷼ {fmtCurrency(ord.totalPrice)}
+                            <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: "700", color: isRefunded ? "#ef4444" : "#0f172a", whiteSpace: "nowrap" }}>
+                              {isRefunded ? `-﷼ ${fmtCurrency(ord.refundedAmount || ord.totalPrice)}` : `﷼ ${fmtCurrency(ord.totalPrice)}`}
                             </td>
                             <td style={{ padding: "8px 4px", textAlign: "center" }}>
                               <button

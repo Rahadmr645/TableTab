@@ -130,6 +130,12 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+.barcode-btn--copied {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  color: #6ee7b7 !important;
+}
+
 .barcode-error {
   margin: 12px 0 0;
   font-size: 0.88rem;

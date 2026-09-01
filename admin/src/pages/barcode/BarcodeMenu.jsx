@@ -4,6 +4,7 @@ import html2pdf from "html2pdf.js/dist/html2pdf.bundle.min.js";
 import { AuthContext } from "../../context/AuthContext";
 import { getStaffTenantHeaders } from "../../utils/apiBaseUrl.js";
 import { FaBarcode } from "react-icons/fa";
+import { copyToClipboard } from "../../utils/clipboard.js";
 import "./BarcodeMenu.css";
 
 const BarcodeMenu = () => {
@@ -11,6 +12,7 @@ const BarcodeMenu = () => {
   const [tableId, setTableId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null);
   
   // Separate states for main menu QR and generated table QRs
   const [mainPayload, setMainPayload] = useState(null);
@@ -78,13 +80,16 @@ const BarcodeMenu = () => {
     generate("", true);
   }, []);
 
-  const copyLink = async (payload) => {
+  const copyLink = async (payload, key = "main") => {
     if (!payload?.link) return;
-    try {
-      await navigator.clipboard.writeText(payload.link);
-      alert("Link copied.");
-    } catch {
-      alert(payload.link);
+    const ok = await copyToClipboard(payload.link);
+    if (ok) {
+      setCopiedKey(key);
+      setTimeout(() => {
+        setCopiedKey((curr) => (curr === key ? null : curr));
+      }, 2000);
+    } else {
+      window.prompt("Copy link:", payload.link);
     }
   };
 
@@ -174,8 +179,12 @@ const BarcodeMenu = () => {
             </div>
             <div className="barcode-link-row">
               <code className="barcode-link">{mainPayload.link}</code>
-              <button type="button" className="barcode-btn barcode-btn--ghost" onClick={() => copyLink(mainPayload)}>
-                Copy link
+              <button
+                type="button"
+                className={`barcode-btn barcode-btn--ghost${copiedKey === "main" ? " barcode-btn--copied" : ""}`}
+                onClick={() => copyLink(mainPayload, "main")}
+              >
+                {copiedKey === "main" ? "✓ Copied!" : "Copy link"}
               </button>
               <button
                 type="button"
@@ -258,11 +267,11 @@ const BarcodeMenu = () => {
                   <div className="barcode-table-item-actions">
                     <button
                       type="button"
-                      className="barcode-btn barcode-btn--ghost btn-sm"
-                      onClick={() => copyLink(payload)}
+                      className={`barcode-btn barcode-btn--ghost btn-sm${copiedKey === payload.tableId ? " barcode-btn--copied" : ""}`}
+                      onClick={() => copyLink(payload, payload.tableId)}
                       title="Copy QR Code Link"
                     >
-                      Copy Link
+                      {copiedKey === payload.tableId ? "✓ Copied!" : "Copy Link"}
                     </button>
                     <button
                       type="button"

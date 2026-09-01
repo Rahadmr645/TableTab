@@ -427,7 +427,8 @@ const Orders = () => {
         {previewOrder && (
           <ReceiptPreviewModal
             order={previewOrder}
-            businessName={admin?.companyName}
+            businessName={admin?.companyName || admin?.businessName || previewOrder?.businessName || previewOrder?.cafeName}
+            taxNumber={admin?.taxNumber || previewOrder?.taxNumber}
             onClose={() => setPreviewOrder(null)}
           />
         )}
@@ -841,7 +842,7 @@ const Orders = () => {
       {previewOrder && (
         <ReceiptPreviewModal
           order={previewOrder}
-          businessName={admin?.companyName}
+          businessName={admin?.companyName || admin?.businessName || previewOrder?.businessName || previewOrder?.cafeName}
           taxNumber={admin?.taxNumber || previewOrder?.taxNumber}
           onClose={() => setPreviewOrder(null)}
         />

@@ -93,6 +93,8 @@ const Navbar = () => {
   );
 
   const canManageMenu = admin && (admin.role === "owner" || admin.role === "manager");
+  const canViewSummary =
+    admin && (admin.role === "owner" || admin.role === "manager" || admin.role === "admin");
 
   const drawerNavItems =
     canManageMenu || (admin && admin.role === "admin") ? (
@@ -103,7 +105,7 @@ const Navbar = () => {
             <span>Menu</span>
           </NavLink>
         )}
-        {admin?.role === "owner" && (
+        {canViewSummary && (
           <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
             <FaChartLine className="admin-navbar__link-icon" aria-hidden />
             <span>Summary</span>
@@ -112,10 +114,6 @@ const Navbar = () => {
         <NavLink to="/barcode" className={linkClass} onClick={() => setMobileOpen(false)}>
           <FaBarcode className="admin-navbar__link-icon" aria-hidden />
           <span>Barcode</span>
-        </NavLink>
-        <NavLink to="/about" className={linkClass} onClick={() => setMobileOpen(false)}>
-          <FaInfoCircle className="admin-navbar__link-icon" aria-hidden />
-          <span>About</span>
         </NavLink>
       </>
     ) : null;
@@ -131,7 +129,7 @@ const Navbar = () => {
               <span>Menu</span>
             </NavLink>
           )}
-          {admin?.role === "owner" && (
+          {canViewSummary && (
             <NavLink to="/summary" className={linkClass} onClick={() => setMobileOpen(false)}>
               <FaChartLine className="admin-navbar__link-icon" aria-hidden />
               <span>Summary</span>
@@ -140,10 +138,6 @@ const Navbar = () => {
           <NavLink to="/barcode" className={linkClass} onClick={() => setMobileOpen(false)}>
             <FaBarcode className="admin-navbar__link-icon" aria-hidden />
             <span>Barcode</span>
-          </NavLink>
-          <NavLink to="/about" className={linkClass} onClick={() => setMobileOpen(false)}>
-            <FaInfoCircle className="admin-navbar__link-icon" aria-hidden />
-            <span>About</span>
           </NavLink>
         </>
       )}

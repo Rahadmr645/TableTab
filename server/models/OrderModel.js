@@ -71,7 +71,7 @@ const orderSchema = new mongoose.Schema({
   cardAmount: { type: Number, default: 0 },
   paymentStatus: {
     type: String,
-    enum: ["paid", "unpaid"],
+    enum: ["paid", "unpaid", "refunded"],
     default: "unpaid",
     index: true,
   },
@@ -103,6 +103,26 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  refundMethod: {
+    type: String,
+    enum: ["cash", "card", "split", "none"],
+    default: "none",
+  },
+  refundCashAmount: {
+    type: Number,
+    default: 0,
+  },
+  refundCardAmount: {
+    type: Number,
+    default: 0,
+  },
+  refundedItems: [
+    {
+      name: { type: String },
+      quantity: { type: Number },
+      price: { type: Number },
+    },
+  ],
   cancellationRequests: [
     {
       requestedBy: {
