@@ -166,16 +166,35 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
 
   const discountAmt = Number(order.discountAmount || (order.discountType === "fixed" ? order.discount : 0) || 0);
   const displaySubtotal = linesTotal > 0 ? linesTotal : total;
+  const refundedAmt = Number(order.refundedAmount) || 0;
+  const refundMethod = (order.refundMethod || "cash").toUpperCase();
+  const isFullRefund = order.paymentStatus === "refunded" || (order.status === "Cancelled" && refundedAmt > 0) || (refundedAmt >= total && total > 0);
+  const isPartialRefund = refundedAmt > 0 && !isFullRefund;
+  const netSettled = Math.max(0, total - refundedAmt);
 
   const rows = (order.items || [])
     .map((it) => {
       const q = Number(it?.quantity) || 0;
+      const refQ = Number(it?.refundedQuantity) || 0;
       const p = Number(it?.price) || 0;
       const lineAmt = q * p;
+      const itemIsFullyRefunded = refQ >= q && q > 0;
+      const itemIsPartiallyRefunded = refQ > 0 && refQ < q;
+
+      let refundTag = "";
+      if (itemIsFullyRefunded) {
+        refundTag = `<div style="font-size: 8px; color: #b91c1c; font-weight: 700;">[REFUNDED / مسترجع]</div>`;
+      } else if (itemIsPartiallyRefunded) {
+        refundTag = `<div style="font-size: 8px; color: #b91c1c; font-weight: 700;">[${refQ} REFUNDED / مسترجع ${refQ}]</div>`;
+      }
+
       return `<tr>
         <td class="tt-r-q">${q}</td>
-        <td class="tt-r-it">${escapeHtml(it?.name ?? "Item")}</td>
-        <td class="tt-r-pr">${fmtMoney(lineAmt)}</td>
+        <td class="tt-r-it">
+          <span style="${itemIsFullyRefunded ? 'text-decoration: line-through; color: #666;' : ''}">${escapeHtml(it?.name ?? "Item")}</span>
+          ${refundTag}
+        </td>
+        <td class="tt-r-pr" style="${itemIsFullyRefunded ? 'text-decoration: line-through; color: #666;' : ''}">${fmtMoney(lineAmt)}</td>
       </tr>`;
     })
     .join("");
@@ -203,6 +222,18 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
         : ""
     }
     <div class="tt-r-simp">Simplified tax invoice</div>
+    ${
+      isFullRefund
+        ? `<div class="tt-r-ordbox" style="border-color: #b91c1c; color: #b91c1c; padding: 6px 4px; margin: 4px 0 8px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">*** REFUNDED INVOICE ***</div>
+            <div style="font-size: 10px; font-weight: 700;">فاتورة مسترجعة بالكامل</div>
+          </div>`
+        : isPartialRefund
+        ? `<div class="tt-r-ordbox" style="border-color: #d97706; color: #b45309; padding: 4px; margin: 4px 0 8px;">
+            <div style="font-size: 10px; font-weight: 700;">PARTIAL REFUND APPLIED · مسترجع جزئياً</div>
+          </div>`
+        : ""
+    }
     <div class="tt-r-ordbox">
       <span class="tt-r-ordlb">ORDER NO.</span><br/>
       <span class="tt-r-ordno">${escapeHtml(orderDisplayNo(order))}</span>
@@ -214,7 +245,7 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
     <div class="tt-r-kv">${invoiceKv}</div>
     <div class="tt-r-kv">Type: Dine-in · Table ${escapeHtml(String(order.tableId ?? "—"))}</div>
     <div class="tt-r-kv">Payment Method: ${escapeHtml(methodLabel)}</div>
-    <div class="tt-r-kv">Payment Status: ${escapeHtml(statusLabel)}</div>
+    <div class="tt-r-kv">Payment Status: ${isFullRefund ? 'REFUNDED (مسترجع)' : isPartialRefund ? 'PAID (PARTIAL REFUND)' : escapeHtml(statusLabel)}</div>
     ${mismatch}
     <div class="tt-r-sep"></div>
     <table class="tt-r-tbl">
@@ -226,13 +257,29 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
       <tbody>${rows}</tbody>
     </table>
     <div class="tt-r-sep"></div>
-    <div class="tt-r-totrow"><span>Subtotal</span><span>${fmtMoney(displaySubtotal)} ﷼</span></div>
+    <div class="tt-r-totrow"><span>Subtotal (المجموع)</span><span>${fmtMoney(displaySubtotal)} ﷼</span></div>
     ${
       discountAmt > 0
-        ? `<div class="tt-r-totrow" style="color: #16a34a;"><span>Discount</span><span>-${fmtMoney(discountAmt)} ﷼</span></div>`
+        ? `<div class="tt-r-totrow" style="color: #16a34a;"><span>Discount (الخصم)</span><span>-${fmtMoney(discountAmt)} ﷼</span></div>`
         : ""
     }
-    <div class="tt-r-totrow tt-r-grand"><span>Total</span><span>${fmtMoney(total)} ﷼</span></div>
+    <div class="tt-r-totrow" style="font-weight: 700;"><span>Original Total (إجمالي الفاتورة)</span><span>${fmtMoney(total)} ﷼</span></div>
+    ${
+      refundedAmt > 0
+        ? `
+          <div class="tt-r-totrow" style="color: #b91c1c; font-weight: 700; border-top: 1px dashed #b91c1c; padding-top: 4px; margin-top: 4px;">
+            <span>↩️ Money Returned (${refundMethod})<br/><small style="font-size: 8px;">المبلغ المسترجع للعميل</small></span>
+            <span>-${fmtMoney(refundedAmt)} ﷼</span>
+          </div>
+          <div class="tt-r-totrow tt-r-grand" style="border-top: 1px solid #000;">
+            <span>Net Settled Total (الصافي النهائي)</span>
+            <span>${fmtMoney(netSettled)} ﷼</span>
+          </div>
+        `
+        : `
+          <div class="tt-r-totrow tt-r-grand"><span>Total (الإجمالي النهائي)</span><span>${fmtMoney(total)} ﷼</span></div>
+        `
+    }
     ${
       isSplit
         ? `
@@ -240,7 +287,7 @@ export async function buildReceiptRoot(order, printTime = new Date(), opts = {})
           <div class="tt-r-totrow" style="font-weight: 600;"><span>💳 Paid Card / Network</span><span>${fmtMoney(cardAmt)}</span></div>
         `
         : `
-          <div class="tt-r-totrow"><span>Payment (${escapeHtml(methodLabel)})</span><span>${escapeHtml(statusLabel)}</span></div>
+          <div class="tt-r-totrow"><span>Payment (${escapeHtml(methodLabel)})</span><span>${isFullRefund ? 'REFUNDED' : escapeHtml(statusLabel)}</span></div>
         `
     }
     <div class="tt-r-kv">Total units (qty sum): ${qtyTotal}</div>

@@ -40,6 +40,14 @@ const orderSchema = new mongoose.Schema({
       name: String,
       price: Number,
       quantity: Number,
+      refundedQuantity: {
+        type: Number,
+        default: 0,
+      },
+      refundedAmount: {
+        type: Number,
+        default: 0,
+      },
       cancelledQuantity: {
         type: Number,
         default: 0,

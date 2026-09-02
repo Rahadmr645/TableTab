@@ -46,11 +46,9 @@ body {
   font-family: "DM Sans", system-ui, sans-serif;
   color: var(--text);
   background-color: var(--bg-deep);
-  background-image: radial-gradient(
-      1200px 800px at 15% -10%,
+  background-image: radial-gradient(1200px 800px at 15% -10%,
       rgba(240, 180, 41, 0.14),
-      transparent 55%
-    ),
+      transparent 55%),
     radial-gradient(900px 600px at 95% 10%, rgba(45, 212, 191, 0.1), transparent 50%),
     radial-gradient(800px 500px at 50% 100%, rgba(99, 102, 241, 0.08), transparent 45%),
     linear-gradient(165deg, #07090e 0%, #0b1018 40%, #07090e 100%);
@@ -101,6 +99,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -176,5 +175,3 @@ body.rtl .my-orders-container {
 body.rtl .order-header {
   direction: rtl;
 }
-
-

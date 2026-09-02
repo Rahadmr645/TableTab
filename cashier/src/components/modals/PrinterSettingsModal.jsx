@@ -98,12 +98,16 @@ export default function PrinterSettingsModal() {
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: "480px",
+          width: "95%",
+          maxHeight: "90vh",
+          overflowY: "auto",
           textAlign: "start",
           padding: "24px",
           borderRadius: "20px",
           background: "var(--bg-card, #1e2430)",
           border: "1px solid var(--border-color, #333d4e)",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.6)"
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.6)",
+          boxSizing: "border-box"
         }}
       >
         {/* Header */}

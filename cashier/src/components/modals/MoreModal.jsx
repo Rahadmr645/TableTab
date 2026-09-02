@@ -88,7 +88,7 @@ export default function MoreModal() {
         style={{
           maxWidth: "520px",
           width: "95%",
-          maxHeight: "90vh",
+          maxHeight: "86vh",
           display: "flex",
           flexDirection: "column",
           borderRadius: "20px",
@@ -106,9 +106,10 @@ export default function MoreModal() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "18px 22px",
+          padding: "16px 20px",
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          background: "#182234"
+          background: "#182234",
+          flexShrink: 0
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{
@@ -160,10 +161,14 @@ export default function MoreModal() {
         <div style={{
           padding: "16px 20px",
           overflowY: "auto",
+          overflowX: "hidden",
           display: "flex",
           flexDirection: "column",
           gap: "12px",
-          flex: 1
+          flex: "1 1 auto",
+          minHeight: 0,
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch"
         }}>
 
           {/* ITEM 1: DAILY SALES & SHIFT REPORT (FOODICS FULL MODAL LAUNCHER) */}
@@ -183,7 +188,8 @@ export default function MoreModal() {
               justifyContent: "space-between",
               alignItems: "center",
               transition: "all 0.2s ease",
-              boxShadow: "0 4px 14px rgba(59, 130, 246, 0.15)"
+              boxShadow: "0 4px 14px rgba(59, 130, 246, 0.15)",
+              flexShrink: 0
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -243,7 +249,8 @@ export default function MoreModal() {
             borderRadius: "14px",
             border: expandedSection === "printer" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)",
             transition: "all 0.2s ease",
-            overflow: "hidden"
+            overflow: "hidden",
+            flexShrink: 0
           }}>
             {/* Header Row (Click to toggle) */}
             <div 
@@ -370,7 +377,8 @@ export default function MoreModal() {
             borderRadius: "14px",
             border: expandedSection === "terminal" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)",
             transition: "all 0.2s ease",
-            overflow: "hidden"
+            overflow: "hidden",
+            flexShrink: 0
           }}>
             <div 
               onClick={() => toggleSection("terminal")}
@@ -467,7 +475,8 @@ export default function MoreModal() {
             borderRadius: "14px",
             border: expandedSection === "language" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)",
             transition: "all 0.2s ease",
-            overflow: "hidden"
+            overflow: "hidden",
+            flexShrink: 0
           }}>
             {/* Header Row */}
             <div 
@@ -580,7 +589,8 @@ export default function MoreModal() {
             borderRadius: "14px",
             border: expandedSection === "staff" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)",
             transition: "all 0.2s ease",
-            overflow: "hidden"
+            overflow: "hidden",
+            flexShrink: 0
           }}>
             {/* Header Row */}
             <div 
@@ -707,7 +717,8 @@ export default function MoreModal() {
             borderRadius: "14px",
             border: expandedSection === "system" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)",
             transition: "all 0.2s ease",
-            overflow: "hidden"
+            overflow: "hidden",
+            flexShrink: 0
           }}>
             {/* Header Row */}
             <div 
@@ -846,7 +857,8 @@ export default function MoreModal() {
         <div style={{
           padding: "14px 20px",
           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-          background: "#182234"
+          background: "#182234",
+          flexShrink: 0
         }}>
           <button 
             type="button"

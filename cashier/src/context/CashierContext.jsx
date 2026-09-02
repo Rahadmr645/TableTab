@@ -141,6 +141,9 @@ export function CashierProvider({ children }) {
     return localStorage.getItem("cashier_auto_print") === "true";
   });
 
+  const isSubmittingOrderRef = useRef(false);
+  const isSendingKitchenRef = useRef(false);
+
   const [terminalConfig, setTerminalConfig] = useState(() => {
     try {
       const saved = localStorage.getItem("cashier_terminal_config");
@@ -903,7 +906,73 @@ export function CashierProvider({ children }) {
     });
   };
 
-  const handleNewOrder = (autoSaveCurrent = true) => {
+  const handleNewOrder = async (autoSaveCurrent = true) => {
+    if (autoSaveCurrent && cart.length > 0 && token) {
+      const payloadItems = cart.map((it) => ({
+        _id: it.product.id,
+        menuItemId: it.product.id,
+        name: lang === "ar" ? it.product.nameAr : it.product.nameEn,
+        price: it.product.price,
+        quantity: it.quantity,
+        note: it.note || ""
+      }));
+
+      try {
+        if (activeEditingOrderId && !String(activeEditingOrderId).startsWith("order_")) {
+          // Update existing open order on server
+          const res = await api.put(`/api/order/${activeEditingOrderId}`, {
+            customerName: customerName || (lang === "ar" ? "عميل صالة" : "Dine-in Customer"),
+            tableId: selectedTable || 1,
+            items: payloadItems,
+            totalPrice: grandTotal,
+            discount: orderDiscount,
+            discountAmount: discountAmount,
+            discountType: discountType,
+            discountReason: discountReason,
+            status: "In Progress",
+            paymentStatus: "unpaid"
+          });
+
+          const updated = res.data?.order;
+          if (updated) {
+            setPlacedOrders((prev) =>
+              prev.map((o) => (o._id === activeEditingOrderId ? updated : o))
+            );
+          }
+        } else {
+          // Persist as a new open unpaid order on server so it exists in orders list
+          const res = await api.post("/api/order/create-order", {
+            customerName: customerName || (lang === "ar" ? "عميل صالة" : "Dine-in Customer"),
+            tableId: selectedTable || 1,
+            items: payloadItems,
+            totalPrice: grandTotal,
+            discount: orderDiscount,
+            discountAmount: discountAmount,
+            discountType: discountType,
+            discountReason: discountReason,
+            paymentMethod: "cash",
+            cashAmount: 0,
+            cardAmount: 0,
+            paymentStatus: "unpaid",
+            status: "In Progress"
+          });
+
+          const serverOrder = res.data?.order;
+          if (serverOrder) {
+            setPlacedOrders((prev) => {
+              const exists = prev.some((o) => o._id === serverOrder._id);
+              if (exists) {
+                return prev.map((o) => (o._id === serverOrder._id ? serverOrder : o));
+              }
+              return [serverOrder, ...prev];
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-save open unpaid order error:", err);
+      }
+    }
+
     setActiveEditingOrderId(null);
     setCart([]);
     setCustomerName("");
@@ -915,7 +984,7 @@ export function CashierProvider({ children }) {
     setMobileView("catalog");
   };
 
-  const handleOpenOrder = (order) => {
+  const handleOpenOrder = (order, targetTab = null) => {
     if (!order) return;
     setActiveEditingOrderId(order._id);
     setCustomerName(order.customerName || "");
@@ -945,8 +1014,9 @@ export function CashierProvider({ children }) {
     });
 
     setCart(formattedCart);
-    setActiveTab("home");
-    setMobileView("catalog");
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
   };
 
   const handlePayOrderDirect = (order) => {
@@ -964,8 +1034,7 @@ export function CashierProvider({ children }) {
       return;
     }
 
-    handleOpenOrder(order);
-    setActiveTab("payment");
+    handleOpenOrder(order, "payment");
     setMobileView("catalog");
   };
 
@@ -973,8 +1042,10 @@ export function CashierProvider({ children }) {
   // Send to Kitchen (Open Unpaid Tab)
   // ----------------------------------------------------
   const handleSendToKitchen = async () => {
-    if (!cart.length) {
-      alert(lang === "ar" ? "السلة فارغة، يرجى إضافة أطباق أولاً" : "Cart is empty, please add items first");
+    if (!cart.length || isSendingKitchenRef.current) {
+      if (!cart.length) {
+        alert(lang === "ar" ? "السلة فارغة، يرجى إضافة أطباق أولاً" : "Cart is empty, please add items first");
+      }
       return;
     }
 
@@ -983,6 +1054,8 @@ export function CashierProvider({ children }) {
       setShowAuthModal(true);
       return;
     }
+
+    isSendingKitchenRef.current = true;
 
     const payloadItems = cart.map((it) => ({
       _id: it.product.id,
@@ -1040,7 +1113,13 @@ export function CashierProvider({ children }) {
 
       const serverOrder = res.data?.order;
       if (serverOrder) {
-        setPlacedOrders((prev) => [serverOrder, ...prev.filter((o) => o._id !== serverOrder._id)]);
+        setPlacedOrders((prev) => {
+          const exists = prev.some((o) => o._id === serverOrder._id);
+          if (exists) {
+            return prev.map((o) => (o._id === serverOrder._id ? serverOrder : o));
+          }
+          return [serverOrder, ...prev];
+        });
         alert(
           lang === "ar"
             ? `تم إنشاء الطلب #${serverOrder.dailyOrderNumber || ""} وإرساله للمطبخ بنجاح`
@@ -1061,6 +1140,8 @@ export function CashierProvider({ children }) {
         return;
       }
       alert(lang === "ar" ? `فشل إرسال الطلب: ${err.response?.data?.message || err.message}` : `Failed to send order: ${err.message}`);
+    } finally {
+      isSendingKitchenRef.current = false;
     }
   };
 
@@ -1173,7 +1254,7 @@ export function CashierProvider({ children }) {
   }, [currentTenant, lang, printerConfig]);
 
   const handleSubmitOrder = async (method = "cash", splitDetails = { cash: 0, card: 0 }) => {
-    if (!cart.length) return null;
+    if (!cart.length || isSubmittingOrderRef.current || isPaymentProcessing) return null;
 
     if (!token) {
       alert(
@@ -1185,6 +1266,7 @@ export function CashierProvider({ children }) {
       return null;
     }
 
+    isSubmittingOrderRef.current = true;
     setIsPaymentProcessing(true);
 
     const cashAmt = splitDetails.cash !== undefined && splitDetails.cash > 0 ? splitDetails.cash : (method === "cash" ? grandTotal : 0);
@@ -1271,7 +1353,13 @@ export function CashierProvider({ children }) {
 
       const serverOrder = res.data?.order;
       if (serverOrder) {
-        setPlacedOrders((prev) => [serverOrder, ...prev]);
+        setPlacedOrders((prev) => {
+          const exists = prev.some((o) => o._id === serverOrder._id);
+          if (exists) {
+            return prev.map((o) => (o._id === serverOrder._id ? serverOrder : o));
+          }
+          return [serverOrder, ...prev];
+        });
         setActivePrintOrder(serverOrder);
         setPaymentSuccessData(serverOrder);
 
@@ -1303,6 +1391,7 @@ export function CashierProvider({ children }) {
       return null;
     } finally {
       setIsPaymentProcessing(false);
+      isSubmittingOrderRef.current = false;
     }
   };
 

@@ -86,8 +86,12 @@ const Checkout = () => {
 
   const totalItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  const isSubmittingRef = useRef(false);
+
   const handleConfirmOrder = async (e) => {
     if (e) e.preventDefault();
+    if (loading || isSubmittingRef.current) return;
+
     const trimmedName = customerName.trim();
     const trimmedTable = tableId.toString().trim();
 
@@ -101,6 +105,7 @@ const Checkout = () => {
     }
 
     try {
+      isSubmittingRef.current = true;
       setLoading(true);
       await requestNotificationPermissionIfNeeded();
 
@@ -158,6 +163,7 @@ const Checkout = () => {
       console.error(error);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

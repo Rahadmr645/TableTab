@@ -12,7 +12,7 @@ import { getTenantStripe } from "../utils/stripeClient.js";
 
 import crypto from "crypto";
 import { getMenuNameToIdMap, resolveLineMenuId } from "../utils/resolveMenuLine.js";
-import { takeNextOrderNumbers } from "../utils/orderNumbers.js";
+import { takeNextOrderNumbers, getBusinessDayKey } from "../utils/orderNumbers.js";
 
 function tenantMatch(tenantId) {
   return { tenantId };
@@ -438,6 +438,16 @@ export const updateOrderStatus = async (req, res) => {
 
     const updateData = { status };
     const nextNorm = String(status || "").toLowerCase().replace(/\s+/g, "");
+
+    if (nextNorm === "cancelled") {
+      const currentDayKey = getBusinessDayKey();
+      if (prev.businessDay && prev.businessDay !== currentDayKey) {
+        return res.status(400).json({
+          message: `Cannot cancel order from closed business day (${prev.businessDay}). Only current business day (${currentDayKey}) orders can be cancelled.`
+        });
+      }
+    }
+
     if (nextNorm === "ready" && !prev.readyAt) {
       updateData.readyAt = new Date();
     }
@@ -813,20 +823,100 @@ export const refundOrder = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // 1. Closed Business Day check: Cannot refund orders from a closed business day
+    const currentDayKey = getBusinessDayKey();
+    if (order.businessDay && order.businessDay !== currentDayKey) {
+      return res.status(400).json({
+        message: `Cannot refund order from closed business day (${order.businessDay}). Only current business day (${currentDayKey}) orders can be refunded.`
+      });
+    }
+
     const currentRefunded = Number(order.refundedAmount) || 0;
     const maxRefundable = Math.max(0, (Number(order.totalPrice) || 0) - currentRefunded);
 
-    const effectiveRefundAmount =
-      Number(refundAmount) > 0
-        ? Math.min(Number(refundAmount), maxRefundable || Number(order.totalPrice) || 0)
-        : Number(order.totalPrice) || 0;
+    if (maxRefundable <= 0 || order.paymentStatus === "refunded") {
+      return res.status(400).json({
+        message: "This order has already been fully refunded."
+      });
+    }
+
+    // 2. Process item-level refunds
+    let calculatedItemRefundAmount = 0;
+    const newRefundedItemsList = [];
+
+    if (Array.isArray(refundedItems) && refundedItems.length > 0) {
+      for (const reqItem of refundedItems) {
+        const reqQty = Math.max(0, Number(reqItem.quantity) || 0);
+        if (reqQty <= 0) continue;
+
+        // Match item in order.items by itemId or name
+        const targetItem = (order.items || []).find(
+          it =>
+            (reqItem.itemId && String(it._id) === String(reqItem.itemId)) ||
+            (reqItem.menuItemId && String(it.menuItemId) === String(reqItem.menuItemId)) ||
+            (it.name && it.name === reqItem.name)
+        );
+
+        if (targetItem) {
+          const origQty = Math.max(1, Number(targetItem.quantity) || 1);
+          const alreadyRefundedQty = Number(targetItem.refundedQuantity) || 0;
+          const remainingQty = Math.max(0, origQty - alreadyRefundedQty);
+
+          const actualRefundQty = Math.min(reqQty, remainingQty);
+          if (actualRefundQty > 0) {
+            targetItem.refundedQuantity = alreadyRefundedQty + actualRefundQty;
+            const unitPrice = Number(targetItem.price) || Number(reqItem.price) || 0;
+            const itemRefundSum = actualRefundQty * unitPrice;
+            targetItem.refundedAmount = (Number(targetItem.refundedAmount) || 0) + itemRefundSum;
+            calculatedItemRefundAmount += itemRefundSum;
+
+            newRefundedItemsList.push({
+              name: targetItem.name || reqItem.name || "Item",
+              quantity: actualRefundQty,
+              price: unitPrice
+            });
+          }
+        } else {
+          const unitPrice = Number(reqItem.price) || 0;
+          calculatedItemRefundAmount += reqQty * unitPrice;
+          newRefundedItemsList.push({
+            name: reqItem.name || "Item",
+            quantity: reqQty,
+            price: unitPrice
+          });
+        }
+      }
+    }
+
+    // Apply proportional discount ratio if order had discount applied
+    let effectiveRefundAmount = 0;
+    if (calculatedItemRefundAmount > 0) {
+      const itemsGross = (order.items || []).reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+      const discountRatio = itemsGross > 0 ? (Number(order.totalPrice) || 0) / itemsGross : 1;
+      const discountedItemRefund = Math.round(calculatedItemRefundAmount * discountRatio * 100) / 100;
+      effectiveRefundAmount = Math.min(maxRefundable, discountedItemRefund);
+    } else if (Number(refundAmount) > 0) {
+      effectiveRefundAmount = Math.min(Number(refundAmount), maxRefundable);
+    } else {
+      effectiveRefundAmount = maxRefundable;
+    }
+
+    if (effectiveRefundAmount <= 0) {
+      return res.status(400).json({
+        message: "No refundable items or amount selected."
+      });
+    }
 
     const method = ["cash", "card"].includes(String(refundMethod).toLowerCase())
       ? String(refundMethod).toLowerCase()
       : (order.paymentMethod === "card" ? "card" : "cash");
 
     const newTotalRefunded = currentRefunded + effectiveRefundAmount;
-    const isFullRefund = newTotalRefunded >= (Number(order.totalPrice) || 0);
+
+    // Check if all items are fully refunded or total money fully refunded
+    const allItemsRefunded = (order.items || []).length > 0 &&
+      (order.items || []).every(it => (Number(it.refundedQuantity) || 0) >= (Number(it.quantity) || 1));
+    const isFullRefund = newTotalRefunded >= (Number(order.totalPrice) || 0) || allItemsRefunded;
 
     if (isFullRefund) {
       order.status = "Cancelled";
@@ -842,14 +932,10 @@ export const refundOrder = async (req, res) => {
       order.refundCardAmount = (Number(order.refundCardAmount) || 0) + effectiveRefundAmount;
     }
 
-    if (Array.isArray(refundedItems) && refundedItems.length > 0) {
+    if (newRefundedItemsList.length > 0) {
       order.refundedItems = [
         ...(order.refundedItems || []),
-        ...refundedItems.map(it => ({
-          name: it.name || it.nameAr || it.nameEn || "Item",
-          quantity: Number(it.quantity) || 1,
-          price: Number(it.price) || 0
-        }))
+        ...newRefundedItemsList
       ];
     }
 
@@ -880,7 +966,7 @@ export const refundOrder = async (req, res) => {
     io.to(`tenant:${tid}`).emit("orderUpdated", savedOrder.toObject());
 
     res.status(200).json({
-      message: "Order refunded and cancelled successfully",
+      message: "Order refunded successfully",
       order: savedOrder,
     });
   } catch (error) {

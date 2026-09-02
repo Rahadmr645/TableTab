@@ -319,6 +319,74 @@
   opacity: 0.6;
 }
 
+.refund-closed-day-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #991b1b;
+}
+
+.refund-closed-day-banner .closed-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.refund-closed-day-banner .closed-text strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.refund-closed-day-banner .closed-text p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b91c1c;
+}
+
+.refund-fully-done-banner {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refund-item-card.fully-refunded {
+  opacity: 0.55;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.item-badge-refunded {
+  display: inline-block;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.item-badge-partial {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
 .refund-item-info {
   display: flex;
   flex-direction: column;

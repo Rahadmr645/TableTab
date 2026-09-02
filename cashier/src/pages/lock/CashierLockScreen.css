@@ -15,16 +15,16 @@
 .lock-screen-card {
   width: 100%;
   max-width: 380px;
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-radius: 28px;
   padding: 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: lockFadeIn 0.3s ease-out;
 }
 

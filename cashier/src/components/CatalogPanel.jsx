@@ -205,8 +205,8 @@ export default function CatalogPanel() {
             <span className="action-btn-icon">🕒</span>
             <span className="action-btn-label">{t.activity}</span>
           </button>
-          <button 
-            className={`action-btn ${orderDiscount > 0 ? "active-discount" : ""}`} 
+          <button
+            className={`action-btn ${orderDiscount > 0 ? "active-discount" : ""}`}
             onClick={() => setShowDiscountModal(true)}
             style={orderDiscount > 0 ? { border: "1px solid #4ade80", background: "rgba(74, 222, 128, 0.15)", color: "#4ade80" } : {}}
             title={orderDiscount > 0 ? (lang === "ar" ? "خصم مفعل على الطلب" : "Active Discount") : (lang === "ar" ? "تطبيق خصم" : "Apply Discount")}
@@ -898,8 +898,8 @@ function PaymentMethodsView() {
             <span className="payment-method-card-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               💳 {lang === "ar" ? "جهاز مدى / POS Terminal" : "Mada POS Terminal"}
             </span>
-            <div 
-              className="terminal-status-group" 
+            <div
+              className="terminal-status-group"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowTerminalModal(true);
@@ -907,7 +907,7 @@ function PaymentMethodsView() {
               title={lang === "ar" ? "إعدادات وفحص الـ IP لجهاز مدى" : "Configure & Test Terminal IP"}
               style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
             >
-              <span 
+              <span
                 className="terminal-status-text"
                 style={{
                   color: terminalHealth === "connected"
@@ -922,12 +922,12 @@ function PaymentMethodsView() {
                 }}
               >
                 ● {terminalHealth === "connected"
-                    ? (lang === "ar" ? `متصل (${terminalConfig?.ip})` : `Connected (${terminalConfig?.ip})`)
-                    : terminalHealth === "demo"
-                      ? (lang === "ar" ? "وضع تجريبي (Demo)" : "Demo Mode")
-                      : terminalHealth === "checking"
-                        ? (lang === "ar" ? "جاري الفحص..." : "Checking...")
-                        : (lang === "ar" ? `غير متصل (${terminalConfig?.ip || "انقر للربط"})` : `Disconnected (${terminalConfig?.ip || "Setup"})`)}
+                  ? (lang === "ar" ? `متصل (${terminalConfig?.ip})` : `Connected (${terminalConfig?.ip})`)
+                  : terminalHealth === "demo"
+                    ? (lang === "ar" ? "وضع تجريبي (Demo)" : "Demo Mode")
+                    : terminalHealth === "checking"
+                      ? (lang === "ar" ? "جاري الفحص..." : "Checking...")
+                      : (lang === "ar" ? `غير متصل (${terminalConfig?.ip || "انقر للربط"})` : `Disconnected (${terminalConfig?.ip || "Setup"})`)}
               </span>
               <button
                 type="button"

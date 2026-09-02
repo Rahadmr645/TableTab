@@ -81,15 +81,15 @@ export default function CartPanel() {
             </button>
           </div>
         )}
-        
+
         {/* Header Top Controls */}
         <div className="cart-header-top-controls">
           <span className={`status-pill ${isOrderRefunded ? "refunded-status" : isOrderPaid ? "paid-status" : "active-status"}`}>
             {isOrderRefunded
               ? (lang === "ar" ? "مسترجع" : "REFUNDED")
               : isOrderPaid
-              ? (lang === "ar" ? "مدفوع" : "PAID")
-              : (t.active || "نشط")}
+                ? (lang === "ar" ? "مدفوع" : "PAID")
+                : (t.active || "نشط")}
           </span>
           <span className="order-num-box" onClick={() => !isOrderLocked && setShowTableModal(true)}>
             {selectedTable || 25}
@@ -97,7 +97,7 @@ export default function CartPanel() {
           <button className="order-type-btn-pill" onClick={() => !isOrderLocked && setShowTableModal(true)}>
             {t.dineIn}
           </button>
-          
+
           {/* Three-dots order actions dropdown menu */}
           <div className="order-more-menu-wrapper" ref={orderMenuRef}>
             <button
@@ -254,7 +254,7 @@ export default function CartPanel() {
         {discountAmount > 0 && (
           <div className="bill-row discount" style={{ color: "#4ade80", fontWeight: "700" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span 
+              <span
                 onClick={() => !isOrderPaid && setShowDiscountModal(true)}
                 style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
                 title={lang === "ar" ? "تعديل الخصم" : "Edit discount"}
@@ -303,7 +303,7 @@ export default function CartPanel() {
           <span>{t.total}</span>
           <span>{grandTotal.toFixed(2)} ﷼</span>
         </div>
-        
+
         {isOrderRefunded ? (
           <div className="refunded-order-locked-notice">
             <span>↩️ {lang === "ar" ? `هذا الطلب مسترجع بالكامل (${refMethod === "CASH" ? "كاش" : "شبكة"}) ولا يمكن سداده ثانية` : `Order fully refunded (${refMethod}) — cannot be paid again`}</span>
@@ -313,9 +313,9 @@ export default function CartPanel() {
             <span>🚫 {lang === "ar" ? "هذا الطلب ملغي" : "This order is cancelled"}</span>
           </div>
         ) : !isOrderLocked && activeTab !== "payment" && (
-          <button 
-            className="pay-action-btn" 
-            disabled={cart.length === 0} 
+          <button
+            className="pay-action-btn"
+            disabled={cart.length === 0}
             onClick={() => {
               setActiveTab("payment");
               setMobileView("catalog");
